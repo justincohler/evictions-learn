@@ -1,4 +1,5 @@
 # Evictions-specific
+.DS_Store
 secrets.json
 
 # Byte-compiled / optimized / DLL files
