@@ -12,7 +12,11 @@ conn = psycopg2.connect(database="evictions", user=env['db_user'], password=env[
 cur = conn.cursor()
 
 # Drop the TABLE
-cur.execute("DROP TABLE evictions.blockgroup;")
+try:
+    cur.execute("DROP TABLE evictions.blockgroup;")
+    conn.commmit()
+except:
+    pass
 
 # Create the TABLE
 create_table_block_group = """CREATE TABLE evictions.blockgroup
@@ -49,8 +53,6 @@ create_table_block_group = """CREATE TABLE evictions.blockgroup
 
 cur.execute(create_table_block_group)
 
-conn.commit()
-
 # INSERT all rows from dump
 insert_stmnt = """INSERT INTO  evictions.blockgroup(
 state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
@@ -68,21 +70,17 @@ VALUES (
     );
 """
 
-with open('C:/Users/Justin Cohler/output.csv', 'r') as f:
-    reader = csv.reader(f)
-    next(reader)  # Skip the header row.
-    count = 50
-    for row in reader:
-        if count > 0:
-            count = count -1
-        else:
-            break
-        row = [x if x != '' else None for x in row]
-        row[-2] = False if '0' else True
-        row[-1] = False if '0' else True
+with open('C:/Users/Justin Cohler/output-test.csv', 'r') as f:
+    #reader = csv.reader(f)
+    #next(reader)  # Skip the header row.
+    copy_sql = """COPY evictions.blockgroup(
+    state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
+    median_gross_rent, median_household_income, median_property_value, rent_burden,
+    pct_white, pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple,
+    pct_other, renter_occupied_households, eviction_filings, evictions, eviction_rate,
+    eviction_filing_rate, imputed, subbed)
+    FROM stdin WITH CSV HEADER DELIMITER as ','
+    """
+    cur.copy_expert(sql=copy_sql, file=f)
 
-        cur.execute(
-            insert_stmnt,
-            tuple(row)
-        )
 conn.commit()
