@@ -9,11 +9,12 @@ class TestConnections(unittest.TestCase):
 
     def test_db_connection(self):
         """Test connection to DB."""
-        here = os.path.dirname(__file__)
-        secrets_path = os.path.join(here, '../resources/secrets.json')
-        env = json.load(open(secrets_path))
-
-        conn = psycopg2.connect(database="evictions", user=env['db_user'], password=env['db_password'], host=env['db_host'], port=env['db_port'], options=f'-c search_path=evictions')
+        conn = psycopg2.connect(database="evictions"
+                                , user=os.environ['DB_USER']
+                                , password=os.environ['DB_PASSWORD']
+                                , host=os.environ['DB_HOST']
+                                , port=os.environ['DB_PORT']
+                                , options=f'-c search_path=evictions')
         cur = conn.cursor()
 
 if __name__ == "__main__":
