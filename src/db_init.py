@@ -51,7 +51,16 @@ create_table_block_group = """CREATE TABLE evictions.blockgroup
   subbed BOOLEAN
 );"""
 
+idx_state_year = "CREATE INDEX idx_state_year ON evictions.blockgroup (state, year);"
+idx_year = "CREATE INDEX idx_year ON evictions.blockgroup (year);"
+idx_state = "CREATE INDEX idx_state ON evictions.blockgroup (state);"
+idx_evictions = "CREATE INDEX idx_evictions ON evictions.blockgroup(evictions);"
+
 cur.execute(create_table_block_group)
+cur.execute(idx_state_year)
+cur.execute(idx_year)
+cur.execute(idx_state)
+cur.execute(idx_evictions)
 
 # INSERT all rows from dump
 with open('C:/Users/Justin Cohler/output.csv', 'r') as f:
