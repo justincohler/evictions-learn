@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export DB_USER=<YOUR_USER>
-export DB_PASSWORD=<YOUR_PASSWORD>
-export DB_HOST=<YOUR_HOST>
-export DB_PORT=<YOUR_PORT>
+export DB_USER='ev_user'
+export DB_PASSWORD='alenaclairejustin'
+export DB_HOST='evictions.cuvbjnrvbddj.us-east-1.rds.amazonaws.com'
+export DB_PORT='5432'
