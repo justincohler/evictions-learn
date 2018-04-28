@@ -5,7 +5,7 @@ import os
 
 # Create the main database table
 here = os.path.dirname(__file__)
-secrets_path = os.path.join(here, 'secrets.json')
+secrets_path = os.path.join(here, '../resources/secrets.json')
 env = json.load(open(secrets_path))
 
 conn = psycopg2.connect(database="evictions", user=env['db_user'], password=env['db_password'], host=env['db_host'], port=env['db_port'], options=f'-c search_path=evictions')
@@ -54,7 +54,7 @@ create_table_block_group = """CREATE TABLE evictions.blockgroup
 cur.execute(create_table_block_group)
 
 # INSERT all rows from dump
-with open('C:/Users/Justin Cohler/output-test.csv', 'r') as f:
+with open('C:/Users/Justin Cohler/output.csv', 'r') as f:
     copy_sql = """COPY evictions.blockgroup(
     state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
     median_gross_rent, median_household_income, median_property_value, rent_burden,
