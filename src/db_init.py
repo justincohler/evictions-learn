@@ -10,7 +10,8 @@ def db_connect():
     if 'DB_USER' not in os.environ:
         resources_dir = os.path.dirname(__file__)
         secrets_file = os.path.join(resources_dir, '../resources/secrets.json')
-        env = json.load(secrets_file)
+        with open(secrets_file) as f:
+            env = json.load(f)
         DB_USER = env['DB_USER']
         DB_PASSWORD = env['DB_PASSWORD']
         DB_HOST = env['DB_HOST']
