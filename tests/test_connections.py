@@ -10,7 +10,7 @@ class TestConnections(unittest.TestCase):
 
     def test_db_connection(self):
         """Test connection to DB."""
-        cur = db_connect()
+        cur,_= db_connect()
         cur.execute("select distinct state from evictions.blockgroup;")
         l = cur.fetchall()
         self.assertIsNotNone(l)
