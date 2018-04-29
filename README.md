@@ -8,7 +8,7 @@ This research uses data from The Eviction Lab at Princeton University, a project
 
 ## Setup
 * Fill in the template in src/set_env.sh with your database credentials and host details.
-* Run `sudo set_env.sh` on the command line. You should only need to do this once.
+* Run `sudo sh set_env.sh` on the command line. You should only need to do this once.
 * Run `pip install -r requirements.txt` in the top level of the repository.
 * Run `python setup.py install`.
 * Run `pytest -s` to run the test suite. If the tests pass, then you're successfully connected to the database!
