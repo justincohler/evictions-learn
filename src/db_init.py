@@ -4,24 +4,38 @@ import csv
 import psycopg2
 import os
 
+
 def db_connect():
 
+    if 'DB_USER' not in os.environ:
+        resources_dir = os.path.dirname(__file__)
+        secrets_file = os.path.join(resources_dir, '../resources/secrets.json')
+        env = json.load(secrets_file)
+        DB_USER = env['DB_USER']
+        DB_PASSWORD = env['DB_PASSWORD']
+        DB_HOST = env['DB_HOST']
+        DB_PORT = env['DB_PORT']
+    else:
+        DB_USER = os.environ['DB_USER']
+        DB_PASSWORD = os.environ['DB_PASSWORD']
+        DB_HOST = os.environ['DB_HOST']
+        DB_PORT = os.environ['DB_PORT']
+
     conn = psycopg2.connect(database="evictions"
-                            , user=os.environ['DB_USER']
-                            , password=os.environ['DB_PASSWORD']
-                            , host=os.environ['DB_HOST']
-                            , port=os.environ['DB_PORT']
+                            , user= DB_USER
+                            , password=DB_PASSWORD
+                            , host=DB_HOST
+                            , port=DB_PORT
                             , options=f'-c search_path=evictions')
     cur = conn.cursor()
 
-    return cur
+    return cur, conn
 
 def db_init():
-    cur = db_connect()
+    cur,_ = db_connect()
     # Drop the TABLE
     try:
         cur.execute("DROP TABLE evictions.blockgroup;")
-        conn.commmit()
     except:
         pass
 
@@ -34,26 +48,26 @@ def db_init():
       year SMALLINT,
       name VARCHAR(10),
       parent_location VARCHAR(100),
-      population DECIMAL,
-      poverty_rate DECIMAL,
-      pct_renter_occupied DECIMAL,
-      median_gross_rent DECIMAL,
-      median_household_income DECIMAL,
-      median_property_value	DECIMAL,
-      rent_burden	DECIMAL,
-      pct_white	DECIMAL,
-      pct_af_am DECIMAL,
-      pct_hispanic DECIMAL,
-      pct_am_ind DECIMAL,
-      pct_asian DECIMAL,
-      pct_nh_pi DECIMAL,
-      pct_multiple DECIMAL,
-      pct_other DECIMAL,
-      renter_occupied_households DECIMAL,
-      eviction_filings DECIMAL,
-      evictions DECIMAL,
-      eviction_rate DECIMAL,
-      eviction_filing_rate DECIMAL,
+      population NUMERIC,
+      poverty_rate NUMERIC,
+      pct_renter_occupied NUMERIC,
+      median_gross_rent NUMERIC,
+      median_household_income NUMERIC,
+      median_property_value	NUMERIC,
+      rent_burden	NUMERIC,
+      pct_white	NUMERIC,
+      pct_af_am NUMERIC,
+      pct_hispanic NUMERIC,
+      pct_am_ind NUMERIC,
+      pct_asian NUMERIC,
+      pct_nh_pi NUMERIC,
+      pct_multiple NUMERIC,
+      pct_other NUMERIC,
+      renter_occupied_households NUMERIC,
+      eviction_filings NUMERIC,
+      evictions NUMERIC,
+      eviction_rate NUMERIC,
+      eviction_filing_rate NUMERIC,
       imputed	BOOLEAN,
       subbed BOOLEAN
     );"""
@@ -80,8 +94,6 @@ def db_init():
         FROM stdin WITH CSV HEADER DELIMITER as ','
         """
         cur.copy_expert(sql=copy_sql, file=f)
-
-    conn.commit()
 
 if __name__=="__main__":
     db_init()
