@@ -33,7 +33,7 @@ def db_connect():
     return cur, conn
 
 def db_init():
-    cur,_ = db_connect()
+    cur,conn = db_connect()
     # Drop the TABLE
     try:
         cur.execute("DROP TABLE evictions.blockgroup;")
@@ -49,26 +49,26 @@ def db_init():
       year SMALLINT,
       name VARCHAR(10),
       parent_location VARCHAR(100),
-      population NUMERIC,
-      poverty_rate NUMERIC,
-      pct_renter_occupied NUMERIC,
-      median_gross_rent NUMERIC,
-      median_household_income NUMERIC,
-      median_property_value	NUMERIC,
-      rent_burden	NUMERIC,
-      pct_white	NUMERIC,
-      pct_af_am NUMERIC,
-      pct_hispanic NUMERIC,
-      pct_am_ind NUMERIC,
-      pct_asian NUMERIC,
-      pct_nh_pi NUMERIC,
-      pct_multiple NUMERIC,
-      pct_other NUMERIC,
-      renter_occupied_households NUMERIC,
-      eviction_filings NUMERIC,
-      evictions NUMERIC,
-      eviction_rate NUMERIC,
-      eviction_filing_rate NUMERIC,
+      population FLOAT,
+      poverty_rate FLOAT,
+      pct_renter_occupied FLOAT,
+      median_gross_rent FLOAT,
+      median_household_income FLOAT,
+      median_property_value	FLOAT,
+      rent_burden	FLOAT,
+      pct_white	FLOAT,
+      pct_af_am FLOAT,
+      pct_hispanic FLOAT,
+      pct_am_ind FLOAT,
+      pct_asian FLOAT,
+      pct_nh_pi FLOAT,
+      pct_multiple FLOAT,
+      pct_other FLOAT,
+      renter_occupied_households FLOAT,
+      eviction_filings FLOAT,
+      evictions FLOAT,
+      eviction_rate FLOAT,
+      eviction_filing_rate FLOAT,
       imputed	BOOLEAN,
       subbed BOOLEAN
     );"""
@@ -76,15 +76,23 @@ def db_init():
     idx_state_year = "CREATE INDEX idx_state_year ON evictions.blockgroup (state, year);"
     idx_year = "CREATE INDEX idx_year ON evictions.blockgroup (year);"
     idx_state = "CREATE INDEX idx_state ON evictions.blockgroup (state);"
-    idx_evictions = "CREATE INDEX idx_evictions ON evictions.blockgroup(evictions);"
+    idx_evictions = "CREATE INDEX idx_evictions ON evictions.blockgroup (evictions);"
 
+
+    print("Creating table...")
     cur.execute(create_table_block_group)
+    print("Creating indexes...")
     cur.execute(idx_state_year)
     cur.execute(idx_year)
     cur.execute(idx_state)
     cur.execute(idx_evictions)
 
+    conn.commit()
+    print("Tables & indexes committed.")
+
     # INSERT all rows from dump
+    print("\n\nCopying CSV data to evictions db...")
+
     with open('C:/Users/Justin Cohler/output.csv', 'r') as f:
         copy_sql = """COPY evictions.blockgroup(
         state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
@@ -95,6 +103,9 @@ def db_init():
         FROM stdin WITH CSV HEADER DELIMITER as ','
         """
         cur.copy_expert(sql=copy_sql, file=f)
+
+    conn.commit()
+    print("Committed records.")
 
 if __name__=="__main__":
     db_init()
