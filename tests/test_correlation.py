@@ -9,7 +9,8 @@ class TestCorrelation(unittest.TestCase):
         self.cur,self.conn = db_connect()
 
     def test_correlation_matrix(self):
+        plt.ioff()
         plot_corr(self.cur)
-        
+
 if __name__=="__main__":
     unittest.main()
