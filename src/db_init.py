@@ -107,5 +107,32 @@ def db_init():
     conn.commit()
     print("Committed records.")
 
+def geo_init():
+    if 'DB_USER' not in os.environ:
+        resources_dir = os.path.dirname(__file__)
+        secrets_file = os.path.join(resources_dir, '../resources/secrets.json')
+        with open(secrets_file) as f:
+            env = json.load(f)
+        DB_USER = env['DB_USER']
+    else:
+        DB_USER = os.environ['DB_USER']
+
+    cur,conn = db_connect()
+    cur.execute("CREATE EXTENSION postgis;")
+    cur.execute("create extension fuzzystrmatch;")
+    cur.execute("CREATE FUNCTION exec(text) returns text language plpgsql volatile AS $f$ BEGIN EXECUTE $1; RETURN $1; END; $f$;")
+    permission_str = "ALTER TABLE spatial_ref_sys OWNER TO {};".format(DB_USER)
+    cur.execute(permission_str)
+    cur.execute('''INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) values ( 102003, 'esri', 102003, '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs ', 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["longitude_of_center",-96],PARAMETER["Standard_Parallel_1",29.5],PARAMETER["Standard_Parallel_2",45.5],PARAMETER["latitude_of_center",37.5],UNIT["Meter",1],AUTHORITY["EPSG","102003"]]');''')
+    conn.commit()
+
+    #"-U username --password -p 5432 -h reallylonghostnametoamazonaws.com dbname"
+
+
+def census_shp(geography):
+	shp_read = "shp2pgsql -s 102003:4326  data/tl_2010_us_{}10.shp public.census_{}_shp | psql -d {}".format(geography, 
+        geography, 'evictions')
+	os.system(shp_read)
+
 if __name__=="__main__":
     db_init()
