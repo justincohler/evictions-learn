@@ -26,6 +26,7 @@ class Neighbors(Pipeline):
         """
         return data.fillna(data.mean())
 
+    # TODO - GRAB THIS
     def discretize(self, data, field, bins=None, labels=None):
         """Return a discretized Series of the given field."""
         if not bins and not labels:

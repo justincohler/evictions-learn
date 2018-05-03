@@ -11,13 +11,13 @@ def read_data(file_path):
         file_path (str): file path for location of csv file
     Returns:
         pandas dataframe
-        
+
     '''
     return pd.read_csv(file_path)
 
 def dist_table(data_frame):
     '''
-    Function to create a table showing the distribution of each variable in a 
+    Function to create a table showing the distribution of each variable in a
     pandas data frame
     Input:
         data_frame (pandas dataframe)
@@ -47,8 +47,8 @@ def outliers_plot(data_frame):
         grid of box plots for each variable in dataframe
     '''
     plt.rcParams['figure.figsize'] = 16, 12
-    data_frame.plot(kind='box', subplots=True, 
-        layout=(4, math.ceil(len(data_frame.columns)/4)), 
+    data_frame.plot(kind='box', subplots=True,
+        layout=(4, math.ceil(len(data_frame.columns)/4)),
         sharex=False, sharey=False)
     plt.show()
 
@@ -60,13 +60,13 @@ def corr_table(data_frame):
     Input:
         data_frame (pandas dataframe)
     Returns:
-        corr_table(pandas dataframe): dataframe of pairwise variable correlations 
+        corr_table(pandas dataframe): dataframe of pairwise variable correlations
     '''
     return data_frame.corr(method = 'pearson')
 
 def plot_y_corr(corr_table, y):
     '''
-    Produces a bar plot showing the correlation of each variable with the 
+    Produces a bar plot showing the correlation of each variable with the
     dependent variable
 
     Inputs:
@@ -106,10 +106,9 @@ def plot_corr_matrix(corr_table):
     ax.set_yticks(ticks)
     ax.set_xticklabels(names,  rotation = 90)
     ax.set_yticklabels(names)
-    
+
     plt.show()
-    
-   
+
 def plot_by_class(data_frame, y):
     '''
     Produces plots for each variable in the dataframe showing distribution by
@@ -130,4 +129,3 @@ def plot_by_class(data_frame, y):
         plt.title(v)
         plt.legend([0,1])
         plt.show()
-

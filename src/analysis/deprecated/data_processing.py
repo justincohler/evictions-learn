@@ -80,10 +80,9 @@ def check_correlations(df):
 	'''
 	return df.corr()
 
-
 def find_high_corr(corr_matrix, threshold, predictor_var):
 	'''
-	Find all variables that are highly correlated with the predictor and thus 
+	Find all variables that are highly correlated with the predictor and thus
 	likely candidates to exclude
 
 	Inputs
@@ -92,7 +91,7 @@ def find_high_corr(corr_matrix, threshold, predictor_var):
 	- predictor_var (str): Predictor variable
 
 	Returns list of variables highly correlated with the predictor_var
-	''' 
+	'''
 	return corr_matrix[corr_matrix[predictor_var] > threshold].index
 
 def plot_correlations(df, x, y, hue = None, fitreg = False):
@@ -177,7 +176,7 @@ def continuous_to_cat(df, var_of_interest, bins = 10, labels = False):
 	- df (DataFrame): Dataset of interest
 	- var_of_interest (str): variable to categorize
 	- bins (int): Number of bins to separate data into
-	- labels (bool): Indications whether data should be shown as a range or 
+	- labels (bool): Indications whether data should be shown as a range or
 	numerical value
 
 	Returns an updated dataframe
@@ -191,16 +190,16 @@ def build_knn(num_neighbors, weights = None, metric = None, metric_params=None):
 	Build a k nearest neighbor classifier using sklearn functionality
 
 	Inputs:
-	- num_neighbors (int): number of neighbors 
+	- num_neighbors (int): number of neighbors
 	- weights (str): How to weight the neighbors
 	- metric (str): distance function to use to evaluate neighbors
 	- metric_params (dict): specify additional metric parameters as needed
 
 	Returns a classifier
 	'''
-	model = KNeighborsClassifier(n_neighbors=num_neighbors, weights=weights, 
+	model = KNeighborsClassifier(n_neighbors=num_neighbors, weights=weights,
 		metric=metric, metric_params=metric_params)
-	
+
 	return model
 
 def build_tree():
@@ -219,9 +218,9 @@ def proba_wrap(model, x_data, predict = False, threshold = 0.5):
 #### EVALUATE CLASSIFIER ####
 def check_accuracy(y_actual, y_predict):
 	'''
-	Check accuracy of a prediction 
+	Check accuracy of a prediction
 
-	Inputs: 
+	Inputs:
 	- y_actual (Series): Actual predictor values from original dataset
 	- y_predict (Series): Predicted values produced by classifier
 
@@ -232,9 +231,9 @@ def check_accuracy(y_actual, y_predict):
 
 def precision(y_actual, y_predict):
 	'''
-	Check precision of a prediction 
+	Check precision of a prediction
 
-	Inputs: 
+	Inputs:
 	- y_actual (Series): Actual predictor values from original dataset
 	- y_predict (Series): Predicted values produced by classifier
 
@@ -247,25 +246,24 @@ def confusion_matrix(y_actual, y_predict):
 	'''
 	Build confusion matrix based on actual and predicted values
 
-	Inputs: 
+	Inputs:
 	- y_actual (Series): Actual predictor values from original dataset
 	- y_predict (Series): Predicted values produced by classifier
 
 	Returns a confusion matrix
 	'''
-	return metrics.confusion_matrix(y_actual, y_predict, labels=None, 
+	return metrics.confusion_matrix(y_actual, y_predict, labels=None,
 		sample_weight=None)
 
-
-def knn_evaluation_matrix(k_range, x_train, y_train, x_test, y_test, 
-	metrics = ['minkowski','euclidean', 'manhattan'], 
+def knn_evaluation_matrix(k_range, x_train, y_train, x_test, y_test,
+	metrics = ['minkowski','euclidean', 'manhattan'],
 	weight_funcs = ['uniform', 'distance']):
 	'''
 	Evaluate models with a variety of different parameters
 
 	Returns a dataframe
 	'''
-	df = pd.DataFrame(columns = ['num_neighbors', 'metric', 
+	df = pd.DataFrame(columns = ['num_neighbors', 'metric',
 		'weighting_function', 'training_acc', 'test_acc', 'train_confusion', 'test_confusion'])
 	i = 0
 
@@ -286,5 +284,3 @@ def knn_evaluation_matrix(k_range, x_train, y_train, x_test, y_test,
 	            i += 1
 
 	return df
-
-
