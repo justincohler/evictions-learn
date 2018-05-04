@@ -114,12 +114,22 @@ def geo_init():
         with open(secrets_file) as f:
             env = json.load(f)
         DB_USER = env['DB_USER']
+        DB_PASSWORD = env['DB_PASSWORD']
+        DB_HOST = env['DB_HOST']
+        DB_PORT = env['DB_PORT']
     else:
         DB_USER = os.environ['DB_USER']
+        DB_PASSWORD = os.environ['DB_PASSWORD']
+        DB_HOST = os.environ['DB_HOST']
+        DB_PORT = os.environ['DB_PORT']
 
     cur,conn = db_connect()
+    cur.execute("set schema 'evictions';")
     cur.execute("CREATE EXTENSION postgis;")
     cur.execute("create extension fuzzystrmatch;")
+    cur.execute("create extension postgis_tiger_geocoder;")
+    cur.execute("create extension postgis_topology;")
+    cur.execute("drop function if exists exec(text);")
     cur.execute("CREATE FUNCTION exec(text) returns text language plpgsql volatile AS $f$ BEGIN EXECUTE $1; RETURN $1; END; $f$;")
     permission_str = "ALTER TABLE spatial_ref_sys OWNER TO {};".format(DB_USER)
     cur.execute(permission_str)
@@ -130,9 +140,45 @@ def geo_init():
 
 
 def census_shp(geography):
-	shp_read = "shp2pgsql -s 102003:4326  data/tl_2010_us_{}10.shp public.census_{}_shp | psql -d {}".format(geography, 
-        geography, 'evictions')
-	os.system(shp_read)
+    if 'DB_USER' not in os.environ:
+        resources_dir = os.path.dirname(__file__)
+        secrets_file = os.path.join(resources_dir, '../resources/secrets.json')
+        with open(secrets_file) as f:
+            env = json.load(f)
+        DB_USER = env['DB_USER']
+        DB_PASSWORD = env['DB_PASSWORD']
+        DB_HOST = env['DB_HOST']
+        DB_PORT = env['DB_PORT']
+    else:
+        DB_USER = os.environ['DB_USER']
+        DB_PASSWORD = os.environ['DB_PASSWORD']
+        DB_HOST = os.environ['DB_HOST']
+        DB_PORT = os.environ['DB_PORT']
+    shp_read = "shp2pgsql -s 102003:4326  data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}".format(geography, geography, geography,'evictions', DB_USER, 
+        DB_PASSWORD, DB_PORT, DB_HOST)
+    os.system(shp_read)
+
+def group_by_state():
+    create = '''CREATE TABLE evictions_state (state CHAR(2),
+       stusps10 char(2), 
+       year SMALLINT,
+       sum_evict FLOAT,
+       avg_evict_rate float8,
+       geom geometry);'''
+
+    insert = '''INSERT INTO evictions.evictions_state (state, stusps10, year, sum_evict, avg_evict_rate, geom)
+                SELECT state, stusps10, year, sum_evict, avg_evict_rate, geom from (
+                    SELECT state, year, sum(evictions) as sum_evict, avg(eviction_rate) as avg_evict_rate
+                    FROM evictions.blockgroup
+                    GROUP BY state, year
+                    ) as t1
+                    JOIN (SELECT stusps10, geom FROM evictions.census_state_shp) as t2 ON t1.state = t2.stusps10;'''
+
+    cur,conn = db_connect()
+    cur.execute(create)
+    cur.execute(insert)
+    conn.commit()
+    cur.close()
 
 if __name__=="__main__":
     db_init()
