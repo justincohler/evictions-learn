@@ -36,6 +36,9 @@ class DBClient():
 
         logger.info("Connected to evictions DB.")
         self.conn = conn
+        with self.conn.cursor() as cur:
+            cur.execute(db_statements.SET_SCHEMA)
+            
         atexit.register(self.exit)
 
     def write(self, statements, values=None):
