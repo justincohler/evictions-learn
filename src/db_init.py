@@ -1,7 +1,7 @@
 import os
 import logging
-from db_client import DBClient
-import db_statements
+from src.db_client import DBClient
+import src.db_statements
 
 logger = logging.getLogger('evictionslog')
 
@@ -53,8 +53,7 @@ class DBInit():
     def census_shp(geography):
         """Read shapes for a given geography."""
 
-        shp_read = "shp2pgsql -s 4269:4326 -W 'latin1' data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}"
-                    .format(geography, geography, geography,'evictions', self.db.DB_USER, self.db.DB_PASSWORD, self.db.DB_PORT, self.db.DB_HOST)
+        shp_read = "shp2pgsql -s 4269:4326 -W 'latin1' data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}".format(geography, geography, geography,'evictions', self.db.DB_USER, self.db.DB_PASSWORD, self.db.DB_PORT, self.db.DB_HOST)
         os.system(shp_read)
 
     def group_by_state():

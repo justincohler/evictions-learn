@@ -17,7 +17,6 @@ def boxplot(cur = db_connect()[0], var_list = 'all'):
     plt.rcParams['figure.figsize'] = 16, 12
     if vars != 'all':
         data_frame = data_frame[var_list].copy()
-    data_frame.plot(kind='box', subplots=True, 
-        layout=(min(4, len(data_frame.columns), math.ceil(len(data_frame.columns)/4)), 
-        sharex=False, sharey=False)
-    plt.show()
+    #data_frame.plot(kind='box', subplots=True,
+    #    layout=(min(4, len(data_frame.columns), math.ceil(len(data_frame.columns)/4)), sharex=False, sharey=False)
+    #plt.show()

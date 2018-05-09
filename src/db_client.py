@@ -4,7 +4,7 @@ import psycopg2
 import os
 import atexit
 import logging
-import db_statements
+import src.db_statements
 
 logger = logging.getLogger('evictionslog')
 
@@ -46,11 +46,14 @@ class DBClient():
 
         self.conn.commit()
 
-    def read(self, statement, args):
+    def read(self, statement, args=None):
         """Execute statement, fetchall returned rows."""
         l = []
         with self.conn.cursor() as cur:
-            cur.execute(statement, args)
+            if not args:
+                cur.execute(statement)
+            else:
+                cur.execute(statement, args)
             l = cur.fetchall()
         return l
 
