@@ -89,13 +89,16 @@ class DBInit():
     		- True/False (Success/Fail)
 
     	"""
-        ALTER_N_YEAR_AVG = db_statements.ALTER_N_YEAR_AVG
-                            .format(target_table, source_col, lag, source_col, lag)
+        target_col = "{}_avg_{}yr".format(source_col, lag)
+        DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
+        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
+        INSERT_N_YEAR_AVG = db_statements.ALTER_N_YEAR_AVG.format(target_table, target_col, source_col, lag)
 
-        logger.debug(ALTER_N_YEAR_AVG)
+        logger.debug(INSERT_N_YEAR_AVG)
         try:
             self.db.write([
-                ALTER_N_YEAR_AVG
+                DROP_COLUMN,
+                INSERT_N_YEAR_AVG
             ])
         except Exception as e:
             logger.error(e)
@@ -117,14 +120,18 @@ class DBInit():
     		- True/False (Success/Fail)
 
     	"""
-    	ALTER_N_YEAR_PCT_CHANGE = db_statements.ALTER_N_YEAR_PCT_CHANGE
-                            .format(target_table, source_col, lag, source_col,
+        target_col = "{}_pct_change_{}yr".format(source_col, lag)
+        DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
+        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
+    	INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE
+                            .format(target_table, target_col, source_col,
                             source_col, source_col, lag, source_col, source_col)
 
-        logger.debug(ALTER_N_YEAR_PCT_CHANGE)
+        logger.debug(INSERT_N_YEAR_PCT_CHANGE)
         try:
             self.db.write([
-                ALTER_N_YEAR_PCT_CHANGE
+                DROP_COLUMN,
+                INSERT_N_YEAR_PCT_CHANGE
             ])
         except Exception as e:
             logger.error(e)

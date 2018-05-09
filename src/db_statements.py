@@ -111,6 +111,22 @@ UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id fro
 UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
 UPDATE VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
 
+INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
+                        select b1.geo_id, b1.year, avg(b2.{})
+                            from blockgroup b1 join blockgroup b2
+                            	on b1.geo_id=b2.geo_id
+                            	and b2.year between (b1.year - {}) and (b1.year - 1)
+                            group by (b1.geo_id, b1.year);
+                    """
+
+INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
+                            select b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
+                            from blockgroup b1 join blockgroup b2
+                            	on b1.geo_id=b2.geo_id
+                            	and b2.year = b1.year-{}
+                            where b2.{} is not null and b2.{} != 0;
+                            """
+
 '''============================================================================
     FUNCTIONS & EXTENSIONS
 ============================================================================'''
@@ -132,19 +148,4 @@ RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO stat
 CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup add column state int;"
 CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup add column tract int;"
 CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county int;"
-
-ALTER_N_YEAR_AVG = """INSERT into {}(geo_id, year, {}_avg_{}yr)
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                            	on b1.geo_id=b2.geo_id
-                            	and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);
-                    """
-
-ALTER_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {}_pct_change_{}yr)
-                            select b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
-                            from blockgroup b1 join blockgroup b2
-                            	on b1.geo_id=b2.geo_id
-                            	and b2.year = b1.year-{}
-                            where b2.{} is not null and b2.{} != 0;
-                            """
+ADD_COLUMN = "ALTER TABLE {} add column {} {};"
