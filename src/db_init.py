@@ -117,7 +117,8 @@ class DBInit():
 
 if __name__=="__main__":
     initializer = DBInit()
-    initializer.geo_init()
+    #initializer.evictions_init()
+    #initializer.geo_init()
     for geo in ["state", "county", "tract", "blck_grp"]:
     	initializer.census_shp(geo)
     	if geo != "blck_grp":
