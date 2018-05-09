@@ -154,7 +154,7 @@ def census_shp(geography):
         DB_PASSWORD = os.environ['DB_PASSWORD']
         DB_HOST = os.environ['DB_HOST']
         DB_PORT = os.environ['DB_PORT']
-    shp_read = "shp2pgsql -s 102003:4326  data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}".format(geography, geography, geography,'evictions', DB_USER, 
+    shp_read = "shp2pgsql -s 4269:4326 -W 'latin1' data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}".format(geography, geography, geography,'evictions', DB_USER, 
         DB_PASSWORD, DB_PORT, DB_HOST)
     os.system(shp_read)
 
