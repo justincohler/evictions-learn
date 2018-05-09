@@ -151,3 +151,11 @@ def proba_wrap(model, x_data, predict=False, threshold=0.5):
 	"""Return a probability predictor for a given threshold.""""
 	# TODO - implement
 	return model.predict_proba(x_data)
+
+def create_avg_lag_n(origin_table, origin_column, destination_table, lag):
+	# TODO
+	return NotImplementedError
+
+def create_pct_change_lag_n(origin_table, origin_column, destination_table, lag):
+	# TODO
+	return NotImplementedError
