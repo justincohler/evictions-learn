@@ -133,7 +133,7 @@ CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup add column state int;"
 CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup add column tract int;"
 CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county int;"
 
-ALTER_N_YEAR_AVG = """INSERT into demographic(geo_id, year, {}_avg_{}yr)
+ALTER_N_YEAR_AVG = """INSERT into {}(geo_id, year, {}_avg_{}yr)
                         select b1.geo_id, b1.year, avg(b2.{})
                             from blockgroup b1 join blockgroup b2
                             	on b1.geo_id=b2.geo_id
@@ -141,7 +141,7 @@ ALTER_N_YEAR_AVG = """INSERT into demographic(geo_id, year, {}_avg_{}yr)
                             group by (b1.geo_id, b1.year);
                     """
 
-ALTER_N_YEAR_PCT_CHANGE = """INSERT into demographic(geo_id, year, {}_pct_change_{}yr)
+ALTER_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {}_pct_change_{}yr)
                             select b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
                             from blockgroup b1 join blockgroup b2
                             	on b1.geo_id=b2.geo_id
