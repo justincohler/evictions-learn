@@ -107,9 +107,9 @@ INSERT_EVICTIONS_GEO = """INSERT INTO evictions.evictions_{} ({}, year, sum_evic
                     ) as t1
                 JOIN (SELECT {}, geom FROM evictions.census_state_shp) as t2 ON t1.state = t2.geoid10;"""
 
-UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 11);"
+UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
 UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
-UPDATE VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
+UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
 
 INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
                         select b1.geo_id, b1.year, avg(b2.{})
@@ -130,10 +130,10 @@ INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
 '''============================================================================
     FUNCTIONS & EXTENSIONS
 ============================================================================'''
-CREATE_EXT_POSTGIS = "CREATE EXTENSION postgis;"
-CREATE_EXT_FUZZY = "create extension fuzzystrmatch;"
-CREATE_EXT_TIGER = "create extension postgis_tiger_geocoder;"
-CREATE_EXT_POSTGIS_TOP = "create extension postgis_topology;"
+CREATE_EXT_POSTGIS = "CREATE EXTENSION IF NOT EXISTS postgis;"
+CREATE_EXT_FUZZY = "create extension IF NOT EXISTS fuzzystrmatch;"
+CREATE_EXT_TIGER = "create extension IF NOT EXISTS postgis_tiger_geocoder;"
+CREATE_EXT_POSTGIS_TOP = "create extension IF NOT EXISTS postgis_topology;"
 
 DROP_F_EXEC = "drop function if exists exec(text);"
 CREATE_F_EXEC = "CREATE FUNCTION exec(text) returns text language plpgsql volatile AS $f$ BEGIN EXECUTE $1; RETURN $1; END; $f$;"
@@ -145,7 +145,7 @@ INSERT_SPATIAL_REF_SYS = """INSERT into spatial_ref_sys (srid, auth_name, auth_s
     ALTERS
 ============================================================================'''
 RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO state_code;"
-CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup add column state int;"
-CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup add column tract int;"
-CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county int;"
+CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup add column state CHAR(2);"
+CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup add column tract CHAR(11);"
+CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county CHAR(5);"
 ADD_COLUMN = "ALTER TABLE {} add column {} {};"

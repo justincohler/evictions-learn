@@ -1,9 +1,13 @@
 import os
+import sys
 import logging
-from src.db_client import DBClient
-import src.db_statements
+from db_client import DBClient
+import db_statements
 
 logger = logging.getLogger('evictionslog')
+sh = logging.StreamHandler(sys.stdout)
+logger.addHandler(sh)
+logger.setLevel(logging.INFO)
 
 class DBInit():
     """Clear and initialize the evictions database."""
@@ -47,7 +51,7 @@ class DBInit():
             db_statements.DROP_F_EXEC,
             db_statements.CREATE_F_EXEC,
             db_statements.ALTER_SPATIAL_REF_SYS.format(self.db.DB_USER),
-            db_statements.INSERT_SPATIAL_REF_SYS,
+            #db_statements.INSERT_SPATIAL_REF_SYS,
             db_statements.RENAME_VAR_STATE,
             db_statements.CREATE_VAR_STATE,
             db_statements.CREATE_VAR_COUNTY,
@@ -57,13 +61,13 @@ class DBInit():
             db_statements.UPDATE_VAR_TRACT
         ])
 
-    def census_shp(geography):
+    def census_shp(self, geography):
         """Read shapes for a given geography."""
 
         shp_read = "shp2pgsql -s 4269:4326 -W 'latin1' data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}".format(geography, geography, geography,'evictions', self.db.DB_USER, self.db.DB_PASSWORD, self.db.DB_PORT, self.db.DB_HOST)
         os.system(shp_read)
 
-    def group_by_geo():
+    def group_by_geo(self):
         """Clear and initialize the evictions_state table."""
         DROP_TABLE_EVICTIONS_GEO = db_statements.DROP_TABLE_EVICTIONS_GEO.format(geo)
         CREATE_TABLE_EVICTIONS_GEO = db_statements.CREATE_TABLE_EVICTIONS_STATE.format(geo, geo)
@@ -75,21 +79,8 @@ class DBInit():
         ])
 
 
-    def create_n_year_average(source_col, target_table, lag):
-    	"""Create a column and populate with the average of the last n years of data from the source.
-
-        The default source table is "blockgroup".
-
-    	Inputs:
-    		- source_col (str): The table name from which the new column will be aggegated
-    		- target_table (str): The table name to which the column will be generated
-    		- lag (int): The number of years to aggregate on
-
-    	Returns:
-    		- True/False (Success/Fail)
-
-    	"""
-        target_col = "{}_avg_{}yr".format(source_col, lag)
+    def create_n_year_average(self,source_col, target_table, lag):
+        target_col = '{}_avg_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
         INSERT_N_YEAR_AVG = db_statements.ALTER_N_YEAR_AVG.format(target_table, target_col, source_col, lag)
@@ -106,26 +97,11 @@ class DBInit():
 
         return True
 
-    def create_n_year_pct_change(source_col, target_table, lag):
-    	"""Create a column and populate with the % change from n years ago from the source.
-
-        The default source table is "blockgroup".
-
-    	Inputs:
-    		- source_col (str): The table name from which the new column will be aggegated
-    		- target_table (str): The table name to which the column will be generated
-    		- lag (int): The number of years to aggregate on
-
-    	Returns:
-    		- True/False (Success/Fail)
-
-    	"""
-        target_col = "{}_pct_change_{}yr".format(source_col, lag)
+    def create_n_year_pct_change(self, source_col, target_table, lag):
+        target_col = '{}_pct_change_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
-    	INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE
-                            .format(target_table, target_col, source_col,
-                            source_col, source_col, lag, source_col, source_col)
+        INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE.format(target_table, target_col, source_col, source_col, source_col, lag, source_col, source_col)
 
         logger.debug(INSERT_N_YEAR_PCT_CHANGE)
         try:
@@ -141,9 +117,10 @@ class DBInit():
 
 if __name__=="__main__":
     initializer = DBInit()
-    initializer.evictions_init()
     initializer.geo_init()
     for geo in ["state", "county", "tract", "blck_grp"]:
     	initializer.census_shp(geo)
     	if geo != "blck_grp":
     		initializer.group_by_geo(geo)
+
+    initializer.create_n_year_average("rent_burden", "demographic", 3)

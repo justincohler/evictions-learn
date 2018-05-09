@@ -4,7 +4,7 @@ import psycopg2
 import os
 import atexit
 import logging
-import src.db_statements
+import db_statements
 
 logger = logging.getLogger('evictionslog')
 
@@ -38,7 +38,7 @@ class DBClient():
         self.conn = conn
         with self.conn.cursor() as cur:
             cur.execute(db_statements.SET_SCHEMA)
-            
+
         atexit.register(self.exit)
 
     def write(self, statements, values=None):
