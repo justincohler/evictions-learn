@@ -137,7 +137,7 @@ def fill_missing(df, type="mean"):
         - df (DataFrame)
 		- type (enum): {"mean", "median"} (Default "mean")
     Returns:
-        df (DataFrame) with missing values imputed
+        - df (DataFrame) with missing values imputed
 
 	"""
 	if type == "mean":
@@ -152,10 +152,34 @@ def proba_wrap(model, x_data, predict=False, threshold=0.5):
 	# TODO - implement
 	return model.predict_proba(x_data)
 
-def create_avg_lag_n(origin_table, origin_column, destination_table, lag):
+def create_avg_lag_n(source_table, source_col, target_table, lag):
+	"""Create a column and populate with the average of the last n years of data from the source.
+
+	Inputs:
+		- source_table (str): The table name from which the column will be aggegated
+		- source_col (str): The table name from which the new column will be aggegated
+		- target_table (str): The table name to which the column will be generated
+		- lag (int): The number of years to aggregate on
+
+	Returns:
+		- True/False (Success/Fail)
+
+	"""
 	# TODO
 	return NotImplementedError
 
 def create_pct_change_lag_n(origin_table, origin_column, destination_table, lag):
+	"""Create a column and populate with the % change from n years ago from the source.
+
+	Inputs:
+		- source_table (str): The table name from which the column will be aggegated
+		- source_col (str): The table name from which the new column will be aggegated
+		- target_table (str): The table name to which the column will be generated
+		- lag (int): The number of years to aggregate on
+
+	Returns:
+		- True/False (Success/Fail)
+
+	"""
 	# TODO
 	return NotImplementedError

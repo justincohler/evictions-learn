@@ -26,6 +26,7 @@ class DBInit():
             db_statements.IDX_STATE,
             db_statements.IDX_STATE_YEAR,
             db_statements.IDX_GEOID,
+            db_statements.IDX_GEOID_YEAR,
             db_statements.IDX_EVICTIONS
         ])
 
@@ -58,7 +59,7 @@ class DBInit():
 
     def group_by_state():
         """Clear and initialize the evictions_state table."""
-        
+
         self.db.write([
             db_statements.DROP_TABLE_EVICTIONS_STATE,
             db_statements.CREATE_TABLE_EVICTIONS_STATE,

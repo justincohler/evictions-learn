@@ -40,8 +40,8 @@ IDX_STATE_YEAR = "CREATE INDEX idx_state_year ON evictions.blockgroup (state, ye
 IDX_YEAR = "CREATE INDEX idx_year ON evictions.blockgroup (year);"
 IDX_STATE = "CREATE INDEX idx_state ON evictions.blockgroup (state);"
 IDX_EVICTIONS = "CREATE INDEX idx_evictions ON evictions.blockgroup (evictions);"
-IDX_GEOID = "CREATE INDEX idx_geoid on evictions.blockgroup (geo_id)"
-
+IDX_GEOID = "CREATE INDEX idx_geoid on evictions.blockgroup (geo_id);"
+IDX_GEOID_YEAR = "CREATE INDEX idx_geoid on evictions.blockgroup (geo_id, year);"
 
 COPY_CSV_BLOCKGROUP = """COPY evictions.blockgroup(
 state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
@@ -79,3 +79,17 @@ CREATE_F_EXEC = "CREATE FUNCTION exec(text) returns text language plpgsql volati
 ALTER_SPATIAL_REF_SYS = "ALTER TABLE spatial_ref_sys OWNER TO {};"
 INSERT_SPATIAL_REF_SYS = """INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext)
                             VALUES ( 102003, 'esri', 102003, '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs ', 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["longitude_of_center",-96],PARAMETER["Standard_Parallel_1",29.5],PARAMETER["Standard_Parallel_2",45.5],PARAMETER["latitude_of_center",37.5],UNIT["Meter",1],AUTHORITY["EPSG","102003"]]');"""
+
+ALTER_N_YEAR_AVG = """SELECT b1.geo_id, b1.year, avg(b2.{}) as {}_avg_{}yr
+                    from blockgroup b1 join blockgroup b2
+                    	on b1.geo_id=b2.geo_id
+                    	and b2.year between (b1.year - {}) and (b1.year - 1)
+                    group by (b1.geo_id, b1.year);
+                    """
+
+ALTER_N_YEAR_PCT_CHANGE = """SELECT b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
+                            from blockgroup b1 join blockgroup b2
+                            	on b1.geo_id=b2.geo_id
+                            	and b2.year = b1.year-{}
+                            where b2.{} is not null and b2.{} != 0;
+                            """
