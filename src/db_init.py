@@ -48,24 +48,36 @@ class DBInit():
             db_statements.CREATE_F_EXEC,
             db_statements.ALTER_SPATIAL_REF_SYS.format(self.db.DB_USER),
             db_statements.INSERT_SPATIAL_REF_SYS
+            db_statements.RENAME_VAR_STATE
+            db_statements.CREATE_VAR_STATE
+            db_statements.CREATE_VAR_COUNTY
+            db_statements.CREATE_VAR_TRACT
+            db_statements.UPDATE_VAR_STATE
+            db_statements.UPDATE_VAR_COUNTY
+            db_statements.UPDATE_VAR_TRACT
         ])
 
     def census_shp(geography):
         """Read shapes for a given geography."""
+    	shp_read = "shp2pgsql -s 4269:4326 -W 'latin1' data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}".format(geography, geography, geography,'evictions', self.db.DB_USER, self.db.DB_PASSWORD, self.db.DB_PORT, self.db.DB_HOST)
+    	os.system(shp_read)
 
-        shp_read = "shp2pgsql -s 4269:4326 -W 'latin1' data/tl_2010_us_{}10/tl_2010_us_{}10.shp evictions.census_{}_shp | psql {} -U {} -W {} -p {} -h {}".format(geography, geography, geography,'evictions', self.db.DB_USER, self.db.DB_PASSWORD, self.db.DB_PORT, self.db.DB_HOST)
-        os.system(shp_read)
-
-    def group_by_state():
+    def group_by_geo():
         """Clear and initialize the evictions_state table."""
+    	DROP_TABLE_EVICTIONS_GEO = db_statements.DROP_TABLE_EVICTIONS_GEO.format(geo)
+        CREATE_TABLE_EVICTIONS_GEO = db_statements.CREATE_TABLE_EVICTIONS_STATE.format(geo, geo)
+        INSERT_EVICTIONS_GEO = db_statements.INSERT_EVICTIONS_STATE.format(geo, geo, geo, geo, geo, geo)
 
-        self.db.write([
-            db_statements.DROP_TABLE_EVICTIONS_STATE,
-            db_statements.CREATE_TABLE_EVICTIONS_STATE,
-            db_statements.INSERT_EVICTIONS_STATE
+        self.db.write([DROP_TABLE_EVICTIONS_GEO,
+        	CREATE_TABLE_EVICTIONS_GEO,
+        	INSERT_EVICTIONS_GEO
         ])
 
 if __name__=="__main__":
     initializer = DBInit()
     initializer.evictions_init()
     initializer.geo_init()
+    for geo in ["state", "county", "tract", "blck_grp"]:
+    	initializer.census_shp(geo)
+    	if geo != "blck_grp":
+    		initializer.group_by_geo(geo)

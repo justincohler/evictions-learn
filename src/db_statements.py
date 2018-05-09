@@ -69,6 +69,24 @@ INSERT_EVICTIONS_STATE = """INSERT INTO evictions.evictions_state (state, stusps
                     ) as t1
                 JOIN (SELECT stusps10, geom FROM evictions.census_state_shp) as t2 ON t1.state = t2.stusps10;"""
 
+
+DROP_TABLE_EVICTIONS_GEO = "DROP TABLE IF EXISTS evictions_{};"
+
+
+CREATE_TABLE_EVICTIONS_GEO = """CREATE TABLE evictions_{} ({} VARCHAR(12),
+   year SMALLINT,
+   sum_evict FLOAT,
+   avg_evict_rate float8,
+   geom geometry);"""
+
+INSERT_EVICTIONS_GEO = """INSERT INTO evictions.evictions_{} ({}, year, sum_evict, avg_evict_rate, geom)
+                SELECT {}, year, sum_evict, avg_evict_rate, geom from (
+                    SELECT {}, year, sum(evictions) as sum_evict, avg(eviction_rate) as avg_evict_rate
+                    FROM evictions.blockgroup
+                    GROUP BY {}, year
+                    ) as t1
+                JOIN (SELECT {}, geom FROM evictions.census_state_shp) as t2 ON t1.state = t2.geoid10;"""
+
 CREATE_EXT_POSTGIS = "CREATE EXTENSION postgis;"
 CREATE_EXT_FUZZY = "create extension fuzzystrmatch;"
 CREATE_EXT_TIGER = "create extension postgis_tiger_geocoder;"
@@ -79,6 +97,15 @@ CREATE_F_EXEC = "CREATE FUNCTION exec(text) returns text language plpgsql volati
 ALTER_SPATIAL_REF_SYS = "ALTER TABLE spatial_ref_sys OWNER TO {};"
 INSERT_SPATIAL_REF_SYS = """INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext)
                             VALUES ( 102003, 'esri', 102003, '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs ', 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["longitude_of_center",-96],PARAMETER["Standard_Parallel_1",29.5],PARAMETER["Standard_Parallel_2",45.5],PARAMETER["latitude_of_center",37.5],UNIT["Meter",1],AUTHORITY["EPSG","102003"]]');"""
+
+
+RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO state_code;"
+CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup add column state int;"
+CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup add column tract int;"
+CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county int;"
+UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 11);"
+UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
+UPDATE VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
 
 ALTER_N_YEAR_AVG = """SELECT b1.geo_id, b1.year, avg(b2.{}) as {}_avg_{}yr
                     from blockgroup b1 join blockgroup b2
