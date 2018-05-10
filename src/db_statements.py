@@ -135,6 +135,11 @@ INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
                             where b2.{} is not null and b2.{} != 0;
                             """
 
+INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
+                                SELECT geo_id, year, ntile({}) over (order by {} desc) as {}
+                                FROM blockgroup;
+                            """
+
 INSERT_OUTCOMES = """WITH tmp AS (
                         select geo_id, year, 
                             ntile(5) over(order by evictions desc) as num_quint, 
@@ -155,7 +160,7 @@ INSERT_OUTCOMES = """WITH tmp AS (
                         end
                         as top20_rate
                         from tmp;
-"""
+                """
 
 '''============================================================================
     FUNCTIONS & EXTENSIONS
