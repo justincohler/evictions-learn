@@ -117,6 +117,25 @@ class DBInit():
 
         return True
 
+    def create_outcome_table(self,start_year, end_year):
+        DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
+        CREATE_TABLE_OUTCOME = db_statements.CREATE_TABLE_OUTCOME
+
+        write_list = [DROP_TABLE_OUTCOME, CREATE_TABLE_OUTCOME]
+
+        for year in range(start_year, end_year):
+            INSERT_OUTCOMES = db_statements.INSERT_OUTCOMES.format(year)
+            write_list.append(INSERT_OUTCOMES)
+
+        logger.debug(INSERT_OUTCOMES)
+        try:
+            self.db.write(write_list)
+        except Exception as e:
+            logger.error(e)
+            return False
+
+        return True
+
 if __name__=="__main__":
     initializer = DBInit()
     #initializer.evictions_init()

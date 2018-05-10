@@ -13,6 +13,7 @@ DROP_TABLE_EVICTIONS_STATE = "DROP TABLE IF EXISTS evictions_state;"
 DROP_TABLE_EVICTIONS_GEO = "DROP TABLE IF EXISTS evictions_{};"
 DROP_TABLE_SHP = "DROP TABLE IF EXISTS census_{}_shp;"
 DROP_TABLE_DEMOGRAPHIC = "DROP TABLE IF EXISTS demographic;"
+DROP_TABLE_OUTCOME = "DROP TABLE IF EXISTS outcome;"
 DROP_COLUMN = "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
 
 
@@ -69,6 +70,12 @@ CREATE_TABLE_DEMOGRAPHIC = """CREATE TABLE demographic (
     year SMALLINT NOT NULL,
     PRIMARY KEY(geo_id, year)
 );"""
+
+CREATE_TABLE_OUTCOME = """CREATE TABLE outcome (
+    geo_id CHAR(12),
+    year smallint,
+    top20_num int,
+    top20_rate int);"""
 
 '''============================================================================
     INDEXES
@@ -127,6 +134,28 @@ INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
                             	and b2.year = b1.year-{}
                             where b2.{} is not null and b2.{} != 0;
                             """
+
+INSERT_OUTCOMES = """WITH tmp AS (
+                        select geo_id, year, 
+                            ntile(5) over(order by evictions desc) as num_quint, 
+                            ntile(5) over(order by eviction_rate desc) as rate_quint
+                        from blockgroup
+                        where year = {}
+                        and evictions is not NULL)
+                    insert into outcome (geo_id, year, top20_num, top20_rate)
+                        select geo_id, year, 
+                        case
+                            when tmp.num_quint = 1 then 1
+                            else 0
+                        end 
+                        as top20_num,
+                        case
+                            when tmp.rate_quint = 1 then 1
+                            else 0
+                        end
+                        as top20_rate
+                        from tmp;
+"""
 
 '''============================================================================
     FUNCTIONS & EXTENSIONS
