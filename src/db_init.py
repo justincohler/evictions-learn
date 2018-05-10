@@ -137,6 +137,43 @@ class DBInit():
             UPDATE_VAR_URBAN
             ])
 
+    def create_outcome_table(self,start_year, end_year):
+        DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
+        CREATE_TABLE_OUTCOME = db_statements.CREATE_TABLE_OUTCOME
+
+        write_list = [DROP_TABLE_OUTCOME, CREATE_TABLE_OUTCOME]
+
+        for year in range(start_year, end_year):
+            INSERT_OUTCOMES = db_statements.INSERT_OUTCOMES.format(year)
+            write_list.append(INSERT_OUTCOMES)
+
+        logger.debug(INSERT_OUTCOMES)
+        try:
+            self.db.write(write_list)
+        except Exception as e:
+            logger.error(e)
+            return False
+
+        return True
+
+    def create_n_year_pct_change(self, source_col, target_table, col_type, num_buckets=4):
+        target_col = '{}_{}tiles'.format(source_col, num_buckets)
+        DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
+        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, col_type)
+        INSERT_NTILE_DISCRETIZATION = db_statements.INSERT_NTILE_DISCRETIZATION.format(target_table, target_col, num_buckets, source_col, target_col)
+
+        logger.debug(INSERT_NTILE_DISCRETIZATION)
+        try:
+            self.db.write([
+                DROP_COLUMN,
+                ADD_COLUMN,
+                INSERT_NTILE_DISCRETIZATION
+            ])
+        except Exception as e:
+            logger.error(e)
+            return False
+
+        return True
 
 if __name__=="__main__":
     initializer = DBInit()

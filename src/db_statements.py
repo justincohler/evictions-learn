@@ -14,6 +14,7 @@ DROP_TABLE_GEOGRAPHIC = "DROP TABLE IF EXISTS geographic;"
 DROP_TABLE_EVICTIONS_GEO = "DROP TABLE IF EXISTS evictions_{};"
 DROP_TABLE_SHP = "DROP TABLE IF EXISTS census_{}_shp;"
 DROP_TABLE_DEMOGRAPHIC = "DROP TABLE IF EXISTS demographic;"
+DROP_TABLE_OUTCOME = "DROP TABLE IF EXISTS outcome;"
 DROP_COLUMN = "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
 
 
@@ -88,6 +89,13 @@ div_mnt int DEFAULT(0),
 div_pac int DEFAULT(0),
 
 ;)"""
+
+CREATE_TABLE_OUTCOME = """CREATE TABLE outcome (
+    geo_id CHAR(12),
+    year smallint,
+    top20_num int,
+    top20_rate int);"""
+
 
 '''============================================================================
     INDEXES
@@ -202,6 +210,33 @@ UPDATE_VAR_DIV_PAC = """UPDATE evicitions.geographic set evictions.geographic.di
   WHERE evictions.geographic.state = "02" OR evictions.geographic.state = "06"
   OR evictions.geographic.state = "15" OR evictions.geographic.state = "41"
   OR evictions.geographic.state = "53";"""
+
+INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
+                                SELECT geo_id, year, ntile({}) over (order by {} desc) as {}
+                                FROM blockgroup;
+                            """
+
+INSERT_OUTCOMES = """WITH tmp AS (
+                        select geo_id, year, 
+                            ntile(5) over(order by evictions desc) as num_quint, 
+                            ntile(5) over(order by eviction_rate desc) as rate_quint
+                        from blockgroup
+                        where year = {}
+                        and evictions is not NULL)
+                    insert into outcome (geo_id, year, top20_num, top20_rate)
+                        select geo_id, year, 
+                        case
+                            when tmp.num_quint = 1 then 1
+                            else 0
+                        end 
+                        as top20_num,
+                        case
+                            when tmp.rate_quint = 1 then 1
+                            else 0
+                        end
+                        as top20_rate
+                        from tmp;
+                """
 
 '''============================================================================
     FUNCTIONS & EXTENSIONS
