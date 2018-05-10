@@ -6,3 +6,6 @@ Assigned at the county level in our dataset based on Census crosswalk
 https://www.census.gov/geo/maps-data/data/ua_rel_download.html
 Urban Area - greater that 50,000 people
 Urban Cluster - at least 2,500 people
+
+#% Change from past n years:
+Currently ignores columns where n-years ago has a value of 0 (to avoid divide-by-zero errors)

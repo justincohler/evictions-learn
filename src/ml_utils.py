@@ -10,144 +10,163 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cross_validation import train_test_split
 
-def load_data(path, index_col = None):
-	"""Load data into pandas DataFrame from a csv.
+class Pipeline():
 
-	Inputs:
-		- path (str): Path to location of csv file
-		- index_col (str): column to specify as index, defaults to None
+	def load_data(self, path, index_col = None):
+		"""Load data into pandas DataFrame from a csv.
 
-	Returns:
-		- pandas DataFrame
-	"""
-	if os.path.exists(path):
-	    df = pd.read_csv(path)
-	else:
-		raise Exception('The file does not exist at this location')
+		Inputs:
+			- path (str): Path to location of csv file
+			- index_col (str): column to specify as index, defaults to None
 
-	return df
+		Returns:
+			- pandas DataFrame
+		"""
+		if os.path.exists(path):
+		    df = pd.read_csv(path)
+		else:
+			raise Exception('The file does not exist at this location')
 
-def categorical_to_dummy(df, column):
-	"""Convert a categorical/discrete variable into a dummy variable.
+		return df
 
-	Inputs:
+	def categorical_to_dummy(self, df, column):
+		"""Convert a categorical/discrete variable into a dummy variable.
+
+		Inputs:
+			- df (DataFrame): Dataset of interest
+			- column (str): variable to dummify
+
+		Returns:
+			- updated DataFrame
+		"""
+		return pd.get_dummies(df, columns = [column])
+
+	def continuous_to_categorical(self, df, column, bins = 10, labels = False):
+		"""Convert a continuous variable into a categorical variable.
+
+		Inputs:
 		- df (DataFrame): Dataset of interest
-		- column (str): variable to dummify
+		- column (str): variable to categorize
+		- bins (int): Number of bins to separate data into
+		- labels (bool): Indications whether data should be shown as a range or
+		numerical value
 
-	Returns:
-		- updated DataFrame
-	"""
-	return pd.get_dummies(df, columns = [column])
+		Returns:
+			- updated DataFrame
 
-def continuous_to_categorical(df, column, bins = 10, labels = False):
-	"""Convert a continuous variable into a categorical variable.
+		"""
+		return pd.cut(df[column], bins, labels = labels)
 
-	Inputs:
-	- df (DataFrame): Dataset of interest
-	- column (str): variable to categorize
-	- bins (int): Number of bins to separate data into
-	- labels (bool): Indications whether data should be shown as a range or
-	numerical value
+	def find_high_corr(self, corr_matrix, threshold, predictor):
+		"""Find all variables that are highly correlated with the predictor and thus
+		likely candidates to exclude.
 
-	Returns:
-		- updated DataFrame
+		Inputs
+			- corr_matrix (DataFrame): Result of the "check_correlations" function
+			- threshold (int): Value between 0 and 1
+			- predictor (str): Predictor variable
 
-	"""
-	return pd.cut(df[column], bins, labels = labels)
+		Returns:
+			- list of variables highly correlated with the predictor
+		"""
+		return corr_matrix[corr_matrix[predictor] > threshold].index
 
-def find_high_corr(corr_matrix, threshold, predictor):
-	"""Find all variables that are highly correlated with the predictor and thus
-	likely candidates to exclude.
+	def dist_plot(self, df):
+	    """Plot a histogram of each variable to show the distribution.
 
-	Inputs
-		- corr_matrix (DataFrame): Result of the "check_correlations" function
-		- threshold (int): Value between 0 and 1
-		- predictor (str): Predictor variable
+	    Input:
+	        df (DataFrame)
+	    Returns:
+	        grid of histogram plots for each variable in dataframe
 
-	Returns:
-		- list of variables highly correlated with the predictor
-	"""
-	return corr_matrix[corr_matrix[predictor] > threshold].index
+	    """
+	    plt.rcParams['figure.figsize'] = 16, 12
+	    df.hist()
+	    plt.show()
 
-def dist_plot(df):
-    """Plot a histogram of each variable to show the distribution.
+	def discretize(self, df, field, bins=None, labels=None):
+		"""Return a discretized Series of the given field.
 
-    Input:
-        df (DataFrame)
-    Returns:
-        grid of histogram plots for each variable in dataframe
+		Inputs:
+			- df (DataFrame): Data to discretize
+			- field (str): Field name to discretize
+			- bins (int): (Optional) number of bins to split
+			- labels (list): (Optional) bin labels (must match # of bins if supplied)
 
-    """
-    plt.rcParams['figure.figsize'] = 16, 12
-    df.hist()
-    plt.show()
+		Returns:
+			- A pandas series (to be named by the calling function)
 
-def discretize(df, field, bins=None, labels=None):
-	"""Return a discretized Series of the given field.
+		"""
+		if not bins and not labels:
+			series = pd.qcut(data[field], q=4)
+		elif not labels and bins != None:
+			series = pd.qcut(data[field], q=bins)
+		elif not bins and labels != None:
+			series = pd.qcut(data[field], q=len(labels), labels=labels)
+		elif bins != len(labels):
+			raise IndexError("Bin size and label length must be equal.")
+		else:
+			series = pd.qcut(data[field], q=bins, labels=labels)
 
-	Inputs:
-		- df (DataFrame): Data to discretize
-		- field (str): Field name to discretize
-		- bins (int): (Optional) number of bins to split
-		- labels (list): (Optional) bin labels (must match # of bins if supplied)
+		return series
 
-	Returns:
-		- A pandas series (to be named by the calling function)
+	def plot_by_class(self, df, y):
+	    """Produce plots for each variable in the dataframe showing distribution by
+	    each value of the dependent variable
 
-	"""
-	if not bins and not labels:
-		series = pd.qcut(data[field], q=4)
-	elif not labels and bins != None:
-		series = pd.qcut(data[field], q=bins)
-	elif not bins and labels != None:
-		series = pd.qcut(data[field], q=len(labels), labels=labels)
-	elif bins != len(labels):
-		raise IndexError("Bin size and label length must be equal.")
-	else:
-		series = pd.qcut(data[field], q=bins, labels=labels)
+	    Inputs:
+	        - df (pandas dataframe)
+	        - y (str): name of dependent variable for analysis
 
-	return series
+	    Returns:
+	        - layered histogram plots for each variable in the dataframe
 
-def plot_by_class(df, y):
-    """Produce plots for each variable in the dataframe showing distribution by
-    each value of the dependent variable
+	    """
+	    plt.rcParams['figure.figsize'] = 5, 4
+	    grp = df.groupby(y)
+	    var = df.columns
 
-    Inputs:
-        - df (pandas dataframe)
-        - y (str): name of dependent variable for analysis
+	    for v in var:
+	        getattr(grp, v).hist(alpha=0.4)
+	        plt.title(v)
+	        plt.legend([0,1])
+	        plt.show()
 
-    Returns:
-        - layered histogram plots for each variable in the dataframe
+	def fill_missing(self, df, type="mean"):
+	    """Fill all missing values with the mean value of the given column.
 
-    """
-    plt.rcParams['figure.figsize'] = 5, 4
-    grp = df.groupby(y)
-    var = df.columns
+	    Inputs:
+	        - df (DataFrame)
+			- type (enum): {"mean", "median"} (Default "mean")
+	    Returns:
+	        - df (DataFrame) with missing values imputed
 
-    for v in var:
-        getattr(grp, v).hist(alpha=0.4)
-        plt.title(v)
-        plt.legend([0,1])
-        plt.show()
+		"""
+		if type == "mean":
+			return df.fillna(df.mean())
+		elif type == "median":
+			return df.fillna(df.median())
+		else:
+			raise TypeError("Type parameter must be one of {'mean', 'median'}.")
 
-def fill_missing(df, type="mean"):
-    """Fill all missing values with the mean value of the given column.
+	def proba_wrap(self, model, x_data, predict=False, threshold=0.5):
+		"""Return a probability predictor for a given threshold.""""
+		# TODO - implement
+		return model.predict_proba(x_data)
 
-    Inputs:
-        - df (DataFrame)
-		- type (enum): {"mean", "median"} (Default "mean")
-    Returns:
-        - df (DataFrame) with missing values imputed
 
-	"""
-	if type == "mean":
-    	return df.fillna(df.mean())
-	elif type == "median":
-		return df.fillna(df.median())
-	else:
-		raise TypeError("Type parameter must be one of {'mean', 'median'}.")
+	def generate_outcome_table(self):
+		"""Return a dataframe with the formatted columns required to present model outcomes.
 
-def proba_wrap(model, x_data, predict=False, threshold=0.5):
-	"""Return a probability predictor for a given threshold.""""
-	# TODO - implement
-	return model.predict_proba(x_data)
+		Based on Rayid Ghani's magicloops repository: https://github.com/rayidghani/magicloops.
+
+		Inputs:
+			- None
+		Returns:
+			- df (DataFrame) empty wit columns for each run's outcomes.
+		"""
+		return pd.DataFrame(columns=('model_type','clf', 'parameters', 'outcome', 'validation_date', 'group',
+	                                        'train_set_size', 'validation_set_size','predictors',
+	                                        'baseline','precision_at_5','precision_at_10','precision_at_20','precision_at_30','precision_at_40',
+	                                        'precision_at_50','recall_at_5','recall_at_10','recall_at_20','recall_at_30','recall_at_40',
+	                                        'recall_at_50','auc-roc'))
