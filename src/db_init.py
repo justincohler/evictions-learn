@@ -72,13 +72,12 @@ class DBInit():
     def group_by_geo(self, geo):
         """Clear and initialize the evictions_state table."""
         DROP_TABLE_EVICTIONS_GEO = db_statements.DROP_TABLE_EVICTIONS_GEO.format(geo)
-        CREATE_TABLE_EVICTIONS_GEO = db_statements.CREATE_TABLE_EVICTIONS_STATE.format(geo, geo)
-        INSERT_EVICTIONS_GEO = db_statements.INSERT_EVICTIONS_STATE.format(geo, geo, geo, geo, geo, geo)
+        CREATE_TABLE_EVICTIONS_GEO = db_statements.CREATE_TABLE_EVICTIONS_GEO.format(geo, geo)
+        INSERT_EVICTIONS_GEO = db_statements.INSERT_EVICTIONS_GEO.format(geo, geo, geo, geo, geo, geo, geo)
 
         self.db.write([DROP_TABLE_EVICTIONS_GEO,
         	CREATE_TABLE_EVICTIONS_GEO,
-        	INSERT_EVICTIONS_GEO
-        ])
+        	INSERT_EVICTIONS_GEO])
 
 
     def create_n_year_average(self,source_col, target_table, lag):
@@ -117,6 +116,28 @@ class DBInit():
 
         return True
 
+    def geo_features_table():
+        INSERT_GEO_COLS = db_statements.INSERT_GEO_COLS.format('evictions.geography')
+        self.db.write([
+            DROP_TABLE_URBAN
+            CREATE_TABLE_URBAN,
+            COPY_CSV_URBAN,
+            DROP_TABLE_GEOGRAPHIC,
+            CREATE_TABLE_GEOGRAPHIC,
+            INSERT_GEO_COLS,
+            UPDATE_VAR_DIV_NE,
+            UPDATE_VAR_DIV_MA,
+            UPDATE_VAR_DIV_ENC,
+            UPDATE_VAR_DIV_WNC,
+            UPDATE_VAR_DIV_SA,
+            UPDATE_VAR_DIV_ESC,
+            UPDATE_VAR_DIV_WSC,
+            UPDATE_VAR_DIV_MNT,
+            UPDATE_VAR_DIV_PAC,
+            UPDATE_VAR_URBAN
+            ])
+
+
 if __name__=="__main__":
     initializer = DBInit()
     #initializer.evictions_init()
@@ -125,5 +146,7 @@ if __name__=="__main__":
     	initializer.census_shp(geo)
     	if geo != "blck_grp":
     		initializer.group_by_geo(geo)
+
+    initializer.geo_features_table()
 
     initializer.create_n_year_average("rent_burden", "demographic", 3)
