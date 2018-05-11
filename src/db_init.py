@@ -72,7 +72,7 @@ class DBInit():
     def group_by_geo(self, geo):
         """Clear and initialize the evictions_state table."""
         DROP_TABLE_EVICTIONS_GEO = db_statements.DROP_TABLE_EVICTIONS_GEO.format(geo)
-        CREATE_TABLE_EVICTIONS_GEO = db_statements.CREATE_TABLE_EVICTIONS_GEO.format(geo, geo)
+        CREATE_TABLE_EVICTIONS_GEO = db_statements.CREATE_TABLE_EVICTIONS_GEO.format(geo, geo, geo)
         INSERT_EVICTIONS_GEO = db_statements.INSERT_EVICTIONS_GEO.format(geo, geo, geo, geo, geo, geo, geo)
 
         self.db.write([DROP_TABLE_EVICTIONS_GEO,
@@ -116,26 +116,30 @@ class DBInit():
 
         return True
 
-    def geo_features_table():
+    def geo_features_table(self):
         INSERT_GEO_COLS = db_statements.INSERT_GEO_COLS.format('evictions.geography')
         self.db.write([
-            DROP_TABLE_URBAN
-            CREATE_TABLE_URBAN,
-            COPY_CSV_URBAN,
-            DROP_TABLE_GEOGRAPHIC,
-            CREATE_TABLE_GEOGRAPHIC,
-            INSERT_GEO_COLS,
-            UPDATE_VAR_DIV_NE,
-            UPDATE_VAR_DIV_MA,
-            UPDATE_VAR_DIV_ENC,
-            UPDATE_VAR_DIV_WNC,
-            UPDATE_VAR_DIV_SA,
-            UPDATE_VAR_DIV_ESC,
-            UPDATE_VAR_DIV_WSC,
-            UPDATE_VAR_DIV_MNT,
-            UPDATE_VAR_DIV_PAC,
-            UPDATE_VAR_URBAN
-            ])
+            db_statements.DROP_TABLE_URBAN,
+            db_statements.CREATE_TABLE_URBAN])
+
+        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', db_statements.COPY_CSV_URBAN)
+            
+        self.db.write([
+        db_statements.DROP_TABLE_GEOGRAPHIC,
+        db_statements.CREATE_TABLE_GEOGRAPHIC,
+        db_statements.INSERT_GEO_COLS,
+        db_statements.UPDATE_VAR_DIV_NE,
+        db_statements.UPDATE_VAR_DIV_MA,
+        db_statements.UPDATE_VAR_DIV_ENC,
+        db_statements.UPDATE_VAR_DIV_WNC,
+        db_statements.UPDATE_VAR_DIV_SA,
+        db_statements.UPDATE_VAR_DIV_ESC,
+        db_statements.UPDATE_VAR_DIV_WSC,
+        db_statements.UPDATE_VAR_DIV_MNT,
+        db_statements.UPDATE_VAR_DIV_PAC,
+        db_statements.UPDATE_VAR_URBAN
+        ])
+        
 
     def create_outcome_table(self,start_year, end_year):
         DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
@@ -179,11 +183,15 @@ if __name__=="__main__":
     initializer = DBInit()
     #initializer.evictions_init()
     #initializer.geo_init()
-    for geo in ["state", "county", "tract", "blck_grp"]:
-    	initializer.census_shp(geo)
-    	if geo != "blck_grp":
-    		initializer.group_by_geo(geo)
+    # "state", "county",
+    #for geog in ["state", "county", "tract"]:
+    #    initializer.group_by_geo(geog)
+
+    #for geo in ["blck_grp"]:
+    #	initializer.census_shp(geo)
+    	#if geo != "blck_grp":
+    	#	initializer.group_by_geo(geo)
 
     initializer.geo_features_table()
 
-    initializer.create_n_year_average("rent_burden", "demographic", 3)
+    #initializer.create_n_year_average("rent_burden", "demographic", 3)

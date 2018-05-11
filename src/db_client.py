@@ -60,9 +60,10 @@ class DBClient():
             l = cur.fetchall()
         return l
 
-    def copy(self, csv_path, statement, args):
+    def copy(self, csv_path, statement, args=None):
         """Execute copy statement."""
         with open(csv_path, 'r') as f:
+            cur = self.conn.cursor()
             cur.copy_expert(sql=statement, file=f)
 
         self.conn.commit()
