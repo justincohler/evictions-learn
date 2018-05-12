@@ -92,9 +92,11 @@ div_pac int DEFAULT(0),
 
 CREATE_TABLE_OUTCOME = """CREATE TABLE outcome (
     geo_id CHAR(12),
-    year smallint,
-    top20_num int,
-    top20_rate int);"""
+    year SMALLINT,
+    prior_conversion FLOAT,
+    top20_num SMALLINT,
+    top20_rate SMALLINT
+);"""
 
 
 '''============================================================================
@@ -216,27 +218,52 @@ INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
                                 FROM blockgroup;
                             """
 
-INSERT_OUTCOMES = """WITH tmp AS (
-                        select geo_id, year, 
-                            ntile(5) over(order by evictions desc) as num_quint, 
-                            ntile(5) over(order by eviction_rate desc) as rate_quint
-                        from blockgroup
-                        where year = {}
-                        and evictions is not NULL)
-                    insert into outcome (geo_id, year, top20_num, top20_rate)
-                        select geo_id, year, 
-                        case
-                            when tmp.num_quint = 1 then 1
-                            else 0
-                        end 
-                        as top20_num,
-                        case
-                            when tmp.rate_quint = 1 then 1
-                            else 0
-                        end
-                        as top20_rate
-                        from tmp;
+INSERT_OUTCOMES = """WITH tmp AS (SELECT ntiles.geo_id, ntiles.year, num_quint, rate_quint, conversion_rate 
+                        FROM (SELECT geo_id, year, 
+                            ntile(5) over(ORDER BY evictions DESC) AS num_quint, 
+                            ntile(5) over(ORDER BY eviction_rate DESC) AS rate_quint
+                        FROM blockgroup
+                        WHERE year = {}
+                        AND evictions IS NOT NULL) as ntiles
+                        JOIN (SELECT geo_id, year, 
+                            CASE 
+                                WHEN eviction_filings IS NOT NULL 
+                                AND eviction_filings != 0
+                                THEN evictions/eviction_filings
+                                ELSE 0
+                            END AS conversion_rate
+                            FROM blockgroup
+                            WHERE year = {} - 1) AS cr
+                        ON cr.geo_id = ntiles.geo_id AND ntiles.year = cr.year + 1
+                        )
+                    INSERT INTO outcome (geo_id, year, prior_conversion, top20_num, top20_rate)
+                        SELECT geo_id, year, conversion_rate,
+                        CASE
+                            WHEN tmp.num_quint = 1 THEN 1
+                            ELSE 0
+                        END 
+                        AS top20_num,
+                        CASE
+                            WHEN tmp.rate_quint = 1 THEN 1
+                            ELSE 0
+                        END
+                        AS top20_rate
+                        FROM tmp;
                 """
+
+'''INSERT_CONVERSION = """ INSERT INTO outcome (prior_conversion)
+                            SELECT 
+                            CASE 
+                                WHEN eviction_filings IS NOT NULL 
+                                AND eviction_filings != 0
+                                THEN evictions/eviction_filings
+                                ELSE 0
+                            END
+                            FROM blockgroup
+                            WHERE year = {} - 1
+                            AND outcome.geo_id = blockgroup.geo_id
+                    """'''
+
 
 '''============================================================================
     FUNCTIONS & EXTENSIONS

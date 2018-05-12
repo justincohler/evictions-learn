@@ -148,10 +148,13 @@ class DBInit():
         write_list = [DROP_TABLE_OUTCOME, CREATE_TABLE_OUTCOME]
 
         for year in range(start_year, end_year):
-            INSERT_OUTCOMES = db_statements.INSERT_OUTCOMES.format(year)
+            INSERT_OUTCOMES = db_statements.INSERT_OUTCOMES.format(year,year)
+            #INSERT_CONVERSION = db_statements.INSERT_CONVERSION.format(year)
             write_list.append(INSERT_OUTCOMES)
+            #write_list.append(INSERT_CONVERSION)
 
         logger.debug(INSERT_OUTCOMES)
+        #logger.debug(INSERT_CONVERSION)
         try:
             self.db.write(write_list)
         except Exception as e:
