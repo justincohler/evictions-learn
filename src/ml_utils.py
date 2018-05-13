@@ -43,13 +43,15 @@ class Pipeline():
 
 		l = self.db.cur.fetchmany(chunksize)
 
+		print(l[1])
 		return pd.DataFrame(l, columns = [
 			"_id", "state_code", "geo_id", "year", "name", "parent_location",
 			"population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",
 			"median_household_income", "median_property_value", "rent_burden", "pct_white",
 			"pct_af_am", "pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi", "pct_multiple",
 			"pct_other", "renter_occupied_households", "eviction_filings", "evictions",
-			"eviction_rate", "eviction_filing_rate", "imputed", "subbed", "state", "county", "tract"
+			"eviction_rate", "eviction_filing_rate", "imputed", "subbed", "state", "county", "tract",
+			"geo_id (repeated)", "year (repeated)", "top20_evictions", "top20_eviction_rate"
 		])
 
 	def categorical_to_dummy(self, df, column):
@@ -192,6 +194,24 @@ class Pipeline():
 		"""
 		return pd.DataFrame(columns=('model_type','clf', 'parameters', 'auc-roc','p_at_5', 'p_at_10', 'p_at_20'))
 
+	def joint_sort_descending(self, l1, l2):
+	    # l1 and l2 have to be numpy arrays
+	    idx = np.argsort(l1)[::-1]
+	    return l1[idx], l2[idx]
+
+	def generate_binary_at_k(self, y_scores, k):
+	    cutoff_index = int(len(y_scores) * (k / 100.0))
+	    test_predictions_binary = [1 if x < cutoff_index else 0 for x in range(len(y_scores))]
+	    return test_predictions_binary
+
+	def precision_at_k(self, y_true, y_scores, k):
+	    y_scores, y_true = self.joint_sort_descending(np.array(y_scores), np.array(y_true))
+	    preds_at_k = self.generate_binary_at_k(y_scores, k)
+	    #precision, _, _, _ = metrics.precision_recall_fscore_support(y_true, preds_at_k)
+	    #precision = precision[1]  # only interested in precision for label 1
+	    precision = precision_score(y_true, preds_at_k)
+	    return precision
+
 	def get_classifiers(self):
 
 		classifiers = {'RF': RandomForestClassifier(n_estimators=50, n_jobs=-1),
@@ -203,7 +223,12 @@ class Pipeline():
 		'KNN': KNeighborsClassifier(n_neighbors=3)
 		}
 
-		classifier_params = {'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},'LR': { 'penalty': ['l1'], 'C': [0.01]}, 'NB' : {}, 'SVM' : {'C' :[0.01], 'kernel':['linear']}, 'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]}, 'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]}, 'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']}}
+		classifier_params = {'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
+			'LR': { 'penalty': ['l1'], 'C': [0.01]},
+			'NB' : {}, 'SVM' : {'C' :[0.01], 'kernel':['linear']},
+			'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
+			'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
+			'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']}}
 
 		return classifiers, classifier_params
 	def classify(self, models_to_run, classifiers, params, X, y):
@@ -224,9 +249,9 @@ class Pipeline():
 						y_pred_probs_sorted, y_test_sorted = zip(*sorted(zip(y_pred_probs, y_test), reverse=True))
 						results_df.loc[len(results_df)] = [models_to_run[index],classifier, p,
 							roc_auc_score(y_test, y_pred_probs),
-							precision_at_k(y_test_sorted,y_pred_probs_sorted,5.0),
-							precision_at_k(y_test_sorted,y_pred_probs_sorted,10.0),
-							precision_at_k(y_test_sorted,y_pred_probs_sorted,20.0)]
+							self.precision_at_k(y_test_sorted,y_pred_probs_sorted,5.0),
+							self.precision_at_k(y_test_sorted,y_pred_probs_sorted,10.0),
+							self.precision_at_k(y_test_sorted,y_pred_probs_sorted,20.0)]
 					except IndexError as e:
 						print('Error:',e)
 						continue
