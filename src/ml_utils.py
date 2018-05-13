@@ -4,11 +4,22 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import sklearn.metrics as metrics
 import sklearn.tree as tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cross_validation import train_test_split
+from sklearn import preprocessing, cross_validation, svm, metrics, tree, decomposition, svm
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier, AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression, Perceptron, SGDClassifier, OrthogonalMatchingPursuit, RandomizedLogisticRegression
+from sklearn.neighbors.nearest_centroid import NearestCentroid
+from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.grid_search import ParameterGrid
+from sklearn.metrics import *
+from sklearn.preprocessing import StandardScaler
+import random
+import matplotlib.pyplot as plt
+from scipy import optimize
 from db_init import DBClient
 import logging
 
@@ -18,10 +29,9 @@ class Pipeline():
 
 	def __init__(self):
 		self.db = DBClient()
-		with self.db.conn.cursor() as cur:
-			cur.callproc("bg_get_chunk", ["bg_cursor"])
 
-	def load_data(self, chunksize=1000):
+
+	def load_chunk(self, chunksize=1000):
 		"""Return a cursor for the sql statement.
 
 		Inputs:
@@ -31,8 +41,7 @@ class Pipeline():
 		"""
 		l = []
 
-		with self.db.conn.cursor("bg_cursor") as bg_cursor:
-			l = bg_cursor.fetchmany(chunksize)
+		l = self.db.cur.fetchmany(chunksize)
 
 		return pd.DataFrame(l, columns = [
 			"_id", "state_code", "geo_id", "year", "name", "parent_location",
@@ -181,11 +190,47 @@ class Pipeline():
 		Returns:
 			- df (DataFrame) empty wit columns for each run's outcomes.
 		"""
-		return pd.DataFrame(columns=('model_type','clf', 'parameters', 'outcome', 'validation_date', 'group',
-	                                        'train_set_size', 'validation_set_size','predictors',
-	                                        'baseline','precision_at_5','precision_at_10','precision_at_20','precision_at_30','precision_at_40',
-	                                        'precision_at_50','recall_at_5','recall_at_10','recall_at_20','recall_at_30','recall_at_40',
-	                                        'recall_at_50','auc-roc'))
+		return pd.DataFrame(columns=('model_type','clf', 'parameters', 'auc-roc','p_at_5', 'p_at_10', 'p_at_20'))
+
+	def get_classifiers(self):
+
+		classifiers = {'RF': RandomForestClassifier(n_estimators=50, n_jobs=-1),
+		'LR': LogisticRegression(penalty='l1', C=1e5),
+		'NB': GaussianNB(),
+		'SVM': svm.SVC(kernel='linear', probability=True, random_state=0),
+		'GB': GradientBoostingClassifier(learning_rate=0.05, subsample=0.5, max_depth=6, n_estimators=10),
+		'DT': DecisionTreeClassifier(),
+		'KNN': KNeighborsClassifier(n_neighbors=3)
+		}
+
+		classifier_params = {'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},'LR': { 'penalty': ['l1'], 'C': [0.01]}, 'NB' : {}, 'SVM' : {'C' :[0.01], 'kernel':['linear']}, 'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]}, 'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]}, 'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']}}
+
+		return classifiers, classifier_params
+	def classify(self, models_to_run, classifiers, params, X, y):
+		"""Runs the loop using models_to_run, clfs, gridm and the data."""
+		results_df =  self.generate_outcome_table()
+		for n in range(1, 2):
+			# create training and valdation sets
+			X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+			for index, classifier in enumerate([classifiers[x] for x in models_to_run]):
+				print("Running through model {}...".format(models_to_run[index]))
+				parameter_values = params[models_to_run[index]]
+				for p in ParameterGrid(parameter_values):
+					try:
+						classifier.set_params(**p)
+						y_pred_probs = classifier.fit(X_train, y_train).predict_proba(X_test)[:,1]
+						# you can also store the model, feature importances, and prediction scores
+						# we're only storing the metrics for now
+						y_pred_probs_sorted, y_test_sorted = zip(*sorted(zip(y_pred_probs, y_test), reverse=True))
+						results_df.loc[len(results_df)] = [models_to_run[index],classifier, p,
+							roc_auc_score(y_test, y_pred_probs),
+							precision_at_k(y_test_sorted,y_pred_probs_sorted,5.0),
+							precision_at_k(y_test_sorted,y_pred_probs_sorted,10.0),
+							precision_at_k(y_test_sorted,y_pred_probs_sorted,20.0)]
+					except IndexError as e:
+						print('Error:',e)
+						continue
+		return results_df
 
 if __name__ == "__main__":
 	pipeline = Pipeline()
