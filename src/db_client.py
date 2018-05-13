@@ -39,7 +39,11 @@ class DBClient():
 
         with self.conn.cursor() as cur:
             cur.execute(db_statements.SET_SCHEMA)
+            cur.callproc("bg_get_chunk", ["bg_cursor"])
+        self.cur = self.conn.cursor("bg_cursor")
+
         logger.info("Set schema to 'evictions'.")
+        logger.info("Set background cursor.")
         atexit.register(self.exit)
 
     def write(self, statements, values=None):
@@ -70,5 +74,6 @@ class DBClient():
         self.conn.commit()
 
     def exit(self):
+        self.cur.close()
         self.conn.close()
         logger.info("Connection closed.")
