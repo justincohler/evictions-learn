@@ -9,25 +9,39 @@ import sklearn.tree as tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cross_validation import train_test_split
+from db_init import DBClient
+import logging
+
+logger = logging.getLogger('evictionslog')
 
 class Pipeline():
 
-	def load_data(self, path, index_col = None):
-		"""Load data into pandas DataFrame from a csv.
+	def __init__(self):
+		self.db = DBClient()
+		with self.db.conn.cursor() as cur:
+			cur.callproc("bg_get_chunk", ["bg_cursor"])
+
+	def load_data(self, chunksize=1000):
+		"""Return a cursor for the sql statement.
 
 		Inputs:
-			- path (str): Path to location of csv file
-			- index_col (str): column to specify as index, defaults to None
-
+			- chunksize (int)
 		Returns:
 			- pandas DataFrame
 		"""
-		if os.path.exists(path):
-		    df = pd.read_csv(path)
-		else:
-			raise Exception('The file does not exist at this location')
+		l = []
 
-		return df
+		with self.db.conn.cursor("bg_cursor") as bg_cursor:
+			l = bg_cursor.fetchmany(chunksize)
+
+		return pd.DataFrame(l, columns = [
+			"_id", "state_code", "geo_id", "year", "name", "parent_location",
+			"population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",
+			"median_household_income", "median_property_value", "rent_burden", "pct_white",
+			"pct_af_am", "pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi", "pct_multiple",
+			"pct_other", "renter_occupied_households", "eviction_filings", "evictions",
+			"eviction_rate", "eviction_filing_rate", "imputed", "subbed", "state", "county", "tract"
+		])
 
 	def categorical_to_dummy(self, df, column):
 		"""Convert a categorical/discrete variable into a dummy variable.
@@ -133,13 +147,15 @@ class Pipeline():
 	        plt.show()
 
 	def fill_missing(self, df, type="mean"):
-	    """Fill all missing values with the mean value of the given column.
+		"""
+		Fill all missing values with the mean value of the given column.
 
-	    Inputs:
-	        - df (DataFrame)
+		Inputs:
+			- df (DataFrame)
 			- type (enum): {"mean", "median"} (Default "mean")
-	    Returns:
-	        - df (DataFrame) with missing values imputed
+
+		Returns:
+			- df (DataFrame) with missing values imputed
 
 		"""
 		if type == "mean":
@@ -150,7 +166,7 @@ class Pipeline():
 			raise TypeError("Type parameter must be one of {'mean', 'median'}.")
 
 	def proba_wrap(self, model, x_data, predict=False, threshold=0.5):
-		"""Return a probability predictor for a given threshold.""""
+		"""Return a probability predictor for a given threshold."""
 		# TODO - implement
 		return model.predict_proba(x_data)
 
@@ -170,3 +186,8 @@ class Pipeline():
 	                                        'baseline','precision_at_5','precision_at_10','precision_at_20','precision_at_30','precision_at_40',
 	                                        'precision_at_50','recall_at_5','recall_at_10','recall_at_20','recall_at_30','recall_at_40',
 	                                        'recall_at_50','auc-roc'))
+
+if __name__ == "__main__":
+	pipeline = Pipeline()
+	iter = pd.read_sql_query("select * from evictions.blockgroup", pipeline.db.conn, chunksize=100)
+	print(iter.tail())
