@@ -6,21 +6,23 @@
 SET_SCHEMA = "set schema 'evictions';"
 
 '''============================================================================
-    DROPS
+GEO INIT
 ============================================================================'''
-DROP_TABLE_BLOCKGROUP = "DROP TABLE IF EXISTS blockgroup;"
-DROP_TABLE_URBAN = "DROP TABLE IF EXISTS urban;"
-DROP_TABLE_GEOGRAPHIC = "DROP TABLE IF EXISTS geographic;"
-DROP_TABLE_EVICTIONS_GEO = "DROP TABLE IF EXISTS evictions_{};"
-DROP_TABLE_SHP = "DROP TABLE IF EXISTS census_{}_shp;"
-DROP_TABLE_DEMOGRAPHIC = "DROP TABLE IF EXISTS demographic;"
-DROP_TABLE_OUTCOME = "DROP TABLE IF EXISTS outcome;"
-DROP_COLUMN = "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
 
+CREATE_EXT_POSTGIS = "CREATE EXTENSION IF NOT EXISTS postgis;"
+CREATE_EXT_FUZZY = "create extension IF NOT EXISTS fuzzystrmatch;"
+CREATE_EXT_TIGER = "create extension IF NOT EXISTS postgis_tiger_geocoder;"
+CREATE_EXT_POSTGIS_TOP = "create extension IF NOT EXISTS postgis_topology;"
+
+DROP_F_EXEC = "drop function if exists exec(text);"
+CREATE_F_EXEC = "CREATE FUNCTION exec(text) returns text language plpgsql volatile AS $f$ BEGIN EXECUTE $1; RETURN $1; END; $f$;"
+ALTER_SPATIAL_REF_SYS = "ALTER TABLE spatial_ref_sys OWNER TO {};"
 
 '''============================================================================
-    TABLES
-============================================================================'''
+    BLOCKGROUP TABLE
+============================================================================='''
+DROP_TABLE_BLOCKGROUP = "DROP TABLE IF EXISTS blockgroup;"
+
 CREATE_TABLE_BLOCKGROUP = """CREATE TABLE blockgroup
 (
     _id SERIAL PRIMARY KEY,
@@ -34,9 +36,9 @@ CREATE_TABLE_BLOCKGROUP = """CREATE TABLE blockgroup
     pct_renter_occupied FLOAT,
     median_gross_rent FLOAT,
     median_household_income FLOAT,
-    median_property_value	FLOAT,
-    rent_burden	FLOAT,
-    pct_white	FLOAT,
+    median_property_value FLOAT,
+    rent_burden FLOAT,
+    pct_white FLOAT,
     pct_af_am FLOAT,
     pct_hispanic FLOAT,
     pct_am_ind FLOAT,
@@ -49,9 +51,40 @@ CREATE_TABLE_BLOCKGROUP = """CREATE TABLE blockgroup
     evictions FLOAT,
     eviction_rate FLOAT,
     eviction_filing_rate FLOAT,
-    imputed	BOOLEAN,
+    imputed BOOLEAN,
     subbed BOOLEAN
 );"""
+
+IDX_STATE_YEAR = "CREATE INDEX idx_state_year ON blockgroup (state, year);"
+IDX_YEAR = "CREATE INDEX idx_year ON blockgroup (year);"
+IDX_STATE = "CREATE INDEX idx_state ON blockgroup (state);"
+IDX_EVICTIONS = "CREATE INDEX idx_evictions ON blockgroup (evictions);"
+IDX_GEOID = "CREATE INDEX idx_geoid on blockgroup (geo_id);"
+IDX_GEOID_YEAR = "CREATE INDEX idx_geoid on blockgroup (geo_id, year);"
+
+COPY_CSV_BLOCKGROUP = """COPY evictions.blockgroup(
+    state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
+    median_gross_rent, median_household_income, median_property_value, rent_burden,
+    pct_white, pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple,
+    pct_other, renter_occupied_households, eviction_filings, evictions, eviction_rate,
+    eviction_filing_rate, imputed, subbed)
+    FROM stdin WITH CSV HEADER DELIMITER as ','
+"""
+RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO state_code;"
+CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup add column state CHAR(2);"
+CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup add column tract CHAR(11);"
+CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county CHAR(5);"
+
+UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
+UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
+UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
+
+'''==========================================================================
+SHAPEFILE LOAD + GROUP BY GEO
+=========================================================================='''
+
+DROP_TABLE_EVICTIONS_GEO = "DROP TABLE IF EXISTS evictions_{};"
+DROP_TABLE_SHP = "DROP TABLE IF EXISTS census_{}_shp;"
 
 CREATE_TABLE_EVICTIONS_GEO = """CREATE TABLE evictions_{} ({} VARCHAR(12),
    year SMALLINT,
@@ -75,11 +108,43 @@ CREATE_TABLE_EVICTIONS_GEO = """CREATE TABLE evictions_{} ({} VARCHAR(12),
    avg_renter_occupied_households FLOAT,
    PRIMARY KEY({}, year));"""
 
+INSERT_EVICTIONS_GEO = """INSERT INTO evictions.evictions_{} ({}, year, sum_evict, avg_evict_rate, avg_population,
+   avg_poverty_rate, avg_pct_renter_occupied, avg_median_gross_rent, avg_median_household_income,
+   avg_median_property_value, avg_rent_burden, avg_pct_white, avg_pct_af_am, avg_pct_hispanic,
+   avg_pct_am_ind, avg_pct_asian, avg_pct_nh_pi, avg_pct_multiple, avg_pct_other, avg_renter_occupied_households)
+   SELECT {}, year, sum(evictions) as sum_evict, avg(eviction_rate) as avg_evict_rate, avg(population) as avg_population,
+   avg(poverty_rate) as avg_poverty_rate, avg(pct_renter_occupied) as avg_pct_renter_occupied, avg(median_gross_rent) as avg_median_gross_rent, 
+   avg(median_household_income) as avg_median_household_income, avg(median_property_value) as avg_median_property_value, 
+   avg(rent_burden) as avg_rent_burden, avg(pct_white) as avg_pct_white, avg(pct_af_am) as avg_pct_af_am, avg(pct_hispanic) as avg_pct_hispanic,
+   avg(pct_am_ind) as avg_pct_am_ind, avg(pct_asian) as avg_pct_asian, avg(pct_nh_pi) as avg_pct_nh_pi, avg(pct_multiple) as avg_pct_multiple, 
+   avg(pct_other) as avg_pct_other, avg(renter_occupied_households) as avg_renter_occupied_households
+   FROM evictions.blockgroup
+   GROUP BY {}, year;"""
+
+
+'''============================================================================
+    DEMOGRAPHIC TABLE
+============================================================================'''
+
+DROP_TABLE_DEMOGRAPHIC = "DROP TABLE IF EXISTS demographic;"
+
 CREATE_TABLE_DEMOGRAPHIC = """CREATE TABLE demographic (
     geo_id CHAR(12) NOT NULL,
     year SMALLINT NOT NULL,
     PRIMARY KEY(geo_id, year)
 );"""
+
+DROP_TABLE_OUTCOME = "DROP TABLE IF EXISTS outcome;"
+DROP_COLUMN = "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
+
+
+'''============================================================================
+GEOGRAPHIC TABLE
+============================================================================'''
+
+DROP_TABLE_URBAN = "DROP TABLE IF EXISTS urban;"
+DROP_TABLE_GEOGRAPHIC = "DROP TABLE IF EXISTS geographic;"
+
 
 CREATE_TABLE_URBAN = """CREATE TABLE urban (UA int, 
     STATE int,
@@ -189,80 +254,18 @@ bbg_avg_pct_multiple_3pct FLOAT,
 bbg_avg_pct_other_3pct FLOAT,
 PRIMARY KEY(geo_id, year));"""
 
-CREATE_TABLE_OUTCOME = """CREATE TABLE outcome (
-    geo_id CHAR(12),
-    year SMALLINT,
-    prior_conversion FLOAT,
-    top20_num SMALLINT,
-    top20_rate SMALLINT
-);"""
-
-
-'''============================================================================
-    INDEXES
-============================================================================'''
-IDX_STATE_YEAR = "CREATE INDEX idx_state_year ON blockgroup (state, year);"
-IDX_YEAR = "CREATE INDEX idx_year ON blockgroup (year);"
-IDX_STATE = "CREATE INDEX idx_state ON blockgroup (state);"
-IDX_EVICTIONS = "CREATE INDEX idx_evictions ON blockgroup (evictions);"
-IDX_GEOID = "CREATE INDEX idx_geoid on blockgroup (geo_id);"
-IDX_GEOID_YEAR = "CREATE INDEX idx_geoid on blockgroup (geo_id, year);"
-
-'''============================================================================
-    COPY, INSERTS, & UPDATES
-============================================================================'''
-COPY_CSV_BLOCKGROUP = """COPY evictions.blockgroup(
-    state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
-    median_gross_rent, median_household_income, median_property_value, rent_burden,
-    pct_white, pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple,
-    pct_other, renter_occupied_households, eviction_filings, evictions, eviction_rate,
-    eviction_filing_rate, imputed, subbed)
-    FROM stdin WITH CSV HEADER DELIMITER as ','
-"""
-
-COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID) 
-      from stdin with CSV HEADER DELIMITER as ',';"""
-
-INSERT_EVICTIONS_GEO = """INSERT INTO evictions.evictions_{} ({}, year, sum_evict, avg_evict_rate, avg_population,
-   avg_poverty_rate, avg_pct_renter_occupied, avg_median_gross_rent, avg_median_household_income,
-   avg_median_property_value, avg_rent_burden, avg_pct_white, avg_pct_af_am, avg_pct_hispanic,
-   avg_pct_am_ind, avg_pct_asian, avg_pct_nh_pi, avg_pct_multiple, avg_pct_other, avg_renter_occupied_households)
-   SELECT {}, year, sum(evictions) as sum_evict, avg(eviction_rate) as avg_evict_rate, avg(population) as avg_population,
-   avg(poverty_rate) as avg_poverty_rate, avg(pct_renter_occupied) as avg_pct_renter_occupied, avg(median_gross_rent) as avg_median_gross_rent, 
-   avg(median_household_income) as avg_median_household_income, avg(median_property_value) as avg_median_property_value, 
-   avg(rent_burden) as avg_rent_burden, avg(pct_white) as avg_pct_white, avg(pct_af_am) as avg_pct_af_am, avg(pct_hispanic) as avg_pct_hispanic,
-   avg(pct_am_ind) as avg_pct_am_ind, avg(pct_asian) as avg_pct_asian, avg(pct_nh_pi) as avg_pct_nh_pi, avg(pct_multiple) as avg_pct_multiple, 
-   avg(pct_other) as avg_pct_other, avg(renter_occupied_households) as avg_renter_occupied_households
-   FROM evictions.blockgroup
-   GROUP BY {}, year;"""
-
-
-
-UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
-UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
-UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
-UPDATE_VAR_URBAN = '''update evictions.geographic set urban = 1
-                      from urban t1
-                      join evictions.blockgroup t2 on t1.GEOID::varchar(5) = t2.county'''
-
-INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                            	on b1.geo_id=b2.geo_id
-                            	and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);"""
-
-INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
-                            select b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
-                            from blockgroup b1 join blockgroup b2
-                            	on b1.geo_id=b2.geo_id
-                            	and b2.year = b1.year-{}
-                            where b2.{} is not null and b2.{} != 0;
-                            """
 INSERT_GEO_COLS = """INSERT into evictions.geographic (_id, state, geo_id, year, county, tract) 
                      SELECT _id, state, geo_id, year, county, tract 
                      FROM evictions.blockgroup;
                   """
+
+COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID) 
+      from stdin with CSV HEADER DELIMITER as ',';"""
+
+
+UPDATE_VAR_URBAN = '''update evictions.geographic set urban = 1
+                      from urban t1
+                      join evictions.blockgroup t2 on t1.GEOID::varchar(5) = t2.county'''
 
 UPDATE_VAR_DIV_NE = '''UPDATE evictions.geographic set div_ne = 1 
   WHERE state = '09' OR state = '23'
@@ -310,10 +313,36 @@ UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1
   OR state = '15' OR state = '41'
   OR state = '53';'''
 
-INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
-                                SELECT geo_id, year, ntile({}) over (order by {} desc) as {}
-                                FROM blockgroup;
-                            """
+
+UPDATE_GEOGRAPHIC_BBG = """update geographic set {} = tmp.{} 
+                                    where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
+                        
+
+CREATE_TMP_AVG_BBG = """CREATE TEMPORARY TABLE tmp (
+                                select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.evict_rate) as bbg_avg_evict_rate,
+                                avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied
+                                avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
+                                avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
+                                avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
+                                avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
+                                from (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b1 
+                                join (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b2
+                                  on ST_Intersects(b1.geom, b2.geom)
+                                  and b1.year = b2.year
+                                  group by (b1.geo_id, b1.year));"""
+
+
+'''============================================================================
+ OUTCOME TABLE
+============================================================================'''
+
+CREATE_TABLE_OUTCOME = """CREATE TABLE outcome (
+    geo_id CHAR(12),
+    year SMALLINT,
+    prior_conversion FLOAT,
+    top20_num SMALLINT,
+    top20_rate SMALLINT
+);"""
 
 INSERT_OUTCOMES = """WITH tmp AS (SELECT ntiles.geo_id, ntiles.year, num_quint, rate_quint, conversion_rate 
                         FROM (SELECT geo_id, year, 
@@ -348,41 +377,6 @@ INSERT_OUTCOMES = """WITH tmp AS (SELECT ntiles.geo_id, ntiles.year, num_quint, 
                         FROM tmp;
                 """
 
-INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                              on b1.geo_id=b2.geo_id
-                              and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);
-                    """
-
-
-INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                              on b1.geo_id=b2.geo_id
-                              and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);
-                    """
-
-
-
-UPDATE_GEOGRAPHIC_BBG = """update geographic set {} = tmp.{} 
-                                    where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
-                        
-
-CREATE_TMP_AVG_BBG = """CREATE TEMPORARY TABLE tmp (
-                                select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.evict_rate) as bbg_avg_evict_rate,
-                                avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied
-                                avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
-                                avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
-                                avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
-                                avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
-                                from (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b1 
-                                join (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b2
-                                  on ST_Intersects(b1.geom, b2.geom)
-                                  and b1.year = b2.year
-                                  group by (b1.geo_id, b1.year));"""
 
 '''INSERT_CONVERSION = """ INSERT INTO outcome (prior_conversion)
                             SELECT 
@@ -401,20 +395,46 @@ CREATE_TMP_AVG_BBG = """CREATE TEMPORARY TABLE tmp (
 '''============================================================================
     FUNCTIONS & EXTENSIONS
 ============================================================================'''
-CREATE_EXT_POSTGIS = "CREATE EXTENSION IF NOT EXISTS postgis;"
-CREATE_EXT_FUZZY = "create extension IF NOT EXISTS fuzzystrmatch;"
-CREATE_EXT_TIGER = "create extension IF NOT EXISTS postgis_tiger_geocoder;"
-CREATE_EXT_POSTGIS_TOP = "create extension IF NOT EXISTS postgis_topology;"
 
-DROP_F_EXEC = "drop function if exists exec(text);"
-CREATE_F_EXEC = "CREATE FUNCTION exec(text) returns text language plpgsql volatile AS $f$ BEGIN EXECUTE $1; RETURN $1; END; $f$;"
-ALTER_SPATIAL_REF_SYS = "ALTER TABLE spatial_ref_sys OWNER TO {};"
-
-'''============================================================================
-    ALTERS
-============================================================================'''
-RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO state_code;"
-CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup add column state CHAR(2);"
-CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup add column tract CHAR(11);"
-CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county CHAR(5);"
 ADD_COLUMN = "ALTER TABLE {} add column {} {};"
+
+INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
+                        select b1.geo_id, b1.year, avg(b2.{})
+                            from blockgroup b1 join blockgroup b2
+                              on b1.geo_id=b2.geo_id
+                              and b2.year between (b1.year - {}) and (b1.year - 1)
+                            group by (b1.geo_id, b1.year);
+                    """
+
+
+INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
+                        select b1.geo_id, b1.year, avg(b2.{})
+                            from blockgroup b1 join blockgroup b2
+                              on b1.geo_id=b2.geo_id
+                              and b2.year between (b1.year - {}) and (b1.year - 1)
+                            group by (b1.geo_id, b1.year);
+                    """
+
+INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
+                        select b1.geo_id, b1.year, avg(b2.{})
+                            from blockgroup b1 join blockgroup b2
+                              on b1.geo_id=b2.geo_id
+                              and b2.year between (b1.year - {}) and (b1.year - 1)
+                            group by (b1.geo_id, b1.year);"""
+
+INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
+                            select b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
+                            from blockgroup b1 join blockgroup b2
+                              on b1.geo_id=b2.geo_id
+                              and b2.year = b1.year-{}
+                            where b2.{} is not null and b2.{} != 0;
+                            """
+
+
+INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
+                                SELECT geo_id, year, ntile({}) over (order by {} desc) as {}
+                                FROM blockgroup;
+                            """
+
+
+
