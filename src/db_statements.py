@@ -82,7 +82,6 @@ CREATE_TABLE_DEMOGRAPHIC = """CREATE TABLE demographic (
 );"""
 
 CREATE_TABLE_URBAN = """CREATE TABLE urban (UA int, 
-    UANAME text,
     STATE int,
     COUNTY int,
     GEOID int);"""
@@ -107,7 +106,7 @@ bbg_sum_evict FLOAT,
 bbg_avg_evict_rate FLOAT,
 bbg_avg_population FLOAT,
 bbg_avg_poverty_rate FLOAT,
-bbg_avg_pct_renter_occupied ,FLOAT
+bbg_avg_pct_renter_occupied FLOAT,
 bbg_avg_median_gross_rent FLOAT,
 bbg_avg_median_household_income FLOAT,
 bbg_avg_median_property_value FLOAT,
@@ -124,7 +123,7 @@ bbg_sum_evict_1 FLOAT,
 bbg_avg_evict_rate_1 FLOAT,
 bbg_avg_population_1 FLOAT,
 bbg_avg_poverty_rate_1 FLOAT,
-bbg_avg_pct_renter_occupied_1 ,FLOAT
+bbg_avg_pct_renter_occupied_1 FLOAT,
 bbg_avg_median_gross_rent_1 FLOAT,
 bbg_avg_median_household_income_1 FLOAT,
 bbg_avg_median_property_value_1 FLOAT,
@@ -141,7 +140,7 @@ bbg_sum_evict_3 FLOAT,
 bbg_avg_evict_rate_3 FLOAT,
 bbg_avg_population_3 FLOAT,
 bbg_avg_poverty_rate_3 FLOAT,
-bbg_avg_pct_renter_occupied_3 ,FLOAT
+bbg_avg_pct_renter_occupied_3 FLOAT,
 bbg_avg_median_gross_rent_3 FLOAT,
 bbg_avg_median_household_income_3 FLOAT,
 bbg_avg_median_property_value_3 FLOAT,
@@ -158,7 +157,7 @@ bbg_sum_evict_1pct FLOAT,
 bbg_avg_evict_rate_1pct FLOAT,
 bbg_avg_population_1pct FLOAT,
 bbg_avg_poverty_rate_1pct FLOAT,
-bbg_avg_pct_renter_occupied_1pct ,FLOAT
+bbg_avg_pct_renter_occupied_1pct FLOAT,
 bbg_avg_median_gross_rent_1pct FLOAT,
 bbg_avg_median_household_income_1pct FLOAT,
 bbg_avg_median_property_value_1pct FLOAT,
@@ -175,7 +174,7 @@ bbg_sum_evict_3pct FLOAT,
 bbg_avg_evict_rate_3pct FLOAT,
 bbg_avg_population_3pct FLOAT,
 bbg_avg_poverty_rate_3pct FLOAT,
-bbg_avg_pct_renter_occupied_3pct ,FLOAT
+bbg_avg_pct_renter_occupied_3pct FLOAT,
 bbg_avg_median_gross_rent_3pct FLOAT,
 bbg_avg_median_household_income_3pct FLOAT,
 bbg_avg_median_property_value_3pct FLOAT,
@@ -188,8 +187,7 @@ bbg_avg_pct_asian_3pct FLOAT,
 bbg_avg_pct_nh_pi_3pct FLOAT,
 bbg_avg_pct_multiple_3pct FLOAT,
 bbg_avg_pct_other_3pct FLOAT,
-PRIMARY KEY(geo_id, year)
-;)"""
+PRIMARY KEY(geo_id, year));"""
 
 CREATE_TABLE_OUTCOME = """CREATE TABLE outcome (
     geo_id CHAR(12),
@@ -220,8 +218,8 @@ COPY_CSV_BLOCKGROUP = """COPY evictions.blockgroup(
     FROM stdin WITH CSV HEADER DELIMITER as ','
 """
 
-COPY_CSV_URBAN = """COPY evictions.urban(UA, UANAME, STATE, COUNTY, GEOID) 
-      from 'data/URBAN_COUNTY_2010.csv' with CSV HEADER DELIMITER as ',';"""
+COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID) 
+      from stdin with CSV HEADER DELIMITER as ',';"""
 
 INSERT_EVICTIONS_GEO = """INSERT INTO evictions.evictions_{} ({}, year, sum_evict, avg_evict_rate, avg_population,
    avg_poverty_rate, avg_pct_renter_occupied, avg_median_gross_rent, avg_median_household_income,
@@ -241,17 +239,16 @@ INSERT_EVICTIONS_GEO = """INSERT INTO evictions.evictions_{} ({}, year, sum_evic
 UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
 UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
 UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
-UPDATE_VAR_URBAN = '''update evictions.geographic set evictions.geographoc.urban = 1
+UPDATE_VAR_URBAN = '''update evictions.geographic set urban = 1
                       from urban t1
-                      join evictions.blockgroup t2 on t1.GEOID = t2.county'''
+                      join evictions.blockgroup t2 on t1.GEOID::varchar(5) = t2.county'''
 
 INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
                         select b1.geo_id, b1.year, avg(b2.{})
                             from blockgroup b1 join blockgroup b2
                             	on b1.geo_id=b2.geo_id
                             	and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);
-                    """
+                            group by (b1.geo_id, b1.year);"""
 
 INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
                             select b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
@@ -260,56 +257,56 @@ INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
                             	and b2.year = b1.year-{}
                             where b2.{} is not null and b2.{} != 0;
                             """
-INSERT_GEO_COLS = """INSERT into {}(_id, state, geoid, year, county, tract) 
-                     SELECT _id, state, geoid, year, county, tract 
+INSERT_GEO_COLS = """INSERT into evictions.geographic (_id, state, geo_id, year, county, tract) 
+                     SELECT _id, state, geo_id, year, county, tract 
                      FROM evictions.blockgroup;
                   """
 
-UPDATE_VAR_DIV_NE = """UPDATE evicitions.geographic set evictions.geographic.div_ne = 1 
-  WHERE evictions.geographic.state = "09" OR evictions.geographic.state = "23"
-  OR evictions.geographic.state = "25" OR evictions.geographic.state = "33" OR
-  evictions.geographic.state = "44" OR evictions.geographic.state = "50";"""
+UPDATE_VAR_DIV_NE = '''UPDATE evictions.geographic set div_ne = 1 
+  WHERE state = '09' OR state = '23'
+  OR state = '25' OR state = '33' OR
+  state = '44' OR state = '50';'''
 
-UPDATE_VAR_DIV_MA = """UPDATE evicitions.geographic set evictions.geographic.div_ma = 1 
-  WHERE evictions.geographic.state = "34" OR evictions.geographic.state = "36"
-  OR evictions.geographic.state = "42";"""
+UPDATE_VAR_DIV_MA = '''UPDATE evictions.geographic set div_ma = 1 
+  WHERE state = '34' OR state = '36'
+  OR state = '42';'''
 
-UPDATE_VAR_DIV_ENC = """UPDATE evicitions.geographic set evictions.geographic.div_enc = 1 
-  WHERE evictions.geographic.state = "17" OR evictions.geographic.state = "18"
-  OR evictions.geographic.state = "26" OR evictions.geographic.state = "39"
-  OR evictions.geographic.state = "55";"""
+UPDATE_VAR_DIV_ENC = '''UPDATE evictions.geographic set div_enc = 1 
+  WHERE state = '17' OR state = '18'
+  OR state = '26' OR state = '39'
+  OR state = '55';'''
 
-UPDATE_VAR_DIV_WNC = """UPDATE evicitions.geographic set evictions.geographic.div_wnc = 1 
-  WHERE evictions.geographic.state = "19" OR evictions.geographic.state = "20"
-  OR evictions.geographic.state = "27" OR evictions.geographic.state = "29"
-  OR evictions.geographic.state = "31" OR evictions.geographic.state = "38"
-  OR evictions.geographic.state = "46";"""
+UPDATE_VAR_DIV_WNC = '''UPDATE evictions.geographic set div_wnc = 1 
+  WHERE state = '19' OR state = '20'
+  OR state = '27' OR state = '29'
+  OR state = '31' OR state = '38'
+  OR state = '46';'''
 
-UPDATE_VAR_DIV_SA = """UPDATE evicitions.geographic set evictions.geographic.div_wnc = 1 
-  WHERE evictions.geographic.state = "10" OR evictions.geographic.state = "11"
-  OR evictions.geographic.state = "12" OR evictions.geographic.state = "13"
-  OR evictions.geographic.state = "24" OR evictions.geographic.state = "37"
-  OR evictions.geographic.state = "45" OR evictions.geographic.state = "51"
-  OR evictions.geographic.state = "54";"""
+UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_wnc = 1 
+  WHERE state = '10' OR state = '11'
+  OR state = '12' OR state = '13'
+  OR state = '24' OR state = '37'
+  OR state = '45' OR state = '51'
+  OR state = '54';'''
 
-UPDATE_VAR_DIV_MNT = """UPDATE evicitions.geographic set evictions.geographic.div_wnc = 1 
-  WHERE evictions.geographic.state = "04" OR evictions.geographic.state = "08"
-  OR evictions.geographic.state = "16" OR evictions.geographic.state = "30"
-  OR evictions.geographic.state = "32" OR evictions.geographic.state = "35"
-  OR evictions.geographic.state = "49" OR evictions.geographic.state = "56";"""
+UPDATE_VAR_DIV_MNT = '''UPDATE evictions.geographic set div_wnc = 1 
+  WHERE state = '04' OR state = '08'
+  OR state = '16' OR state = '30'
+  OR state = '32' OR state = '35'
+  OR state = '49' OR state = '56';'''
 
-UPDATE_VAR_DIV_ESC = """UPDATE evicitions.geographic set evictions.geographic.div_mnt = 1 
-  WHERE evictions.geographic.state = "01" OR evictions.geographic.state = "21"
-  OR evictions.geographic.state = "28" OR evictions.geographic.state = "47";"""
+UPDATE_VAR_DIV_ESC = '''UPDATE evictions.geographic set div_mnt = 1 
+  WHERE state = '01' OR state = '21'
+  OR state = '28' OR state = '47';'''
 
-UPDATE_VAR_DIV_WSC = """UPDATE evicitions.geographic set evictions.geographic.div_mnt = 1 
-  WHERE evictions.geographic.state = "05" OR evictions.geographic.state = "22"
-  OR evictions.geographic.state = "40" OR evictions.geographic.state = "48";"""
+UPDATE_VAR_DIV_WSC = '''UPDATE evictions.geographic set div_mnt = 1 
+  WHERE state = '05' OR state = '22'
+  OR state = '40' OR state = '48';'''
 
-UPDATE_VAR_DIV_PAC = """UPDATE evicitions.geographic set evictions.geographic.div_pac = 1 
-  WHERE evictions.geographic.state = "02" OR evictions.geographic.state = "06"
-  OR evictions.geographic.state = "15" OR evictions.geographic.state = "41"
-  OR evictions.geographic.state = "53";"""
+UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1 
+  WHERE state = '02' OR state = '06'
+  OR state = '15' OR state = '41'
+  OR state = '53';'''
 
 INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
                                 SELECT geo_id, year, ntile({}) over (order by {} desc) as {}
@@ -346,14 +343,34 @@ INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
                             group by (b1.geo_id, b1.year);
                     """
 
-"""IDENTIFY_BORDERING_GEOM = '''INSERT INTO  (gid, holc_grade_b, holc_grade_a, geom) 
-          
-          SELECT b.gid, b.holc_grade as holc_a, a.holc_grade as holc_b, 
-          geometry(ST_Intersection(ST_Buffer(CAST(a.geom AS geography), 402), 
-          b.geom)) FROM redline a, redline b  
-          WHERE a.holc_grade = '{}' AND b.holc_grade != '{}' AND 
-          ST_Intersects(ST_Buffer(CAST(a.geom AS geography), 402), 
-          b.geom);'''.format(grade, grade)"""
+
+INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
+                        select b1.geo_id, b1.year, avg(b2.{})
+                            from blockgroup b1 join blockgroup b2
+                              on b1.geo_id=b2.geo_id
+                              and b2.year between (b1.year - {}) and (b1.year - 1)
+                            group by (b1.geo_id, b1.year);
+                    """
+
+
+
+UPDATE_GEOGRAPHIC_BBG = """update geographic set {} = tmp.{} 
+                                    where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
+                        
+
+CREATE_TMP_AVG_BBG = """CREATE TEMPORARY TABLE tmp (
+                                select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.evict_rate) as bbg_avg_evict_rate,
+                                avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied
+                                avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
+                                avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
+                                avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
+                                avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
+                                from (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b1 
+                                join (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b2
+                                  on ST_Intersects(b1.geom, b2.geom)
+                                  and b1.year = b2.year
+                                  group by (b1.geo_id, b1.year));"""
+
 
 '''============================================================================
     FUNCTIONS & EXTENSIONS
@@ -366,8 +383,6 @@ CREATE_EXT_POSTGIS_TOP = "create extension IF NOT EXISTS postgis_topology;"
 DROP_F_EXEC = "drop function if exists exec(text);"
 CREATE_F_EXEC = "CREATE FUNCTION exec(text) returns text language plpgsql volatile AS $f$ BEGIN EXECUTE $1; RETURN $1; END; $f$;"
 ALTER_SPATIAL_REF_SYS = "ALTER TABLE spatial_ref_sys OWNER TO {};"
-INSERT_SPATIAL_REF_SYS = """INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext)
-                            VALUES ( 102003, 'esri', 102003, '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs ', 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["longitude_of_center",-96],PARAMETER["Standard_Parallel_1",29.5],PARAMETER["Standard_Parallel_2",45.5],PARAMETER["latitude_of_center",37.5],UNIT["Meter",1],AUTHORITY["EPSG","102003"]]');"""
 
 '''============================================================================
     ALTERS
