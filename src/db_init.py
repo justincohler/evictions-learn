@@ -3,6 +3,7 @@ import sys
 import logging
 from db_client import DBClient
 import db_statements
+import pandas as pd
 
 logger = logging.getLogger('evictionslog')
 sh = logging.StreamHandler(sys.stdout)
@@ -51,7 +52,6 @@ class DBInit():
             db_statements.DROP_F_EXEC,
             db_statements.CREATE_F_EXEC,
             db_statements.ALTER_SPATIAL_REF_SYS.format(self.db.DB_USER),
-            #db_statements.INSERT_SPATIAL_REF_SYS,
             db_statements.RENAME_VAR_STATE,
             db_statements.CREATE_VAR_STATE,
             db_statements.CREATE_VAR_COUNTY,
@@ -122,7 +122,11 @@ class DBInit():
             db_statements.DROP_TABLE_URBAN,
             db_statements.CREATE_TABLE_URBAN])
 
-        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', db_statements.COPY_CSV_URBAN)
+        df = pd.read_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', header = 0)
+        df = df[['UA', 'STATE', 'COUNTY', 'GEOID']]
+        df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index = False)
+
+        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', db_statements.COPY_CSV_URBAN)
             
         self.db.write([
         db_statements.DROP_TABLE_GEOGRAPHIC,
@@ -140,6 +144,28 @@ class DBInit():
         db_statements.UPDATE_VAR_URBAN
         ])
         
+    def avg_bordering_block_groups(self):
+        var_list = ['evictions', 'evict_rate', 'population', 'poverty_rate', 'pct_renter_occupied', 'median_gross_rent',
+        'median_household_income', 'median_property_value', 'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind',
+        'pct_asian', 'pct_nh_pi', 'pct_multiple', 'pct_other', 'renter_occupied_households']
+
+        try:
+            self.db.write(db_statements.CREATE_TMP_AVG_BBG)
+        except Exception as e:
+                logger.error(e)
+                return False
+
+        for var in var_list:
+            UPDATE_GEOGRAPHIC_BBG = db_statemetns.UPDATE_GEOGRAPHIC_BBG.format(var, var)
+            try:
+                self.db.write(UPDATE_GEOGRAPHIC_BBG)
+            except Exception as e:
+                logger.error(e)
+                return False
+
+            return True
+
+   
 
     def create_outcome_table(self,start_year, end_year):
         DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
