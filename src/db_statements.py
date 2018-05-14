@@ -427,6 +427,30 @@ INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
                               AND b2.year-1 = b1.year;
                         """
 
+OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome
+                            SET {} = (case
+                                          when o1.{} - o2.{} = 1
+                                          then 1
+                                          else 0
+                                      end
+                                      from outcome as o1
+                                      join outcome as o2
+                                      on o1.geo_id = o2.geo_id
+                                      and o1.year-1 = o2.year
+                                      );"""
+
+OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome
+                            SET {} = (case
+                                          when o1.{} - o2.{} = -1
+                                          then 1
+                                          else 0
+                                      end
+                                      from outcome as o1
+                                      join outcome as o2
+                                      on o1.geo_id = o2.geo_id
+                                      and o1.year-1 = o2.year
+                                      );"""
+
 '''============================================================================
     ML Incremental Cursor
 ============================================================================'''
