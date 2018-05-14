@@ -224,12 +224,12 @@ class Pipeline():
 		}
 
 		classifier_params = {'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
-			'LR': { 'penalty': ['l1'], 'C': [0.01]},
-			'NB' : {}, 'SVM' : {'C' :[0.01], 'kernel':['linear']},
-			'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
-			'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
-			'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']}}
-
+    		'LR': { 'penalty': ['l1','l2'], 'C': [0.00001,0.001,0.1,1,10]},
+			'NB' : {},
+			'SVM' :{'C' :[0.00001,0.0001,0.001,0.01,0.1,1,10],'kernel':['linear']},
+			'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
+			'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,20,50,100],'min_samples_split': [2,5,10]},
+			'KNN' :{'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']}}
 		return classifiers, classifier_params
 	def classify(self, models_to_run, classifiers, params, X, y):
 		"""Runs the loop using models_to_run, clfs, gridm and the data."""
