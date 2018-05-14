@@ -31,8 +31,8 @@ class DBClient():
                                 , user = self.DB_USER
                                 , password = self.DB_PASSWORD
                                 , host = self.DB_HOST
-                                , port = self.DB_PORT
-                                , options=f'-c search_path=evictions')
+                                , port = self.DB_PORT)
+                                #, options=f'-c search_path=evictions')
 
         logger.info("Connected to evictions DB.")
         self.conn = conn
