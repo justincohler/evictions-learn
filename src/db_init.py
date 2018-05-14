@@ -161,8 +161,10 @@ class DBInit():
         db_statements.UPDATE_VAR_DIV_ESC,
         db_statements.UPDATE_VAR_DIV_WSC,
         db_statements.UPDATE_VAR_DIV_MNT,
-        db_statements.UPDATE_VAR_DIV_PAC,
-        db_statements.UPDATE_VAR_URBAN
+        db_statements.UPDATE_VAR_DIV_PAC])
+
+        logger.info("updating urban")
+        self.db.write([db_statements.UPDATE_VAR_URBAN
         ])
 
         logger.info("Regional dummies and urban updated.")
