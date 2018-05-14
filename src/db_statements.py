@@ -406,9 +406,11 @@ INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
                             """
 
 
+# Note: may need to be called in a loop over all years
 INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
                                 SELECT geo_id, year, ntile({}) over (order by {} desc) as {}
-                                FROM blockgroup;
+                                FROM blockgroup
+                                WHERE year = {};
                             """
 
 INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
