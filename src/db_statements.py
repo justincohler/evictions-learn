@@ -286,24 +286,24 @@ UPDATE_VAR_DIV_WNC = '''UPDATE evictions.geographic set div_wnc = 1
   OR state = '31' OR state = '38'
   OR state = '46';'''
 
-UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_wnc = 1 
+UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_sa = 1 
   WHERE state = '10' OR state = '11'
   OR state = '12' OR state = '13'
   OR state = '24' OR state = '37'
   OR state = '45' OR state = '51'
   OR state = '54';'''
 
-UPDATE_VAR_DIV_MNT = '''UPDATE evictions.geographic set div_wnc = 1 
+UPDATE_VAR_DIV_MNT = '''UPDATE evictions.geographic set div_mnt = 1 
   WHERE state = '04' OR state = '08'
   OR state = '16' OR state = '30'
   OR state = '32' OR state = '35'
   OR state = '49' OR state = '56';'''
 
-UPDATE_VAR_DIV_ESC = '''UPDATE evictions.geographic set div_mnt = 1 
+UPDATE_VAR_DIV_ESC = '''UPDATE evictions.geographic set div_esc = 1 
   WHERE state = '01' OR state = '21'
   OR state = '28' OR state = '47';'''
 
-UPDATE_VAR_DIV_WSC = '''UPDATE evictions.geographic set div_mnt = 1 
+UPDATE_VAR_DIV_WSC = '''UPDATE evictions.geographic set div_wsc = 1 
   WHERE state = '05' OR state = '22'
   OR state = '40' OR state = '48';'''
 
