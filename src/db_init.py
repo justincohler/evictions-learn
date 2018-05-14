@@ -117,25 +117,46 @@ class DBInit():
         return True
 
     def geo_features_table(self):
-        INSERT_GEO_COLS = db_statements.INSERT_GEO_COLS.format('evictions.geography')
-        self.db.write([
-            db_statements.DROP_TABLE_URBAN,
-            db_statements.CREATE_TABLE_URBAN])
+       
+       # self.db.write([
+           # db_statements.DROP_TABLE_URBAN,
+           # db_statements.CREATE_TABLE_URBAN])
 
-        df = pd.read_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', header = 0)
-        df = df[['UA', 'STATE', 'COUNTY', 'GEOID']]
-        df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index = False)
+        #logger.info("Create urban table")
 
-        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', db_statements.COPY_CSV_URBAN)
-            
+        #df = pd.read_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', header = 0)
+        #df = df[['UA', 'STATE', 'COUNTY', 'GEOID']]
+        #df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index = False)
+
+        #self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', db_statements.COPY_CSV_URBAN)
+        
+        #logger.info("Creating geo table...")    
+        #self.db.write([
+        #db_statements.DROP_TABLE_GEOGRAPHIC,
+        #db_statements.CREATE_TABLE_GEOGRAPHIC])
+
+        #logger.info("Updating geo table...")
+        #self.db.write([
+        #db_statements.ALTER_TABLE_GEOGRAPHIC])
+
+        #logger.info("Geo table created.")
+
+        #logger.info("Creating indexes...")
+        #self.db.write([
+        #    db_statements.IDX_COUNTY_GEO,
+        #    db_statements.IDX_STATE_GEO])
+
+        #logger.info("Updating table...")
+
+        #self.db.write([
+        #db_statements.UPDATE_VAR_DIV_NE,
+        #db_statements.UPDATE_VAR_DIV_MA,
+        #db_statements.UPDATE_VAR_DIV_ENC,
+        #db_statements.UPDATE_VAR_DIV_WNC])
+
+        logger.info("update pt 2")
+
         self.db.write([
-        db_statements.DROP_TABLE_GEOGRAPHIC,
-        db_statements.CREATE_TABLE_GEOGRAPHIC,
-        db_statements.INSERT_GEO_COLS,
-        db_statements.UPDATE_VAR_DIV_NE,
-        db_statements.UPDATE_VAR_DIV_MA,
-        db_statements.UPDATE_VAR_DIV_ENC,
-        db_statements.UPDATE_VAR_DIV_WNC,
         db_statements.UPDATE_VAR_DIV_SA,
         db_statements.UPDATE_VAR_DIV_ESC,
         db_statements.UPDATE_VAR_DIV_WSC,
@@ -143,6 +164,9 @@ class DBInit():
         db_statements.UPDATE_VAR_DIV_PAC,
         db_statements.UPDATE_VAR_URBAN
         ])
+
+        logger.info("Regional dummies and urban updated.")
+
         
     def avg_bordering_block_groups(self):
         var_list = ['evictions', 'evict_rate', 'population', 'poverty_rate', 'pct_renter_occupied', 'median_gross_rent',
@@ -222,5 +246,8 @@ if __name__=="__main__":
     	#	initializer.group_by_geo(geo)
 
     initializer.geo_features_table()
+    #initializer.db.write(["ALTER TABLE evictions.blockgroup add urban boolean DEFAULT(FALSE)"])
+    #logger.info("update")
+    #initializer.db.write([db_statements.UPDATE_VAR_URBAN])
 
     #initializer.create_n_year_average("rent_burden", "demographic", 3)
