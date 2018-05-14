@@ -113,10 +113,10 @@ INSERT_EVICTIONS_GEO = """INSERT INTO evictions.evictions_{} ({}, year, sum_evic
    avg_median_property_value, avg_rent_burden, avg_pct_white, avg_pct_af_am, avg_pct_hispanic,
    avg_pct_am_ind, avg_pct_asian, avg_pct_nh_pi, avg_pct_multiple, avg_pct_other, avg_renter_occupied_households)
    SELECT {}, year, sum(evictions) as sum_evict, avg(eviction_rate) as avg_evict_rate, avg(population) as avg_population,
-   avg(poverty_rate) as avg_poverty_rate, avg(pct_renter_occupied) as avg_pct_renter_occupied, avg(median_gross_rent) as avg_median_gross_rent, 
-   avg(median_household_income) as avg_median_household_income, avg(median_property_value) as avg_median_property_value, 
+   avg(poverty_rate) as avg_poverty_rate, avg(pct_renter_occupied) as avg_pct_renter_occupied, avg(median_gross_rent) as avg_median_gross_rent,
+   avg(median_household_income) as avg_median_household_income, avg(median_property_value) as avg_median_property_value,
    avg(rent_burden) as avg_rent_burden, avg(pct_white) as avg_pct_white, avg(pct_af_am) as avg_pct_af_am, avg(pct_hispanic) as avg_pct_hispanic,
-   avg(pct_am_ind) as avg_pct_am_ind, avg(pct_asian) as avg_pct_asian, avg(pct_nh_pi) as avg_pct_nh_pi, avg(pct_multiple) as avg_pct_multiple, 
+   avg(pct_am_ind) as avg_pct_am_ind, avg(pct_asian) as avg_pct_asian, avg(pct_nh_pi) as avg_pct_nh_pi, avg(pct_multiple) as avg_pct_multiple,
    avg(pct_other) as avg_pct_other, avg(renter_occupied_households) as avg_renter_occupied_households
    FROM evictions.blockgroup
    GROUP BY {}, year;"""
@@ -146,177 +146,178 @@ DROP_TABLE_URBAN = "DROP TABLE IF EXISTS urban;"
 DROP_TABLE_GEOGRAPHIC = "DROP TABLE IF EXISTS geographic;"
 
 
-CREATE_TABLE_URBAN = """CREATE TABLE urban (UA int, 
+CREATE_TABLE_URBAN = """CREATE TABLE urban (UA int,
     STATE int,
     COUNTY int,
     GEOID int);"""
 
-CREATE_TABLE_GEOGRAPHIC = """CREATE TABLE geographic (_id int,
-state varchar(2),
-geo_id varchar(12),
-year int,
-county varchar(5),
-tract varchar(11),
-urban int DEFAULT(0),
-div_ne int DEFAULT(0),
-div_ma int DEFAULT(0),
-div_enc int DEFAULT(0),
-div_wnc int DEFAULT(0),
-div_sa int DEFAULT(0),
-div_esc int DEFAULT(0),
-div_wsc int DEFAULT(0),
-div_mnt int DEFAULT(0),
-div_pac int DEFAULT(0),
-bbg_sum_evict FLOAT,
-bbg_avg_evict_rate FLOAT,
-bbg_avg_population FLOAT,
-bbg_avg_poverty_rate FLOAT,
-bbg_avg_pct_renter_occupied FLOAT,
-bbg_avg_median_gross_rent FLOAT,
-bbg_avg_median_household_income FLOAT,
-bbg_avg_median_property_value FLOAT,
-bbg_avg_rent_burden FLOAT,
-bbg_avg_pct_white FLOAT,
-bbg_avg_pct_af_am FLOAT,
-bbg_avg_pct_hispanic FLOAT,
-bbg_avg_pct_am_ind FLOAT,
-bbg_avg_pct_asian FLOAT,
-bbg_avg_pct_nh_pi FLOAT,
-bbg_avg_pct_multiple FLOAT,
-bbg_avg_pct_other FLOAT,
-bbg_sum_evict_1 FLOAT,
-bbg_avg_evict_rate_1 FLOAT,
-bbg_avg_population_1 FLOAT,
-bbg_avg_poverty_rate_1 FLOAT,
-bbg_avg_pct_renter_occupied_1 FLOAT,
-bbg_avg_median_gross_rent_1 FLOAT,
-bbg_avg_median_household_income_1 FLOAT,
-bbg_avg_median_property_value_1 FLOAT,
-bbg_avg_rent_burden_1 FLOAT,
-bbg_avg_pct_white_1 FLOAT,
-bbg_avg_pct_af_am_1 FLOAT,
-bbg_avg_pct_hispanic_1 FLOAT,
-bbg_avg_pct_am_ind_1 FLOAT,
-bbg_avg_pct_asian_1 FLOAT,
-bbg_avg_pct_nh_pi_1 FLOAT,
-bbg_avg_pct_multiple_1 FLOAT,
-bbg_avg_pct_other_1 FLOAT,
-bbg_sum_evict_3 FLOAT,
-bbg_avg_evict_rate_3 FLOAT,
-bbg_avg_population_3 FLOAT,
-bbg_avg_poverty_rate_3 FLOAT,
-bbg_avg_pct_renter_occupied_3 FLOAT,
-bbg_avg_median_gross_rent_3 FLOAT,
-bbg_avg_median_household_income_3 FLOAT,
-bbg_avg_median_property_value_3 FLOAT,
-bbg_avg_rent_burden_3 FLOAT,
-bbg_avg_pct_white_3 FLOAT,
-bbg_avg_pct_af_am_3 FLOAT,
-bbg_avg_pct_hispanic_3 FLOAT,
-bbg_avg_pct_am_ind_3 FLOAT,
-bbg_avg_pct_asian_3 FLOAT,
-bbg_avg_pct_nh_pi_3 FLOAT,
-bbg_avg_pct_multiple_3 FLOAT,
-bbg_avg_pct_other_3 FLOAT,
-bbg_sum_evict_1pct FLOAT,
-bbg_avg_evict_rate_1pct FLOAT,
-bbg_avg_population_1pct FLOAT,
-bbg_avg_poverty_rate_1pct FLOAT,
-bbg_avg_pct_renter_occupied_1pct FLOAT,
-bbg_avg_median_gross_rent_1pct FLOAT,
-bbg_avg_median_household_income_1pct FLOAT,
-bbg_avg_median_property_value_1pct FLOAT,
-bbg_avg_rent_burden_1pct FLOAT,
-bbg_avg_pct_white_1pct FLOAT,
-bbg_avg_pct_af_am_1pct FLOAT,
-bbg_avg_pct_hispanic_1pct FLOAT,
-bbg_avg_pct_am_ind_1pct FLOAT,
-bbg_avg_pct_asian_1pct FLOAT,
-bbg_avg_pct_nh_pi_1pct FLOAT,
-bbg_avg_pct_multiple_1pct FLOAT,
-bbg_avg_pct_other_1pct FLOAT,
-bbg_sum_evict_3pct FLOAT,
-bbg_avg_evict_rate_3pct FLOAT,
-bbg_avg_population_3pct FLOAT,
-bbg_avg_poverty_rate_3pct FLOAT,
-bbg_avg_pct_renter_occupied_3pct FLOAT,
-bbg_avg_median_gross_rent_3pct FLOAT,
-bbg_avg_median_household_income_3pct FLOAT,
-bbg_avg_median_property_value_3pct FLOAT,
-bbg_avg_rent_burden_3pct FLOAT,
-bbg_avg_pct_white_3pct FLOAT,
-bbg_avg_pct_af_am_3pct FLOAT,
-bbg_avg_pct_hispanic_3pct FLOAT,
-bbg_avg_pct_am_ind_3pct FLOAT,
-bbg_avg_pct_asian_3pct FLOAT,
-bbg_avg_pct_nh_pi_3pct FLOAT,
-bbg_avg_pct_multiple_3pct FLOAT,
-bbg_avg_pct_other_3pct FLOAT,
-PRIMARY KEY(geo_id, year));"""
 
-INSERT_GEO_COLS = """INSERT into evictions.geographic (_id, state, geo_id, year, county, tract) 
-                     SELECT _id, state, geo_id, year, county, tract 
-                     FROM evictions.blockgroup;
-                  """
+CREATE_TABLE_GEOGRAPHIC = """CREATE TABLE geographic as SELECT _id, state, geo_id, year, county, tract FROM evictions.blockgroup;"""
 
-COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID) 
+ALTER_TABLE_GEOGRAPHIC = """ALTER TABLE geographic
+ADD COLUMN urban int DEFAULT(0),
+ADD COLUMN div_ne int DEFAULT(0),
+ADD COLUMN div_ma int DEFAULT(0),
+ADD COLUMN div_enc int DEFAULT(0),
+ADD COLUMN div_wnc int DEFAULT(0),
+ADD COLUMN div_sa int DEFAULT(0),
+ADD COLUMN div_esc int DEFAULT(0),
+ADD COLUMN div_wsc int DEFAULT(0),
+ADD COLUMN div_mnt int DEFAULT(0),
+ADD COLUMN div_pac int DEFAULT(0),
+ADD COLUMN bbg_sum_evict FLOAT,
+ADD COLUMN bbg_avg_evict_rate FLOAT,
+ADD COLUMN bbg_avg_population FLOAT,
+ADD COLUMN bbg_avg_poverty_rate FLOAT,
+ADD COLUMN bbg_avg_pct_renter_occupied FLOAT,
+ADD COLUMN bbg_avg_median_gross_rent FLOAT,
+ADD COLUMN bbg_avg_median_household_income FLOAT,
+ADD COLUMN bbg_avg_median_property_value FLOAT,
+ADD COLUMN bbg_avg_rent_burden FLOAT,
+ADD COLUMN bbg_avg_pct_white FLOAT,
+ADD COLUMN bbg_avg_pct_af_am FLOAT,
+ADD COLUMN bbg_avg_pct_hispanic FLOAT,
+ADD COLUMN bbg_avg_pct_am_ind FLOAT,
+ADD COLUMN bbg_avg_pct_asian FLOAT,
+ADD COLUMN bbg_avg_pct_nh_pi FLOAT,
+ADD COLUMN bbg_avg_pct_multiple FLOAT,
+ADD COLUMN bbg_avg_pct_other FLOAT,
+ADD COLUMN bbg_sum_evict_1 FLOAT,
+ADD COLUMN bbg_avg_evict_rate_1 FLOAT,
+ADD COLUMN bbg_avg_population_1 FLOAT,
+ADD COLUMN bbg_avg_poverty_rate_1 FLOAT,
+ADD COLUMN bbg_avg_pct_renter_occupied_1 FLOAT,
+ADD COLUMN bbg_avg_median_gross_rent_1 FLOAT,
+ADD COLUMN bbg_avg_median_household_income_1 FLOAT,
+ADD COLUMN bbg_avg_median_property_value_1 FLOAT,
+ADD COLUMN bbg_avg_rent_burden_1 FLOAT,
+ADD COLUMN bbg_avg_pct_white_1 FLOAT,
+ADD COLUMN bbg_avg_pct_af_am_1 FLOAT,
+ADD COLUMN bbg_avg_pct_hispanic_1 FLOAT,
+ADD COLUMN bbg_avg_pct_am_ind_1 FLOAT,
+ADD COLUMN bbg_avg_pct_asian_1 FLOAT,
+ADD COLUMN bbg_avg_pct_nh_pi_1 FLOAT,
+ADD COLUMN bbg_avg_pct_multiple_1 FLOAT,
+ADD COLUMN bbg_avg_pct_other_1 FLOAT,
+ADD COLUMN bbg_sum_evict_3 FLOAT,
+ADD COLUMN bbg_avg_evict_rate_3 FLOAT,
+ADD COLUMN bbg_avg_population_3 FLOAT,
+ADD COLUMN bbg_avg_poverty_rate_3 FLOAT,
+ADD COLUMN bbg_avg_pct_renter_occupied_3 FLOAT,
+ADD COLUMN bbg_avg_median_gross_rent_3 FLOAT,
+ADD COLUMN bbg_avg_median_household_income_3 FLOAT,
+ADD COLUMN bbg_avg_median_property_value_3 FLOAT,
+ADD COLUMN bbg_avg_rent_burden_3 FLOAT,
+ADD COLUMN bbg_avg_pct_white_3 FLOAT,
+ADD COLUMN bbg_avg_pct_af_am_3 FLOAT,
+ADD COLUMN bbg_avg_pct_hispanic_3 FLOAT,
+ADD COLUMN bbg_avg_pct_am_ind_3 FLOAT,
+ADD COLUMN bbg_avg_pct_asian_3 FLOAT,
+ADD COLUMN bbg_avg_pct_nh_pi_3 FLOAT,
+ADD COLUMN bbg_avg_pct_multiple_3 FLOAT,
+ADD COLUMN bbg_avg_pct_other_3 FLOAT,
+ADD COLUMN bbg_sum_evict_1pct FLOAT,
+ADD COLUMN bbg_avg_evict_rate_1pct FLOAT,
+ADD COLUMN bbg_avg_population_1pct FLOAT,
+ADD COLUMN bbg_avg_poverty_rate_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_renter_occupied_1pct FLOAT,
+ADD COLUMN bbg_avg_median_gross_rent_1pct FLOAT,
+ADD COLUMN bbg_avg_median_household_income_1pct FLOAT,
+ADD COLUMN bbg_avg_median_property_value_1pct FLOAT,
+ADD COLUMN bbg_avg_rent_burden_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_white_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_af_am_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_hispanic_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_am_ind_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_asian_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_nh_pi_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_multiple_1pct FLOAT,
+ADD COLUMN bbg_avg_pct_other_1pct FLOAT,
+ADD COLUMN bbg_sum_evict_3pct FLOAT,
+ADD COLUMN bbg_avg_evict_rate_3pct FLOAT,
+ADD COLUMN bbg_avg_population_3pct FLOAT,
+ADD COLUMN bbg_avg_poverty_rate_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_renter_occupied_3pct FLOAT,
+ADD COLUMN bbg_avg_median_gross_rent_3pct FLOAT,
+ADD COLUMN bbg_avg_median_household_income_3pct FLOAT,
+ADD COLUMN bbg_avg_median_property_value_3pct FLOAT,
+ADD COLUMN bbg_avg_rent_burden_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_white_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_af_am_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_hispanic_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_am_ind_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_asian_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_nh_pi_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_multiple_3pct FLOAT,
+ADD COLUMN bbg_avg_pct_other_3pct FLOAT,
+ADD PRIMARY KEY(geo_id, year);"""
+
+
+
+COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID)
       from stdin with CSV HEADER DELIMITER as ',';"""
+
+
+IDX_COUNTY_GEO = "CREATE INDEX idx_county_geo ON geographic (county);"
+IDX_STATE_GEO = "CREATE INDEX idx_state_geo ON geographic (state);"
 
 
 UPDATE_VAR_URBAN = '''update evictions.geographic set urban = 1
                       from urban t1
-                      join evictions.blockgroup t2 on t1.GEOID::varchar(5) = t2.county'''
+                      join evictions.geographic t2 on t1.GEOID::varchar(5) = t2.county'''
 
-UPDATE_VAR_DIV_NE = '''UPDATE evictions.geographic set div_ne = 1 
+UPDATE_VAR_DIV_NE = '''UPDATE evictions.geographic set div_ne = 1
   WHERE state = '09' OR state = '23'
   OR state = '25' OR state = '33' OR
   state = '44' OR state = '50';'''
 
-UPDATE_VAR_DIV_MA = '''UPDATE evictions.geographic set div_ma = 1 
+UPDATE_VAR_DIV_MA = '''UPDATE evictions.geographic set div_ma = 1
   WHERE state = '34' OR state = '36'
   OR state = '42';'''
 
-UPDATE_VAR_DIV_ENC = '''UPDATE evictions.geographic set div_enc = 1 
+UPDATE_VAR_DIV_ENC = '''UPDATE evictions.geographic set div_enc = 1
   WHERE state = '17' OR state = '18'
   OR state = '26' OR state = '39'
   OR state = '55';'''
 
-UPDATE_VAR_DIV_WNC = '''UPDATE evictions.geographic set div_wnc = 1 
+UPDATE_VAR_DIV_WNC = '''UPDATE evictions.geographic set div_wnc = 1
   WHERE state = '19' OR state = '20'
   OR state = '27' OR state = '29'
   OR state = '31' OR state = '38'
   OR state = '46';'''
 
-UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_wnc = 1 
+
+UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_sa = 1 
   WHERE state = '10' OR state = '11'
   OR state = '12' OR state = '13'
   OR state = '24' OR state = '37'
   OR state = '45' OR state = '51'
   OR state = '54';'''
 
-UPDATE_VAR_DIV_MNT = '''UPDATE evictions.geographic set div_wnc = 1 
+
+UPDATE_VAR_DIV_MNT = '''UPDATE evictions.geographic set div_mnt = 1 
   WHERE state = '04' OR state = '08'
   OR state = '16' OR state = '30'
   OR state = '32' OR state = '35'
   OR state = '49' OR state = '56';'''
 
-UPDATE_VAR_DIV_ESC = '''UPDATE evictions.geographic set div_mnt = 1 
+UPDATE_VAR_DIV_ESC = '''UPDATE evictions.geographic set div_esc = 1 
   WHERE state = '01' OR state = '21'
   OR state = '28' OR state = '47';'''
 
-UPDATE_VAR_DIV_WSC = '''UPDATE evictions.geographic set div_mnt = 1 
+UPDATE_VAR_DIV_WSC = '''UPDATE evictions.geographic set div_wsc = 1 
   WHERE state = '05' OR state = '22'
   OR state = '40' OR state = '48';'''
 
-UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1 
+UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1
   WHERE state = '02' OR state = '06'
   OR state = '15' OR state = '41'
   OR state = '53';'''
 
 
-UPDATE_GEOGRAPHIC_BBG = """update geographic set {} = tmp.{} 
+UPDATE_GEOGRAPHIC_BBG = """update geographic set {} = tmp.{}
                                     where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
-                        
+
 
 CREATE_TMP_AVG_BBG = """CREATE TEMPORARY TABLE tmp (
                                 select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.evict_rate) as bbg_avg_evict_rate,
@@ -325,7 +326,7 @@ CREATE_TMP_AVG_BBG = """CREATE TEMPORARY TABLE tmp (
                                 avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
                                 avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
                                 avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
-                                from (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b1 
+                                from (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b1
                                 join (SELECT * from blockgroup join census_blk_grp_shp on blockgroup.geo_id = census_blk_grp_shp.geoid) b2
                                   on ST_Intersects(b1.geom, b2.geom)
                                   and b1.year = b2.year
@@ -344,8 +345,8 @@ CREATE_TABLE_OUTCOME = """CREATE TABLE outcome (
 PRIMARY KEY (geo_id, year)
 );"""
 
-INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year, 
-                            ntile(5) over(ORDER BY evictions DESC) AS num_quint, 
+INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
+                            ntile(5) over(ORDER BY evictions DESC) AS num_quint,
                             ntile(5) over(ORDER BY eviction_rate DESC) AS rate_quint
                         FROM blockgroup
                         WHERE year = {}
@@ -356,7 +357,7 @@ INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
                         CASE
                             WHEN tmp.num_quint = 1 THEN 1
                             ELSE 0
-                        END 
+                        END
                         AS top20_num,
                         CASE
                             WHEN tmp.rate_quint = 1 THEN 1
@@ -414,9 +415,9 @@ INSERT_NTILE_DISCRETIZATION = """INSERT into {}(geo_id, year, {})
                             """
 
 INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
-                            SELECT 
-                            CASE 
-                                WHEN b1.eviction_filings IS NOT NULL 
+                            SELECT
+                            CASE
+                                WHEN b1.eviction_filings IS NOT NULL
                                 AND b1.eviction_filings != 0
                                 THEN b1.evictions/b1.eviction_filings
                                 ELSE 0
@@ -426,5 +427,22 @@ INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
                               AND b2.year-1 = b1.year;
                         """
 
+'''============================================================================
+    ML Incremental Cursor
+============================================================================'''
+CREATE_BG_CURSOR = """declare bg_cursor CURSOR WITHOUT HOLD FOR
+	                     select * from blockgroup bg
+                            inner join outcome o on o.geo_id=bg.geo_id and o.year=bg.year;
+                    """
 
+DROP_FUNCTION_BG_CURSOR = "drop function if exists bg_get_chunk(refcursor);"
 
+CREATE_FUNCTION_BG_CURSOR = """create function bg_get_chunk(refcursor) returns refcursor as $$
+                            	begin
+                            		open $1 for
+                            			select * from blockgroup bg
+                            			inner join outcome o on o.geo_id=bg.geo_id and o.year=bg.year;
+                            		return $1;
+                            	end;
+                            	$$ language plpgsql;
+                            """
