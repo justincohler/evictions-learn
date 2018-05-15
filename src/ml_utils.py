@@ -30,6 +30,23 @@ class Pipeline():
 	def __init__(self):
 		self.db = DBClient()
 
+	def load_county_data(self, county):
+		"17031 is cook county"
+		l = []
+		with self.db.conn.cursor() as cur:
+			cur.execute("select * from blockgroup bg join outcome o on bg.geo_id=o.geo_id and bg.year=o.year where bg.county = '17031';")
+			l = cur.fetchall()
+
+		return pd.DataFrame(l, columns = [
+			"_id", "state_code", "geo_id", "year", "name",
+			"parent_location", "population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",
+			"median_household_income", "median_property_value", "rent_burden", "pct_white", "pct_af_am",
+			"pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi", "pct_multiple",
+			"pct_other", "renter_occupied_households", "eviction_filings", "evictions", "eviction_rate",
+			"eviction_filing_rate", "imputed", "stubbed", "state", "county",
+			"tract", "population_pct_change_5yr", "geo_id (repeated)", "year (repeated)", "top20_num",
+			"top20_rate", "top20_num_01"
+		])
 
 	def load_chunk(self, chunksize=1000):
 		"""Return a cursor for the sql statement.
@@ -44,13 +61,14 @@ class Pipeline():
 		l = self.db.cur.fetchmany(chunksize)
 
 		return pd.DataFrame(l, columns = [
-			"_id", "state_code", "geo_id", "year", "name", "parent_location",
-			"population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",
-			"median_household_income", "median_property_value", "rent_burden", "pct_white",
-			"pct_af_am", "pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi", "pct_multiple",
-			"pct_other", "renter_occupied_households", "eviction_filings", "evictions",
-			"eviction_rate", "eviction_filing_rate", "imputed", "subbed", "state", "county", "tract",
-			"geo_id (repeated)", "year (repeated)", "top20_evictions", "top20_eviction_rate"
+			"_id", "state_code", "geo_id", "year", "name",
+			"parent_location", "population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",
+			"median_household_income", "median_property_value", "rent_burden", "pct_white", "pct_af_am",
+			"pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi", "pct_multiple",
+			"pct_other", "renter_occupied_households", "eviction_filings", "evictions", "eviction_rate",
+			"eviction_filing_rate", "imputed", "stubbed", "state", "county",
+			"tract", "population_pct_change_5yr", "geo_id (repeated)", "year (repeated)", "top20_num",
+			"top20_rate", "top20_num_01"
 		])
 
 	def categorical_to_dummy(self, df, column):
@@ -219,7 +237,7 @@ class Pipeline():
 		'SVM': svm.SVC(kernel='linear', probability=True, random_state=0),
 		'GB': GradientBoostingClassifier(learning_rate=0.05, subsample=0.5, max_depth=6, n_estimators=10),
 		'DT': DecisionTreeClassifier(),
-		'KNN': KNeighborsClassifier(n_neighbors=3)
+		'KNN': KNeighborsClassifier(n_neighbors=3),
 		}
 
 		classifier_params = {'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
@@ -228,9 +246,11 @@ class Pipeline():
 			'SVM' :{'C' :[0.00001,0.0001,0.001,0.01,0.1,1,10],'kernel':['linear']},
 			'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
 			'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,20,50,100],'min_samples_split': [2,5,10]},
-			'KNN' :{'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']}}
+			'KNN' :{'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']}
+			}
+
 		return classifiers, classifier_params
-	def classify(self, models_to_run, classifiers, params, X, y):
+	def classify(self, models_to_run, classifiers, params, X, y, baselines_to_run=None):
 		"""Runs the loop using models_to_run, clfs, gridm and the data."""
 		results_df =  self.generate_outcome_table()
 		for n in range(1, 2):
@@ -254,6 +274,17 @@ class Pipeline():
 					except IndexError as e:
 						print('Error:',e)
 						continue
+			if baselines_to_run != None:
+				for baseline in baselines_to_run:
+					if baseline == "RAND":
+						X_rand = np.random.rand(len(X))
+						y_rand_train, y_rand_test, y_train, y_test = train_test_split(X_rand, y, test_size=0.25, random_state=0)
+						results_df.loc[len(results_df)] = [baseline, classifier, {},
+							roc_auc_score(y_test, y_rand_test),
+							self.precision_at_k(y_test_sorted,y_rand_test,5.0),
+							self.precision_at_k(y_test_sorted,y_rand_test,10.0),
+							self.precision_at_k(y_test_sorted,y_rand_test,20.0)]
+
 		return results_df
 
 if __name__ == "__main__":

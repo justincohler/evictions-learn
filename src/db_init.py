@@ -121,7 +121,7 @@ class DBInit():
 
     def geo_features_table(self):
 
-       
+
         self.db.write([
            db_statements.DROP_TABLE_URBAN,
            db_statements.CREATE_TABLE_URBAN])
@@ -133,8 +133,8 @@ class DBInit():
         df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index = False)
 
         self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', db_statements.COPY_CSV_URBAN)
-        
-        logger.info("Creating geo table...")    
+
+        logger.info("Creating geo table...")
         self.db.write([
         db_statements.DROP_TABLE_GEOGRAPHIC,
         db_statements.CREATE_TABLE_GEOGRAPHIC])
@@ -219,8 +219,6 @@ class DBInit():
     def update_outcome_change_cat(self, col_name, col_type, existing_col, zero_to_one = True):
         DROP_COLUMN =db.statements.DROP_COLUMN.format('outcome', col_name, col_type) # "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
         ADD_COLUMN = db_statements.ADD_COLUMN.format('outcome', col_name, col_type) #"ALTER TABLE {} add column {} {};"
-
-        write_list =
 
         if zero_to_one:
             OUTCOME_CAT_CHANGE = db_statements.OUTCOME_CAT_CHANGE_0_1.format(col_name, existing_col, existing_col)
