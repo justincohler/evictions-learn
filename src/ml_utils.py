@@ -43,7 +43,6 @@ class Pipeline():
 
 		l = self.db.cur.fetchmany(chunksize)
 
-		print(l[1])
 		return pd.DataFrame(l, columns = [
 			"_id", "state_code", "geo_id", "year", "name", "parent_location",
 			"population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",

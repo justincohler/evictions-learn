@@ -287,7 +287,7 @@ UPDATE_VAR_DIV_WNC = '''UPDATE evictions.geographic set div_wnc = 1
   OR state = '46';'''
 
 
-UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_sa = 1 
+UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_sa = 1
   WHERE state = '10' OR state = '11'
   OR state = '12' OR state = '13'
   OR state = '24' OR state = '37'
@@ -295,17 +295,17 @@ UPDATE_VAR_DIV_SA = '''UPDATE evictions.geographic set div_sa = 1
   OR state = '54';'''
 
 
-UPDATE_VAR_DIV_MNT = '''UPDATE evictions.geographic set div_mnt = 1 
+UPDATE_VAR_DIV_MNT = '''UPDATE evictions.geographic set div_mnt = 1
   WHERE state = '04' OR state = '08'
   OR state = '16' OR state = '30'
   OR state = '32' OR state = '35'
   OR state = '49' OR state = '56';'''
 
-UPDATE_VAR_DIV_ESC = '''UPDATE evictions.geographic set div_esc = 1 
+UPDATE_VAR_DIV_ESC = '''UPDATE evictions.geographic set div_esc = 1
   WHERE state = '01' OR state = '21'
   OR state = '28' OR state = '47';'''
 
-UPDATE_VAR_DIV_WSC = '''UPDATE evictions.geographic set div_wsc = 1 
+UPDATE_VAR_DIV_WSC = '''UPDATE evictions.geographic set div_wsc = 1
   WHERE state = '05' OR state = '22'
   OR state = '40' OR state = '48';'''
 
@@ -379,31 +379,14 @@ INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
                             from blockgroup b1 join blockgroup b2
                               on b1.geo_id=b2.geo_id
                               and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);
-                    """
-
-
-INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                              on b1.geo_id=b2.geo_id
-                              and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);
-                    """
-
-INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                              on b1.geo_id=b2.geo_id
-                              and b2.year between (b1.year - {}) and (b1.year - 1)
                             group by (b1.geo_id, b1.year);"""
 
-INSERT_N_YEAR_PCT_CHANGE = """INSERT into {}(geo_id, year, {})
-                            select b1.geo_id, b1.year, (b1.{} - b2.{})/b2.{}
-                            from blockgroup b1 join blockgroup b2
-                              on b1.geo_id=b2.geo_id
-                              and b2.year = b1.year-{}
-                            where b2.{} is not null and b2.{} != 0;
+INSERT_N_YEAR_PCT_CHANGE = """UPDATE blockgroup bg
+                                SET {} = (b1.{} - b2.{})/b2.{}
+                                FROM blockgroup b1
+                                join blockgroup b2 on b1.geo_id=b2.geo_id
+                                    and b2.year = b1.year-{}
+                                where b2.{} is not null and b2.{} != 0;
                             """
 
 
@@ -426,6 +409,30 @@ INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
                               ON b1.geo_id=b2.geo_id
                               AND b2.year-1 = b1.year;
                         """
+
+OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome
+                            SET {} = (case
+                                          when o1.{} - o2.{} = 1
+                                          then 1
+                                          else 0
+                                      end
+                                      from outcome as o1
+                                      join outcome as o2
+                                      on o1.geo_id = o2.geo_id
+                                      and o1.year-1 = o2.year
+                                      );"""
+
+OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome
+                            SET {} = (case
+                                          when o1.{} - o2.{} = -1
+                                          then 1
+                                          else 0
+                                      end
+                                      from outcome as o1
+                                      join outcome as o2
+                                      on o1.geo_id = o2.geo_id
+                                      and o1.year-1 = o2.year
+                                      );"""
 
 '''============================================================================
     ML Incremental Cursor

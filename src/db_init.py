@@ -29,8 +29,6 @@ class DBInit():
         self.db.write([
             db_statements.IDX_YEAR,
             db_statements.IDX_STATE,
-            db_statements.IDX_STATE_YEAR,
-            db_statements.IDX_GEOID,
             db_statements.IDX_GEOID_YEAR,
             db_statements.IDX_EVICTIONS
         ])
@@ -84,12 +82,13 @@ class DBInit():
         target_col = '{}_avg_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
-        INSERT_N_YEAR_AVG = db_statements.ALTER_N_YEAR_AVG.format(target_table, target_col, source_col, lag)
+        INSERT_N_YEAR_AVG = db_statements.INSERT_N_YEAR_AVG.format(target_table, target_col, source_col, lag)
 
         logger.debug(INSERT_N_YEAR_AVG)
         try:
             self.db.write([
                 DROP_COLUMN,
+                ADD_COLUMN,
                 INSERT_N_YEAR_AVG
             ])
         except Exception as e:
@@ -102,12 +101,16 @@ class DBInit():
         target_col = '{}_pct_change_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
-        INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE.format(target_table, target_col, source_col, source_col, source_col, lag, source_col, source_col)
+        INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE.format(target_col, source_col, source_col, source_col, lag, source_col, source_col)
 
-        logger.debug(INSERT_N_YEAR_PCT_CHANGE)
+        logger.info("Running:")
+        logger.info(INSERT_N_YEAR_PCT_CHANGE)
         try:
             self.db.write([
                 DROP_COLUMN,
+                ADD_COLUMN
+            ])
+            self.db.write([
                 INSERT_N_YEAR_PCT_CHANGE
             ])
         except Exception as e:
@@ -117,6 +120,7 @@ class DBInit():
         return True
 
     def geo_features_table(self):
+
        
         self.db.write([
            db_statements.DROP_TABLE_URBAN,
@@ -169,7 +173,7 @@ class DBInit():
 
         logger.info("Regional dummies and urban updated.")
 
-        
+
     def avg_bordering_block_groups(self):
         var_list = ['evictions', 'evict_rate', 'population', 'poverty_rate', 'pct_renter_occupied', 'median_gross_rent',
         'median_household_income', 'median_property_value', 'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind',
@@ -191,7 +195,7 @@ class DBInit():
 
             return True
 
-   
+
 
     def create_outcome_table(self,start_year, end_year):
         DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
@@ -206,6 +210,26 @@ class DBInit():
         logger.debug(INSERT_OUTCOMES)
         try:
             self.db.write(write_list)
+        except Exception as e:
+            logger.error(e)
+            return False
+
+        return True
+
+    def update_outcome_change_cat(self, col_name, col_type, existing_col, zero_to_one = True):
+        DROP_COLUMN =db.statements.DROP_COLUMN.format('outcome', col_name, col_type) # "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
+        ADD_COLUMN = db_statements.ADD_COLUMN.format('outcome', col_name, col_type) #"ALTER TABLE {} add column {} {};"
+
+        write_list =
+
+        if zero_to_one:
+            OUTCOME_CAT_CHANGE = db_statements.OUTCOME_CAT_CHANGE_0_1.format(col_name, existing_col, existing_col)
+        else:
+            OUTCOME_CAT_CHANGE = db_statements.OUTCOME_CAT_CHANGE_1_0.format(col_name, existing_col, existing_col)
+
+        logger.debug(OUTCOME_CAT_CHANGE)
+        try:
+            self.db.write([DROP_COLUMN, ADD_COLUMN, OUTCOME_CAT_CHANGE])
         except Exception as e:
             logger.error(e)
             return False
