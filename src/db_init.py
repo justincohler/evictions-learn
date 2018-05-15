@@ -29,8 +29,6 @@ class DBInit():
         self.db.write([
             db_statements.IDX_YEAR,
             db_statements.IDX_STATE,
-            db_statements.IDX_STATE_YEAR,
-            db_statements.IDX_GEOID,
             db_statements.IDX_GEOID_YEAR,
             db_statements.IDX_EVICTIONS
         ])
@@ -84,12 +82,13 @@ class DBInit():
         target_col = '{}_avg_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
-        INSERT_N_YEAR_AVG = db_statements.ALTER_N_YEAR_AVG.format(target_table, target_col, source_col, lag)
+        INSERT_N_YEAR_AVG = db_statements.INSERT_N_YEAR_AVG.format(target_table, target_col, source_col, lag)
 
         logger.debug(INSERT_N_YEAR_AVG)
         try:
             self.db.write([
                 DROP_COLUMN,
+                ADD_COLUMN,
                 INSERT_N_YEAR_AVG
             ])
         except Exception as e:
@@ -102,12 +101,16 @@ class DBInit():
         target_col = '{}_pct_change_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
-        INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE.format(target_table, target_col, source_col, source_col, source_col, lag, source_col, source_col)
+        INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE.format(target_col, source_col, source_col, source_col, lag, source_col, source_col)
 
-        logger.debug(INSERT_N_YEAR_PCT_CHANGE)
+        logger.info("Running:")
+        logger.info(INSERT_N_YEAR_PCT_CHANGE)
         try:
             self.db.write([
                 DROP_COLUMN,
+                ADD_COLUMN
+            ])
+            self.db.write([
                 INSERT_N_YEAR_PCT_CHANGE
             ])
         except Exception as e:
@@ -117,7 +120,7 @@ class DBInit():
         return True
 
     def geo_features_table(self):
-       
+
        # self.db.write([
            # db_statements.DROP_TABLE_URBAN,
            # db_statements.CREATE_TABLE_URBAN])
@@ -129,8 +132,8 @@ class DBInit():
         #df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index = False)
 
         #self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', db_statements.COPY_CSV_URBAN)
-        
-        #logger.info("Creating geo table...")    
+
+        #logger.info("Creating geo table...")
         #self.db.write([
         #db_statements.DROP_TABLE_GEOGRAPHIC,
         #db_statements.CREATE_TABLE_GEOGRAPHIC])
@@ -169,7 +172,7 @@ class DBInit():
 
         logger.info("Regional dummies and urban updated.")
 
-        
+
     def avg_bordering_block_groups(self):
         var_list = ['evictions', 'evict_rate', 'population', 'poverty_rate', 'pct_renter_occupied', 'median_gross_rent',
         'median_household_income', 'median_property_value', 'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind',
@@ -191,7 +194,7 @@ class DBInit():
 
             return True
 
-   
+
 
     def create_outcome_table(self,start_year, end_year):
         DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
@@ -212,7 +215,7 @@ class DBInit():
 
         return True
 
-    def create_n_year_pct_change(self, source_col, target_table, col_type, num_buckets=4):
+    def create_n_year_ntile(self, source_col, target_table, col_type, num_buckets=4):
         target_col = '{}_{}tiles'.format(source_col, num_buckets)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, col_type)

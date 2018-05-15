@@ -32,15 +32,13 @@ class DBClient():
                                 , password = self.DB_PASSWORD
                                 , host = self.DB_HOST
                                 , port = self.DB_PORT)
-                                #, options=f'-c search_path=evictions')
-
         logger.info("Connected to evictions DB.")
         self.conn = conn
 
         with self.conn.cursor() as cur:
             cur.execute(db_statements.SET_SCHEMA)
-            cur.callproc("bg_get_chunk", ["bg_cursor"])
-        self.cur = self.conn.cursor("bg_cursor")
+            #cur.callproc("bg_get_chunk", ["bg_cursor"])
+        #self.cur = self.conn.cursor("bg_cursor")
 
         logger.info("Set schema to 'evictions'.")
         logger.info("Set background cursor.")

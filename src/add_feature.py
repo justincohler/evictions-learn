@@ -26,7 +26,8 @@ cols = [
 ]
 
 for col in cols:
-
-    init.create_n_year_average(col, "demographic", 6)
-    init.create_n_year_pct_change(col, "demographic", 1)
-    init.create_n_year_pct_change(col, "demographic", 6)
+    res = init.create_n_year_pct_change(col, "blockgroup", 5)
+    if not res:
+        break
+    else:
+        print("Added 5 year pct change for {}".format(col))
