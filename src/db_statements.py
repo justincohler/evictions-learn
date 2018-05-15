@@ -262,9 +262,9 @@ IDX_COUNTY_GEO = "CREATE INDEX idx_county_geo ON geographic (county);"
 IDX_STATE_GEO = "CREATE INDEX idx_state_geo ON geographic (state);"
 
 
-UPDATE_VAR_URBAN = '''update evictions.geographic set urban = 1
-                      from urban t1
-                      join evictions.geographic t2 on t1.GEOID::varchar(5) = t2.county'''
+UPDATE_VAR_URBAN = '''UPDATE evictions.geographic
+                      SET urban = 1 
+                      WHERE county IN (SELECT GEOID::varchar(5) FROM evictions.urban);'''
 
 UPDATE_VAR_DIV_NE = '''UPDATE evictions.geographic set div_ne = 1
   WHERE state = '09' OR state = '23'

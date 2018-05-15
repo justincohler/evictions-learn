@@ -118,41 +118,41 @@ class DBInit():
 
     def geo_features_table(self):
        
-       # self.db.write([
-           # db_statements.DROP_TABLE_URBAN,
-           # db_statements.CREATE_TABLE_URBAN])
+        self.db.write([
+           db_statements.DROP_TABLE_URBAN,
+           db_statements.CREATE_TABLE_URBAN])
 
-        #logger.info("Create urban table")
+        logger.info("Create urban table")
 
-        #df = pd.read_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', header = 0)
-        #df = df[['UA', 'STATE', 'COUNTY', 'GEOID']]
-        #df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index = False)
+        df = pd.read_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', header = 0)
+        df = df[['UA', 'STATE', 'COUNTY', 'GEOID']]
+        df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index = False)
 
-        #self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', db_statements.COPY_CSV_URBAN)
+        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', db_statements.COPY_CSV_URBAN)
         
-        #logger.info("Creating geo table...")    
-        #self.db.write([
-        #db_statements.DROP_TABLE_GEOGRAPHIC,
-        #db_statements.CREATE_TABLE_GEOGRAPHIC])
+        logger.info("Creating geo table...")    
+        self.db.write([
+        db_statements.DROP_TABLE_GEOGRAPHIC,
+        db_statements.CREATE_TABLE_GEOGRAPHIC])
 
-        #logger.info("Updating geo table...")
-        #self.db.write([
-        #db_statements.ALTER_TABLE_GEOGRAPHIC])
+        logger.info("Updating geo table...")
+        self.db.write([
+        db_statements.ALTER_TABLE_GEOGRAPHIC])
 
-        #logger.info("Geo table created.")
+        logger.info("Geo table created.")
 
-        #logger.info("Creating indexes...")
-        #self.db.write([
-        #    db_statements.IDX_COUNTY_GEO,
-        #    db_statements.IDX_STATE_GEO])
+        logger.info("Creating indexes...")
+        self.db.write([
+            db_statements.IDX_COUNTY_GEO,
+            db_statements.IDX_STATE_GEO])
 
-        #logger.info("Updating table...")
+        logger.info("Updating table...")
 
-        #self.db.write([
-        #db_statements.UPDATE_VAR_DIV_NE,
-        #db_statements.UPDATE_VAR_DIV_MA,
-        #db_statements.UPDATE_VAR_DIV_ENC,
-        #db_statements.UPDATE_VAR_DIV_WNC])
+        self.db.write([
+        db_statements.UPDATE_VAR_DIV_NE,
+        db_statements.UPDATE_VAR_DIV_MA,
+        db_statements.UPDATE_VAR_DIV_ENC,
+        db_statements.UPDATE_VAR_DIV_WNC])
 
         logger.info("update pt 2")
 
