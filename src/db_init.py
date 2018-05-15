@@ -215,7 +215,27 @@ class DBInit():
 
         return True
 
-    def create_n_year_ntile(self, source_col, target_table, col_type, num_buckets=4):
+    def update_outcome_change_cat(self, col_name, col_type, existing_col, zero_to_one = True):
+        DROP_COLUMN =db.statements.DROP_COLUMN.format('outcome', col_name, col_type) # "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
+        ADD_COLUMN = db_statements.ADD_COLUMN.format('outcome', col_name, col_type) #"ALTER TABLE {} add column {} {};"
+
+        write_list =
+
+        if zero_to_one:
+            OUTCOME_CAT_CHANGE = db_statements.OUTCOME_CAT_CHANGE_0_1.format(col_name, existing_col, existing_col)
+        else:
+            OUTCOME_CAT_CHANGE = db_statements.OUTCOME_CAT_CHANGE_1_0.format(col_name, existing_col, existing_col)
+
+        logger.debug(OUTCOME_CAT_CHANGE)
+        try:
+            self.db.write([DROP_COLUMN, ADD_COLUMN, OUTCOME_CAT_CHANGE])
+        except Exception as e:
+            logger.error(e)
+            return False
+
+        return True
+
+    def create_n_year_pct_change(self, source_col, target_table, col_type, num_buckets=4):
         target_col = '{}_{}tiles'.format(source_col, num_buckets)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, col_type)
