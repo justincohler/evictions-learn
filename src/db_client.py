@@ -37,8 +37,8 @@ class DBClient():
 
         with self.conn.cursor() as cur:
             cur.execute(db_statements.SET_SCHEMA)
-            #cur.callproc("bg_get_chunk", ["bg_cursor"])
-        #self.cur = self.conn.cursor("bg_cursor")
+            cur.callproc("bg_get_chunk", ["bg_cursor"])
+        self.cur = self.conn.cursor("bg_cursor")
 
         logger.info("Set schema to 'evictions'.")
         logger.info("Set background cursor.")
