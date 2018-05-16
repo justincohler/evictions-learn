@@ -410,29 +410,35 @@ INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
                               AND b2.year-1 = b1.year;
                         """
 
-OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome
-                            SET {} = (case
-                                          when o1.{} - o2.{} = 1
-                                          then 1
+OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome o 
+                            SET {} = val
+                            from (select o1.geo_id as geo_id, o1.year as year, case
+                                          when o1.{} - o2.{}} = 1 then 1
                                           else 0
-                                      end
+                                      end as val
                                       from outcome as o1
                                       join outcome as o2
                                       on o1.geo_id = o2.geo_id
                                       and o1.year-1 = o2.year
-                                      );"""
+                                      ) as l
+                          where o.geo_id = l.geo_id
+                          and o.year = l.year;
+                          """
 
-OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome
-                            SET {} = (case
-                                          when o1.{} - o2.{} = -1
-                                          then 1
+OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o 
+                            SET {} = val
+                            from (select o1.geo_id as geo_id, o1.year as year, case
+                                          when o1.{} - o2.{}} = -1 then 1
                                           else 0
-                                      end
+                                      end as val
                                       from outcome as o1
                                       join outcome as o2
                                       on o1.geo_id = o2.geo_id
                                       and o1.year-1 = o2.year
-                                      );"""
+                                      ) as l
+                          where o.geo_id = l.geo_id
+                          and o.year = l.year;
+                          """
 
 '''============================================================================
     ML Incremental Cursor

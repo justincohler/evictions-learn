@@ -217,7 +217,7 @@ class DBInit():
         return True
 
     def update_outcome_change_cat(self, col_name, col_type, existing_col, zero_to_one = True):
-        DROP_COLUMN =db.statements.DROP_COLUMN.format('outcome', col_name, col_type) # "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
+        DROP_COLUMN =db.statements.DROP_COLUMN.format('outcome', col_name) # "ALTER TABLE {} DROP COLUMN IF EXISTS {};"
         ADD_COLUMN = db_statements.ADD_COLUMN.format('outcome', col_name, col_type) #"ALTER TABLE {} add column {} {};"
 
         if zero_to_one:
