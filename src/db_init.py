@@ -265,6 +265,7 @@ if __name__=="__main__":
     #	initializer.census_shp(geo)
     	#if geo != "blck_grp":
     	#	initializer.group_by_geo(geo)
+    initializer.avg_bordering_block_groups()
 
     #initializer.geo_features_table()
     #initializer.db.write(["ALTER TABLE evictions.blockgroup add urban boolean DEFAULT(FALSE)"])
