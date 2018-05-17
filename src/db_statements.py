@@ -319,18 +319,23 @@ UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1
                                     #where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
 
 
-CREATE_TMP_AVG_BBG = """CREATE TABLE evictions.evictions_BBG as
-                                select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.eviction_rate) as bbg_avg_evict_rate,
-                                avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied,
-                                avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
-                                avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
-                                avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
-                                avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
-                                from (SELECT * from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.gid::varchar(12)) b1
-                                join (SELECT * from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.gid::varchar(12)) b2
-                                  on ST_Intersects(b1.geom, b2.geom)
-                                  and b1.year = b2.year
-                                  group by (b1.geo_id, b1.year);"""
+
+
+CREATE_AVG_BBG = """WITH tmp AS (SELECT * from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.gid::varchar(12))
+                          )
+
+                        CREATE TABLE evictions.evictions_BBG as
+                          select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.eviction_rate) as bbg_avg_evict_rate,
+                          avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied,
+                          avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
+                          avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
+                          avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
+                          avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
+                          from tmp b1
+                          join tmp b2
+                            on ST_Intersects(b1.geom, b2.geom)
+                            and b1.year = b2.year
+                            group by (b1.geo_id, b1.year);"""
 
 
 '''============================================================================

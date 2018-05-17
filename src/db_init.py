@@ -175,25 +175,25 @@ class DBInit():
 
 
     def avg_bordering_block_groups(self):
-        var_list = ['evictions', 'evict_rate', 'population', 'poverty_rate', 'pct_renter_occupied', 'median_gross_rent',
-        'median_household_income', 'median_property_value', 'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind',
-        'pct_asian', 'pct_nh_pi', 'pct_multiple', 'pct_other', 'renter_occupied_households']
+        #var_list = ['evictions', 'evict_rate', 'population', 'poverty_rate', 'pct_renter_occupied', 'median_gross_rent',
+        #'median_household_income', 'median_property_value', 'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind',
+        #'pct_asian', 'pct_nh_pi', 'pct_multiple', 'pct_other', 'renter_occupied_households']
 
         try:
-            self.db.write(db_statements.CREATE_TMP_AVG_BBG)
+            self.db.write(db_statements.CREATE_AVG_BBG)
         except Exception as e:
                 logger.error(e)
                 return False
 
-        for var in var_list:
-            UPDATE_GEOGRAPHIC_BBG = db_statemetns.UPDATE_GEOGRAPHIC_BBG.format(var, var)
-            try:
-                self.db.write(UPDATE_GEOGRAPHIC_BBG)
-            except Exception as e:
-                logger.error(e)
-                return False
+        #for var in var_list:
+        #    UPDATE_GEOGRAPHIC_BBG = db_statemetns.UPDATE_GEOGRAPHIC_BBG.format(var, var)
+        #    try:
+        #        self.db.write(UPDATE_GEOGRAPHIC_BBG)
+        #    except Exception as e:
+        #        logger.error(e)
+        #        return False
 
-            return True
+        #    return True
 
 
 
@@ -266,7 +266,7 @@ if __name__=="__main__":
     	#if geo != "blck_grp":
     	#	initializer.group_by_geo(geo)
 
-    initializer.geo_features_table()
+    #initializer.geo_features_table()
     #initializer.db.write(["ALTER TABLE evictions.blockgroup add urban boolean DEFAULT(FALSE)"])
     #logger.info("update")
     #initializer.db.write([db_statements.UPDATE_VAR_URBAN])
