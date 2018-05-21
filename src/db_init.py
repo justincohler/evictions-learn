@@ -198,10 +198,10 @@ class DBInit():
 
 
     def create_outcome_table(self,start_year, end_year):
-        DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
-        CREATE_TABLE_OUTCOME = db_statements.CREATE_TABLE_OUTCOME
+        #DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
+        #CREATE_TABLE_OUTCOME = db_statements.CREATE_TABLE_OUTCOME
 
-        write_list = [DROP_TABLE_OUTCOME, CREATE_TABLE_OUTCOME]
+        write_list = []
 
         for year in range(start_year, end_year):
             INSERT_OUTCOMES = db_statements.INSERT_OUTCOMES.format(year,year)
