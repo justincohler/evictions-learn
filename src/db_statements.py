@@ -1,4 +1,10 @@
 """DB Statements for the evictions-learn project."""
+# East North Central: Indiana (18) Illinois (17) Michigan (26) Ohio (39) Wisconsin (55)
+# South Atlantic: Delaware (10) District of Columbia (11) Florida  (12) Georgia (13)
+#   Maryland  (24) North Carolina (37) South Carolina (45) Virginia (51) West Virginia  (54)
+
+Drop_State = "delete from evictions_tract where state not in ('18', '17', '26', '39', '55', '10', '11', '12', '13', '24', '37', '45', '51', '54');"
+
 
 '''============================================================================
     SCHEMA
@@ -61,6 +67,9 @@ IDX_STATE = "CREATE INDEX idx_state ON blockgroup (state);"
 IDX_EVICTIONS = "CREATE INDEX idx_evictions ON blockgroup (evictions);"
 IDX_GEOID = "CREATE INDEX idx_geoid on blockgroup (geo_id);"
 IDX_GEOID_YEAR = "CREATE INDEX idx_geoid on blockgroup (geo_id, year);"
+IDX_STATE_TR = "create index idx_state_tr on evictions_tract (state);"
+IDX_STATE_CT = "create index idx_state_ct on evictions_county (state);"
+IDX_STATE_GEO = "create index idx_state_geo on geographic (state);"
 
 COPY_CSV_BLOCKGROUP = """COPY evictions.blockgroup(
     state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
@@ -78,13 +87,15 @@ CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county CHAR(5);
 UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
 UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
 UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
-
+# delete from evictions_tract where state not in ('18', '17', '26', '39', 
 '''==========================================================================
 SHAPEFILE LOAD + GROUP BY GEO
 =========================================================================='''
 
 DROP_TABLE_EVICTIONS_GEO = "DROP TABLE IF EXISTS evictions_{};"
 DROP_TABLE_SHP = "DROP TABLE IF EXISTS census_{}_shp;"
+
+IDX_GEOID = "CREATE INDEX idx_geoid on blockgroup (geo_id);"
 
 CREATE_TABLE_EVICTIONS_GEO = """CREATE TABLE evictions_{} ({} VARCHAR(12),
    year SMALLINT,
@@ -321,21 +332,21 @@ UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1
 
 
 
-CREATE_AVG_BBG = """WITH tmp AS (SELECT * from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.gid::varchar(12))
-                          )
+CREATE_TMP = """CREATE TABLE tmp_bbg AS (SELECT * from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.geoid10::varchar(12));"""
 
-                        CREATE TABLE evictions.evictions_BBG as
-                          select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.eviction_rate) as bbg_avg_evict_rate,
-                          avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied,
-                          avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
-                          avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
-                          avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
-                          avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
-                          from tmp b1
-                          join tmp b2
-                            on ST_Intersects(b1.geom, b2.geom)
-                            and b1.year = b2.year
-                            group by (b1.geo_id, b1.year);"""
+CREATE_BBG = """CREATE TABLE evictions_BBG as (
+                    select b1.geo_id, b1.year, sum(b2.evictions) as bbg_sum_evict, avg(b2.eviction_rate) as bbg_avg_evict_rate,
+                        avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied,
+                        avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
+                        avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
+                        avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
+                        avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households
+                        from tmp_bbg b1
+                        join tmp_bbg b2
+                        on ST_Intersects(b1.geom, b2.geom)
+                        and b1.year = b2.year
+                        group by b1.geo_id, b1.year);
+                    """
 
 
 '''============================================================================
