@@ -330,7 +330,7 @@ UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1
                                     #where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
 
 
-
+CREATE_IDX_Shape = "CREATE INDEX idx_geoid10 on census_blck_grp_shp (geoid10);"
 
 CREATE_TMP = """CREATE TABLE tmp_bbg AS (SELECT * from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.geoid10::varchar(12));"""
 
