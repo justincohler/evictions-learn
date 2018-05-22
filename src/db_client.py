@@ -72,6 +72,6 @@ class DBClient():
         self.conn.commit()
 
     def exit(self):
-        self.cur.close()
+        #self.conn.cursor.close()
         self.conn.close()
         logger.info("Connection closed.")

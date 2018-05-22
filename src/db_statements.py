@@ -466,6 +466,28 @@ OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o
                           where o.geo_id = l.geo_id
                           and o.year = l.year;
                           """
+'''=========================================================================
+    Permits table
+==========================================================================='''
+
+DROP_TABLE_PERMITS = "DROP TABLE if exists permits;"
+
+CREATE_TABLE_PERMITS = """CREATE TABLE permits (   
+    year SMALLINT,
+    state varchar(2),
+    county varchar(3),
+    region varchar(1),
+    division varchar(1),
+    total_bldg int,
+    total_units int,
+    total_value FLOAT,
+    PRIMARY KEY (year, county)
+    );"""
+
+COPY_CSV_PERMITS = """COPY evictions.permits (
+    year, state, county, region, division, total_bldg, total_units, total_value)
+    FROM stdin WITH CSV HEADER DELIMITER as ',' """
+
 
 '''============================================================================
     ML Incremental Cursor

@@ -265,6 +265,12 @@ class DBInit():
 
         return True
 
+    def permit_import(self):
+        self.db.write([db_statements.DROP_TABLE_PERMITS, db_statements.CREATE_TABLE_PERMITS])
+        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/permits.csv', db_statements.COPY_CSV_BLOCKGROUP)
+
+        return True
+
 if __name__=="__main__":
     initializer = DBInit()
     #initializer.evictions_init()
@@ -277,7 +283,9 @@ if __name__=="__main__":
     #	initializer.census_shp(geo)
     	#if geo != "blck_grp":
     	#	initializer.group_by_geo(geo)
-    initializer.avg_bordering_block_groups()
+    #initializer.avg_bordering_block_groups()
+
+    initializer.permit_import()
 
     #initializer.geo_features_table()
     #initializer.db.write(["ALTER TABLE evictions.blockgroup add urban boolean DEFAULT(FALSE)"])
