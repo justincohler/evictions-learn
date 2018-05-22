@@ -25,9 +25,11 @@ cols = [
     "eviction_filing_rate"
 ]
 
-for col in cols:
-    res = init.create_n_year_pct_change(col, "blockgroup", 5)
-    if not res:
-        break
-    else:
-        print("Added 5 year pct change for {}".format(col))
+for table in ["blockgroup"]:
+    for col in cols:
+        print("Adding 5 year pct change to {} for feature {}".format(table, col))
+        res = init.create_n_year_pct_change(table, col, table, 5)
+        if not res:
+            break
+        else:
+            print("Added 5 year pct change to {} for feature {}".format(table, col))

@@ -97,17 +97,26 @@ class DBInit():
 
         return True
 
-    def create_n_year_pct_change(self, source_col, target_table, lag):
+    def create_n_year_pct_change(self, source_table, source_col, target_table, lag):
         target_col = '{}_pct_change_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
-        INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE.format(target_col, source_col, source_col, source_col, lag, source_col, source_col)
+        INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE \
+                                                    .format(target_table, target_col,
+                                                            source_col, source_col,
+                                                            source_col, source_col,
+                                                            source_col, source_col,
+                                                            source_col, source_col, source_col,
+                                                            source_table, source_table,
+                                                            lag)
 
         logger.info("Running:")
-        logger.info(INSERT_N_YEAR_PCT_CHANGE)
+        #logger.info(INSERT_N_YEAR_PCT_CHANGE)
         try:
             self.db.write([
-                DROP_COLUMN,
+                DROP_COLUMN
+            ])
+            self.db.write([
                 ADD_COLUMN
             ])
             self.db.write([
@@ -234,7 +243,8 @@ class DBInit():
 
         return True
 
-    def create_n_year_pct_change(self, source_col, target_table, col_type, num_buckets=4):
+    # TODO RENAME
+    def create_ntile_discretization(self, source_col, target_table, col_type, num_buckets=4):
         target_col = '{}_{}tiles'.format(source_col, num_buckets)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, col_type)
