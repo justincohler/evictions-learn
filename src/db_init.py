@@ -189,7 +189,9 @@ class DBInit():
         #'pct_asian', 'pct_nh_pi', 'pct_multiple', 'pct_other', 'renter_occupied_households']
 
         try:
-            self.db.write(db_statements.CREATE_AVG_BBG)
+            self.db.write(db_statements.CREATE_TMP)
+            logger.info("tmp created")
+            self.db.write(db_statements.CREATE_BBG)
         except Exception as e:
                 logger.error(e)
                 return False
