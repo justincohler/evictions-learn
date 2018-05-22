@@ -397,12 +397,23 @@ INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
                               and b2.year between (b1.year - {}) and (b1.year - 1)
                             group by (b1.geo_id, b1.year);"""
 
-INSERT_N_YEAR_PCT_CHANGE = """UPDATE blockgroup bg
-                                SET {} = (b1.{} - b2.{})/b2.{}
-                                FROM blockgroup b1
-                                join blockgroup b2 on b1.geo_id=b2.geo_id
-                                    and b2.year = b1.year-{}
-                                where b2.{} is not null and b2.{} != 0;
+INSERT_N_YEAR_PCT_CHANGE =  """
+                            UPDATE {} bg
+                                SET {} = tmp.pct_change
+                                FROM (
+                                  select b1.geo_id, b1.year, 
+                                  case 
+                                    when b1.{} = 0 and b2.{} = 0 then 0
+                                    when b1.{} > 0 and b2.{} = 0 then 999999
+                                    when b1.{} < 0 and b2.{} = 0 then -999999
+                                    else (b1.{} - b2.{})/b2.{}*100
+                                  end as pct_change
+                                from {} b1
+                                join {} b2 on b1.geo_id=b2.geo_id
+                                    and b2.year = b1.year-5
+                                ) as tmp
+                            where bg.geo_id=tmp.geo_id
+                            and bg.year=tmp.year;
                             """
 
 
