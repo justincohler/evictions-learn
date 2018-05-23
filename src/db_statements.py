@@ -87,7 +87,7 @@ CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county CHAR(5);
 UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
 UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
 UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
-# delete from evictions_tract where state not in ('18', '17', '26', '39', 
+# delete from evictions_tract where state not in ('18', '17', '26', '39',
 '''==========================================================================
 SHAPEFILE LOAD + GROUP BY GEO
 =========================================================================='''
@@ -274,7 +274,7 @@ IDX_STATE_GEO = "CREATE INDEX idx_state_geo ON geographic (state);"
 
 
 UPDATE_VAR_URBAN = '''UPDATE evictions.geographic
-                      SET urban = 1 
+                      SET urban = 1
                       WHERE county IN (SELECT GEOID::varchar(5) FROM evictions.urban);'''
 
 UPDATE_VAR_DIV_NE = '''UPDATE evictions.geographic set div_ne = 1
@@ -401,18 +401,18 @@ INSERT_N_YEAR_PCT_CHANGE =  """
                             UPDATE {} bg
                                 SET {} = tmp.pct_change
                                 FROM (
-                                  select b1.geo_id, b1.year, 
-                                  case 
+                                  select b1.county, b1.year,
+                                  case
                                     when b1.{} = 0 and b2.{} = 0 then 0
                                     when b1.{} > 0 and b2.{} = 0 then 999999
                                     when b1.{} < 0 and b2.{} = 0 then -999999
                                     else (b1.{} - b2.{})/b2.{}*100
                                   end as pct_change
                                 from {} b1
-                                join {} b2 on b1.geo_id=b2.geo_id
+                                join {} b2 on b1.county=b2.county
                                     and b2.year = b1.year-5
                                 ) as tmp
-                            where bg.geo_id=tmp.geo_id
+                            where bg.county=tmp.county
                             and bg.year=tmp.year;
                             """
 
@@ -437,7 +437,7 @@ INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
                               AND b2.year-1 = b1.year;
                         """
 
-OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome o 
+OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome o
                             SET {} = val
                             from (select o1.geo_id as geo_id, o1.year as year, case
                                           when o1.{} - o2.{}} = 1 then 1
@@ -452,7 +452,7 @@ OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome o
                           and o.year = l.year;
                           """
 
-OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o 
+OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o
                             SET {} = val
                             from (select o1.geo_id as geo_id, o1.year as year, case
                                           when o1.{} - o2.{}} = -1 then 1

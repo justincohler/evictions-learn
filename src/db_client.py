@@ -42,7 +42,7 @@ class DBClient():
 
         logger.info("Set schema to 'evictions'.")
         #logger.info("Set background cursor.")
-        atexit.register(self.exit)
+        #atexit.register(self.exit)
 
     def write(self, statements, values=None):
         """Execute statements, close the cursor on exit (write-only)."""
