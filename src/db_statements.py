@@ -481,11 +481,12 @@ CREATE_TABLE_PERMITS = """CREATE TABLE permits (
     total_bldg int,
     total_units int,
     total_value FLOAT,
-    PRIMARY KEY (year, county)
+    geo_id varchar(5),
+    PRIMARY KEY (year, geo_id)
     );"""
 
 COPY_CSV_PERMITS = """COPY evictions.permits (
-    year, state, county, region, division, total_bldg, total_units, total_value)
+    year, state, county, region, division, total_bldg, total_units, total_value, geo_id)
     FROM stdin WITH CSV HEADER DELIMITER as ',' """
 
 

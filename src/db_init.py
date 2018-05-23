@@ -267,7 +267,7 @@ class DBInit():
 
     def permit_import(self):
         self.db.write([db_statements.DROP_TABLE_PERMITS, db_statements.CREATE_TABLE_PERMITS])
-        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/permits.csv', db_statements.COPY_CSV_BLOCKGROUP)
+        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/permits.csv', db_statements.COPY_CSV_PERMITS)
 
         return True
 
