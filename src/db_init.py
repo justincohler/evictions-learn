@@ -271,6 +271,12 @@ class DBInit():
 
         return True
 
+    def hhsize_import(self):
+        self.db.write([db_statements.DROP_TABLE_HHSIZE, db_statements.CREATE_TABLE_HHSIZE])
+        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/census/hs_final.csv', db_statements.COPY_CSV_HHSIZE)
+        self.db.write([db_statements.CREATE_VAR_HHSIZE, db_statements.UPDATE_VAR_HHSIZE, db_statements.DROP_TABLE_HHSIZE])
+        return True
+
 if __name__=="__main__":
     initializer = DBInit()
     #initializer.evictions_init()
@@ -285,7 +291,9 @@ if __name__=="__main__":
     	#	initializer.group_by_geo(geo)
     #initializer.avg_bordering_block_groups()
 
-    initializer.permit_import()
+    #initializer.permit_import()
+
+    initializer.hhsize_import()
 
     #initializer.geo_features_table()
     #initializer.db.write(["ALTER TABLE evictions.blockgroup add urban boolean DEFAULT(FALSE)"])

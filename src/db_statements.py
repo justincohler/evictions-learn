@@ -489,6 +489,32 @@ COPY_CSV_PERMITS = """COPY evictions.permits (
     year, state, county, region, division, total_bldg, total_units, total_value, geo_id)
     FROM stdin WITH CSV HEADER DELIMITER as ',' """
 
+                         
+'''=========================================================================
+    Household Size Table
+==========================================================================='''
+
+DROP_TABLE_HHSIZE = "DROP TABLE if exists hhsize;"
+
+CREATE_TABLE_HHSIZE = """CREATE TABLE hhsize (   
+    year SMALLINT,
+    geo_id varchar(12),
+    avg_size FLOAT,
+    PRIMARY KEY (year, geo_id)
+    );"""
+
+COPY_CSV_HHSIZE = """COPY evictions.hhsize (
+    year, geo_id, avg_size)
+    FROM stdin WITH CSV HEADER DELIMITER as ',' """
+
+CREATE_IDX_HH = "CREATE INDEX hh_year_gid on hhsize (geo_id, year);"
+
+CREATE_VAR_HHSIZE = "ALTER TABLE evictions.blockgroup add column avg_hh_size FLOAT;"
+
+UPDATE_VAR_HHSIZE = """UPDATE evictions.blockgroup set avg_hh_size =  hhsize.avg_size from hhsize 
+                      where hhsize.geo_id = blockgroup.geo_id and hhsize.year =blockgroup.year;"""
+
+
 
 '''============================================================================
     ML Incremental Cursor
@@ -509,3 +535,5 @@ CREATE_FUNCTION_BG_CURSOR = """create function bg_get_chunk(refcursor) returns r
                             	end;
                             	$$ language plpgsql;
                             """
+
+
