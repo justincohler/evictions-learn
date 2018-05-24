@@ -208,6 +208,37 @@ class Pipeline():
             plt.legend([0, 1])
             plt.show()
 
+    def cols_with_nulls(self, df):
+        '''
+        '''
+        isnull = df.isnull().any()
+        isnull_cols = list(isnull[isnull == True].index)
+        
+        return isnull_cols
+
+    def fill_nulls(self,df):
+        '''
+        Find values in a dataframe with null values and fill them with the median
+        value of that variable
+
+        Inputs:
+        - df (DataFrame): Dataset of interest
+
+        Returns the original dataframe with null values filled
+        '''
+        # Find columns with missing values
+        isnull_cols = self.cols_with_nulls(df)
+
+        # Fill nulls with median
+        for col in isnull_cols:
+            col_median = df[col].median()
+            df[col].fillna(col_median, inplace = True)
+
+        # Drop cols with all NA's
+        df.dropna(axis = 1, how = "all", inplace = True)
+
+        return df
+
     def fill_missing(self, df, type="mean"):
         """
         Fill all missing values with the mean value of the given column.
@@ -276,6 +307,42 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
+    def populate_outcome_table(self, model_key, classifier, params, y_test, y_pred_probs):
+        y_pred_probs_sorted, y_test_sorted = zip(
+            *sorted(zip(y_pred_probs, y_test), reverse=True))
+
+        return (model_key, classifier, params,
+                roc_auc_score(y_test, y_pred_probs),
+                self.precision_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 1.0),
+                self.precision_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 2.0),
+                self.precision_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 5.0),
+                self.precision_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 10.0),
+                self.precision_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 20.0),
+                self.precision_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 30.0),
+                self.precision_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 50.0),
+                self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 1.0),
+                self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 2.0),
+                self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 5.0),
+                self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 10.0),
+                self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 20.0),
+                self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 30.0),
+                self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 50.0),
+                )
+
     def run_temporal(self, df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run, baselines_to_run=None):
         results = []
         for prediction_window in prediction_windows:
@@ -290,11 +357,16 @@ class Pipeline():
                 logger.info("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
                             .format(train_start, train_end, test_start, test_end, prediction_window))
                 # Build training and testing sets
+                #print(train_start, train_end, test_start, test_end)
                 X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
                     df, train_start, train_end, test_start, test_end, feature_cols, predictor_col)
+                #before_fill = (X_train, X_test)
                 # Fill nulls here to avoid data leakage
-                X_train = self.fill_missing(X_train, "median")
-                X_test = self.fill_missing(X_test, "median")
+                X_train = self.fill_nulls(X_train)
+                X_test = self.fill_nulls(X_test)
+                #after_fill = (X_train, X_test)
+
+                #return before_fill, after_fill
                 # Build classifiers
                 result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
                                        (train_start, train_end), (test_start, test_end), baselines_to_run)
@@ -363,7 +435,7 @@ if __name__ == "__main__":
     feature_cols = df.drop(['top20_rate',  'year', 'name', 'parent_location',
                             'state_code', 'geo_id'], axis=1).columns
     predictor_col = 'top20_rate'
-    df = df[~df[predictor_col].isnull()]
+    #df = df[~df[predictor_col].isnull()]
     models_to_run = ['RF']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run)
