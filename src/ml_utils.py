@@ -347,18 +347,23 @@ class Pipeline():
 
 if __name__ == "__main__":
     pipeline = Pipeline()
+    logger.info("Loading chunk....")
     df = pipeline.load_chunk()
+    logger.info("Chunk loaded.")
     columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
-    columnNumbers.remove(3)  # removing column integer index 0
+
+    columnNumbers.remove(3)  # removing the year column
     df = df.iloc[:, columnNumbers]
+
     df['year'] = pd.to_datetime(df['year'].apply(str), format='%Y')
-    print(df['year'].tail())
+
     start = parser.parse("2001-01-01")
     end = parser.parse("2016-01-01")
     prediction_windows = [12]
     feature_cols = df.drop(['top20_rate',  'year', 'name', 'parent_location',
                             'state_code', 'geo_id'], axis=1).columns
     predictor_col = 'top20_rate'
+    df = df[~df[predictor_col].isnull()]
     models_to_run = ['RF']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run)
