@@ -61,6 +61,37 @@ CREATE_TABLE_BLOCKGROUP = """CREATE TABLE blockgroup
     subbed BOOLEAN
 );"""
 
+CREATE_TABLE_EVICTIONS = """CREATE TABLE evictions_{}
+(
+    geo_id CHAR(12),
+    year SMALLINT,
+    name VARCHAR(50),
+    parent_location VARCHAR(100),
+    population FLOAT4,
+    poverty_rate FLOAT4,
+    pct_renter_occupied FLOAT4,
+    median_gross_rent FLOAT4,
+    median_household_income FLOAT4,
+    median_property_value FLOAT4,
+    rent_burden FLOAT4,
+    pct_white FLOAT4,
+    pct_af_am FLOAT4,
+    pct_hispanic FLOAT4,
+    pct_am_ind FLOAT4,
+    pct_asian FLOAT4,
+    pct_nh_pi FLOAT4,
+    pct_multiple FLOAT4,
+    pct_other FLOAT4,
+    renter_occupied_households FLOAT4,
+    eviction_filings FLOAT4,
+    evictions FLOAT4,
+    eviction_rate FLOAT4,
+    eviction_filing_rate FLOAT4,
+    imputed BOOLEAN,
+    subbed BOOLEAN,
+    low_flag BOOLEAN
+);"""
+
 IDX_STATE_YEAR = "CREATE INDEX idx_state_year ON blockgroup (state, year);"
 IDX_YEAR = "CREATE INDEX idx_year ON blockgroup (year);"
 IDX_STATE = "CREATE INDEX idx_state ON blockgroup (state);"
@@ -71,12 +102,7 @@ IDX_STATE_TR = "create index idx_state_tr on evictions_tract (state);"
 IDX_STATE_CT = "create index idx_state_ct on evictions_county (state);"
 IDX_STATE_GEO = "create index idx_state_geo on geographic (state);"
 
-COPY_CSV_BLOCKGROUP = """COPY evictions.blockgroup(
-    state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
-    median_gross_rent, median_household_income, median_property_value, rent_burden,
-    pct_white, pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple,
-    pct_other, renter_occupied_households, eviction_filings, evictions, eviction_rate,
-    eviction_filing_rate, imputed, subbed)
+COPY_CSV_EVICTIONS = """COPY {}
     FROM stdin WITH CSV HEADER DELIMITER as ','
 """
 RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO state_code;"
@@ -154,6 +180,7 @@ GEOGRAPHIC TABLE
 ============================================================================'''
 
 DROP_TABLE_URBAN = "DROP TABLE IF EXISTS urban;"
+DROP_TABLE = "DROP TABLE IF EXISTS {};"
 DROP_TABLE_GEOGRAPHIC = "DROP TABLE IF EXISTS geographic;"
 
 
@@ -264,7 +291,6 @@ ADD COLUMN bbg_avg_pct_other_3pct FLOAT,
 ADD PRIMARY KEY(geo_id, year);"""
 
 
-
 COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID)
       from stdin with CSV HEADER DELIMITER as ',';"""
 
@@ -326,8 +352,8 @@ UPDATE_VAR_DIV_PAC = '''UPDATE evictions.geographic set div_pac = 1
   OR state = '53';'''
 
 
-#UPDATE_GEOGRAPHIC_BBG = """update geographic set {} = tmp.{}
-                                    #where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
+# UPDATE_GEOGRAPHIC_BBG = """update geographic set {} = tmp.{}
+# where tmp.geo_id = geographic.geo_id and tmp.year = geographic.year"""
 
 
 CREATE_IDX_Shape = "CREATE INDEX idx_geoid10 on census_blck_grp_shp (geoid10);"
@@ -397,7 +423,7 @@ INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
                               and b2.year between (b1.year - {}) and (b1.year - 1)
                             group by (b1.geo_id, b1.year);"""
 
-INSERT_N_YEAR_PCT_CHANGE =  """
+INSERT_N_YEAR_PCT_CHANGE = """
                             UPDATE {} bg
                                 SET {} = tmp.pct_change
                                 FROM (

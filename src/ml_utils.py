@@ -2,6 +2,7 @@
 import os
 import numpy as np
 import pandas as pd
+from dateutil import parser
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn.tree as tree
@@ -34,41 +35,41 @@ class Pipeline():
 
     def generate_classifiers(self):
 
-	    self.classifiers = {'RF': {
-	        "type": RandomForestClassifier(),
-	        "params": {'n_estimators': [10], 'max_depth': [5, 50], 'max_features': ['sqrt'], 'min_samples_split': [10]}
-	    },
-	        'LR': {
-	        "type": LogisticRegression(),
-	        "params": {'penalty': ['l1', 'l2'], 'C': [0.01, 0.1]}
-	    },
-	        'NB': {
-	        "type": GaussianNB(),
-	        "params": {}
-	    },
-	        'SVM': {
-	        "type": svm.SVC(probability=True, random_state=0),
-	        "params": {'C': [1, 10], 'kernel': ['linear']}
-	    },
-	        'GB': {
-	        "type": GradientBoostingClassifier(),
-	        "params": {'n_estimators': [5, 10], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [1, 5]}
-	    },
-	        'BAG': {
-	        "type": BaggingClassifier(),
-	        "params": {'n_estimators': [10], 'max_samples': [5], 'max_features': [5, 20], 'bootstrap_features': [False, True]}
-	    },
-	        'DT': {
-	        "type": DecisionTreeClassifier(),
-	        "params": {'criterion': ['gini', 'entropy'], 'max_depth': [5, 50], 'min_samples_split': [2, 10]}
-	    },
-	        'KNN': {
-	        "type": KNeighborsClassifier(),
-	        "params": {'n_neighbors': [10, 20], 'weights': ['uniform', 'distance'], 'algorithm': ['ball_tree', 'kd_tree']}
-	    }
-	    }
+        self.classifiers = {'RF': {
+            "type": RandomForestClassifier(),
+            "params": {'n_estimators': [10], 'max_depth': [5, 50], 'max_features': ['sqrt'], 'min_samples_split': [10]}
+        },
+            'LR': {
+            "type": LogisticRegression(),
+            "params": {'penalty': ['l1', 'l2'], 'C': [0.01, 0.1]}
+        },
+            'NB': {
+            "type": GaussianNB(),
+            "params": {}
+        },
+            'SVM': {
+            "type": svm.SVC(probability=True, random_state=0),
+            "params": {'C': [1, 10], 'kernel': ['linear']}
+        },
+            'GB': {
+            "type": GradientBoostingClassifier(),
+            "params": {'n_estimators': [5, 10], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [1, 5]}
+        },
+            'BAG': {
+            "type": BaggingClassifier(),
+            "params": {'n_estimators': [10], 'max_samples': [5], 'max_features': [5, 20], 'bootstrap_features': [False, True]}
+        },
+            'DT': {
+            "type": DecisionTreeClassifier(),
+            "params": {'criterion': ['gini', 'entropy'], 'max_depth': [5, 50], 'min_samples_split': [2, 10]}
+        },
+            'KNN': {
+            "type": KNeighborsClassifier(),
+            "params": {'n_neighbors': [10, 20], 'weights': ['uniform', 'distance'], 'algorithm': ['ball_tree', 'kd_tree']}
+        }
+        }
 
-	    return
+        return
 
     def load_county_data(self, county):
         "17031 is cook county"
@@ -100,17 +101,9 @@ class Pipeline():
         l = []
 
         l = self.db.cur.fetchmany(chunksize)
-
-        return pd.DataFrame(l, columns=[
-            "_id", "state_code", "geo_id", "year", "name",
-            "parent_location", "population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",
-            "median_household_income", "median_property_value", "rent_burden", "pct_white", "pct_af_am",
-            "pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi", "pct_multiple",
-            "pct_other", "renter_occupied_households", "eviction_filings", "evictions", "eviction_rate",
-            "eviction_filing_rate", "imputed", "stubbed", "state", "county",
-            "tract", "population_pct_change_5yr", "geo_id (repeated)", "year (repeated)", "top20_num",
-            "top20_rate", "top20_num_01"
-        ])
+        columns = [desc[0] for desc in self.db.cur.description]
+        print(columns)
+        return pd.DataFrame(l, columns=columns)
 
     def categorical_to_dummy(self, df, column):
         """Convert a categorical/discrete variable into a dummy variable.
@@ -269,84 +262,103 @@ class Pipeline():
         precision = precision_score(y_true, preds_at_k)
         return precision
 
+    def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
+        """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
+        print(train_start)
+        train_df = df[(df['year'] >= train_start) & (df['year'] <= train_end)]
+        test_df = df[(df['year'] >= test_start) & (df['year'] <= test_end)]
 
-def temporal_train_test_sets(df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
-    """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
-    train_df = df[(df['date_posted'] >= train_start) & (df['date_posted'] <= train_end)]
-    test_df = df[(df['date_posted'] >= test_start) & (df['date_posted'] <= test_end)]
+        X_train = train_df[feature_cols]
+        y_train = train_df[predictor_col]
 
-    X_train = train_df[feature_cols]
-    y_train = train_df[predictor_col]
+        X_test = test_df[feature_cols]
+        y_test = test_df[predictor_col]
 
-    X_test = test_df[feature_cols]
-    y_test = test_df[predictor_col]
+        return X_train, y_train, X_test, y_test
 
-    return X_train, y_train, X_test, y_test
+    def run_temporal(self, df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run, baselines_to_run=None):
+        results = []
+        for prediction_window in prediction_windows:
+            train_start = start
+            train_end = train_start + \
+                relativedelta(months=+prediction_window) - relativedelta(days=+1)
+            while train_end + relativedelta(months=+prediction_window) <= end:
+                test_start = train_end + relativedelta(days=+1)
+                test_end = test_start + \
+                    relativedelta(months=+prediction_window) - relativedelta(days=+1)
 
-
-def run_temporal(df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run, baselines_to_run):
-    results = []
-    for prediction_window in prediction_windows:
-        train_start = start
-        train_end = train_start + relativedelta(months=+prediction_window) - relativedelta(days=+1)
-        while train_end + relativedelta(months=+prediction_window) <= end:
-            test_start = train_end + relativedelta(days=+1)
-            test_end = test_start + relativedelta(months=+prediction_window) - relativedelta(days=+1)
-
-            logger.info("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
+                logger.info("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
                             .format(train_start, train_end, test_start, test_end, prediction_window))
                 # Build training and testing sets
-            X_train, y_train, X_test, y_test = temporal_train_test_sets(
-                df, train_start, train_end, test_start, test_end, feature_cols, predictor_col)
-            # Fill nulls here to avoid data leakage
-            X_train = self.fill_missing(X_train, "median")
-            X_test = self.fill_missing(X_test, "median")
-            # Build classifiers
-            result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
-                                   (train_start, train_end), (test_start, test_end), baselines_to_run)
-            # Increment time
-            train_end += relativedelta(months=+prediction_window)
-            results.extend(result)
+                X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
+                    df, train_start, train_end, test_start, test_end, feature_cols, predictor_col)
+                # Fill nulls here to avoid data leakage
+                X_train = self.fill_missing(X_train, "median")
+                X_test = self.fill_missing(X_test, "median")
+                # Build classifiers
+                result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
+                                       (train_start, train_end), (test_start, test_end), baselines_to_run)
+                # Increment time
+                train_end += relativedelta(months=+prediction_window)
+                results.extend(result)
 
-    results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_type', 'clf',
-                                                'parameters', 'baseline', 'auc-roc', 'a_at_5', 'a_at_20', 'a_at_50', 'f1_at_5', 'f1_at_20', 'f1_at_50', 'p_at_1', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_50', 'r_at_1', 'r_at_5', 'r_at_10', 'r_at_20', 'r_at_50'))
+        results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_type', 'clf',
+                                                    'parameters', 'baseline', 'auc-roc', 'a_at_5', 'a_at_20', 'a_at_50', 'f1_at_5', 'f1_at_20', 'f1_at_50', 'p_at_1', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_50', 'r_at_1', 'r_at_5', 'r_at_10', 'r_at_20', 'r_at_50'))
 
-    return results_df
+        return results_df
+
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, baselines_to_run=None):
+
+        self.generate_classifiers()
+        results = []
+        for model_key in models_to_run:
+            count = 1
+            logger.info("Running {}...".format(model_key))
+            classifier = self. classifiers[model_key]["type"]
+            grid = ParameterGrid(self.classifiers[model_key]["params"])
+            for params in grid:
+                logger.info("Running with params {}".format(params))
+                try:
+                    classifier.set_params(**params)
+                    fit = classifier.fit(X_train, y_train)
+                    y_pred_probs = fit.predict_proba(X_test)[:, 1]
+                    results.append(self.populate_outcome_table(
+                        model_key, classifier, params, y_test, y_pred_probs))
+
+                    self.plot_precision_recall_n(
+                        y_test, y_pred_probs, model_key+str(count), 'save')
+                    count = count + 1
+
+                except IndexError as e:
+                    print('Error:', e)
+                    continue
+            logger.info("{} finished.".format(model_key))
+
+        if baselines_to_run != None:
+            for baseline in baselines_to_run:
+                if baseline == "RAND":
+                    pct_negative = len(y_train[y_train == 0])/len(y_train)
+                    y_pred_probs = np.random.rand(len(y_test))
+                    y_pred_probs = [1 if row > pct_negative else 0 for row in y_pred_probs]
+                    results.append(self.populate_outcome_table(
+                        baseline, baseline, {}, y_test, y_pred_probs))
+        return results
 
 
-def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, baselines_to_run=None):
-
-    self.generate_classifiers()
-    results = []
-    for model_key in models_to_run:
-        count = 1
-        logger.info("Running {}...".format(model_key))
-        classifier = self. classifiers[model_key]["type"]
-        grid = ParameterGrid(self.classifiers[model_key]["params"])
-        for params in grid:
-            logger.info("Running with params {}".format(params))
-            try:
-                classifier.set_params(**params)
-                fit = classifier.fit(X_train, y_train)
-                y_pred_probs = fit.predict_proba(X_test)[:, 1]
-                results.append(self.populate_outcome_table(
-                    model_key, classifier, params, y_test, y_pred_probs))
-
-                self.plot_precision_recall_n(
-                    y_test, y_pred_probs, model_key+str(count), 'save')
-                count = count + 1
-
-            except IndexError as e:
-                print('Error:', e)
-                continue
-        logger.info("{} finished.".format(model_key))
-
-    if baselines_to_run != None:
-        for baseline in baselines_to_run:
-            if baseline == "RAND":
-                pct_negative = len(y_train[y_train == 0])/len(y_train)
-                y_pred_probs = np.random.rand(len(y_test))
-                y_pred_probs = [1 if row > pct_negative else 0 for row in y_pred_probs]
-                results.append(self.populate_outcome_table(
-                    baseline, baseline, {}, y_test, y_pred_probs))
-    return results
+if __name__ == "__main__":
+    pipeline = Pipeline()
+    df = pipeline.load_chunk()
+    columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
+    columnNumbers.remove(3)  # removing column integer index 0
+    df = df.iloc[:, columnNumbers]
+    df['year'] = pd.to_datetime(df['year'].apply(str), format='%Y')
+    print(df['year'].tail())
+    start = parser.parse("2001-01-01")
+    end = parser.parse("2016-01-01")
+    prediction_windows = [12]
+    feature_cols = df.drop(['top20_rate',  'year', 'name', 'parent_location',
+                            'state_code', 'geo_id'], axis=1).columns
+    predictor_col = 'top20_rate'
+    models_to_run = ['RF']
+    results_df = pipeline.run_temporal(
+        df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run)
