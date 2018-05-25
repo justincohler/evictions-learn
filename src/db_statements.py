@@ -3,6 +3,10 @@
 # South Atlantic: Delaware (10) District of Columbia (11) Florida  (12) Georgia (13)
 #   Maryland  (24) North Carolina (37) South Carolina (45) Virginia (51) West Virginia  (54)
 
+# psql -d evictions -f shp_dump.sql
+# pg_dump -h evictions.cuvbjnrvbddj.us-east-1.rds.amazonaws.com -p 5432 -U ev_user -f shp_dump.sql -d evictions -v  --table=census_blck_grp_shp | psql -d evictions
+
+
 Drop_State = "delete from evictions_tract where state not in ('18', '17', '26', '39', '55', '10', '11', '12', '13', '24', '37', '45', '51', '54');"
 
 
@@ -377,8 +381,7 @@ insert into evictions.geographic (bbg_sum_evict, bbg_avg_evict_rate, bbg_avg_pop
                         ;
 """
 
-BBG_UPDATE = """WITH tmp_bbg AS (SELECT * from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.geoid10::varchar(12)
-                )
+BBG_UPDATE = """
 UPDATE evictions.geographic SET
 bbg_sum_evict = t.bbg_sum_evict,
 bbg_avg_evict_rate = t.bbg_avg_evict_rate,
@@ -402,37 +405,59 @@ bbg_avg_eviction_filings = t.bbg_avg_eviction_filings,
 bbg_avg_filing_rate = t.bbg_avg_filing_rate, 
 bbg_avg_conversion_rate = t.bbg_avg_conversion_rate, 
 bbg_avg_hh_size = t.bbg_avg_hh_size
-FROM (SELECT b1.geo_id as gid, b1.year as yr, 
-  sum(b2.evictions) as bbg_sum_evict, 
-  avg(b2.eviction_rate) as bbg_avg_evict_rate,
-  avg(b2.population) as bbg_avg_population, 
-  avg(b2.poverty_rate) as bbg_avg_poverty_rate, 
-  avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied,
-  avg(b2.median_gross_rent) as bbg_avg_median_gross_rent,
-  avg(b2.median_household_income) as bbg_avg_median_household_income,
-  avg(b2.median_property_value) as bbg_avg_median_property_value,
-  avg(b2.rent_burden) as bbg_avg_rent_burden, 
-  avg(b2.pct_white) as bbg_avg_pct_white, 
-  avg(b2.pct_af_am) as bbg_avg_pct_af_am,
-  avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, 
-  avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, 
-  avg(b2.pct_asian) as bbg_avg_pct_asian,
-  avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, 
-  avg(b2.pct_multiple) as bbg_avg_pct_multiple, 
-  avg(b2.pct_other) as bbg_avg_pct_other,
-  avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households, 
-  avg(b2.eviction_filings) as bbg_avg_eviction_filings, 
-  avg(b2.eviction_filing_rate) as bbg_avg_filing_rate, 
-  avg(b2.conversion_rate) as bbg_avg_conversion_rate, 
-  avg(b2.avg_hh_size) as bbg_avg_hh_size
+FROM bbg t
+where geographic.geo_id = t.gid and geographic.year = t.yr
+;
+"""
+
+CREATE_TEMP_BG = '''CREATE tmp_bbg AS (SELECT blockgroup.geo_id, blockgroup.year, evictions, eviction_rate, population, 
+                    poverty_rate, pct_renter_occupied, median_gross_rent, median_household_income, median_property_value,
+                    rent_burden, pct_white, pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple,
+                    pct_other, pct_renter_occupied_households, renter_occupied_households, eviction_filings, eviction_filing_rate,
+                    conversion_rate, avg_hh_size, census_blck_grp_shp.geom from evictions.blockgroup join evictions.census_blck_grp_shp on blockgroup.geo_id = census_blck_grp_shp.geoid10::varchar(12)
+                    );'''
+
+
+CREATE_TABLE_AS_BBG = """CREATE TABLE bbg as (SELECT b1.geo_id as gid, b1.year as yr, 
+  sum(b2.evictions*b2.population*b2.population)/sum(b2.population) as bbg_sum_evict, 
+  sum(b2.eviction_rate*b2.population)/sum(b2.population) as bbg_avg_evict_rate,
+  sum(b2.population*b2.population)/sum(b2.population) as bbg_avg_population, 
+  sum(b2.poverty_rate*b2.population)/sum(b2.population) as bbg_avg_poverty_rate, 
+  sum(b2.pct_renter_occupied*b2.population)/sum(b2.population) as bbg_avg_pct_renter_occupied,
+  sum(b2.median_gross_rent*b2.population)/sum(b2.population) as bbg_avg_median_gross_rent,
+  sum(b2.median_household_income*b2.population)/sum(b2.population) as bbg_avg_median_household_income,
+  sum(b2.median_property_value*b2.population)/sum(b2.population) as bbg_avg_median_property_value,
+  sum(b2.rent_burden*b2.population)/sum(b2.population) as bbg_avg_rent_burden, 
+  sum(b2.pct_white*b2.population)/sum(b2.population) as bbg_avg_pct_white, 
+  sum(b2.pct_af_am*b2.population)/sum(b2.population) as bbg_avg_pct_af_am,
+  sum(b2.pct_hispanic*b2.population)/sum(b2.population) as bbg_avg_pct_hispanic, 
+  sum(b2.pct_am_ind*b2.population)/sum(b2.population) as bbg_avg_pct_am_ind, 
+  sum(b2.pct_asian*b2.population)/sum(b2.population) as bbg_avg_pct_asian,
+  sum(b2.pct_nh_pi*b2.population)/sum(b2.population) as bbg_avg_pct_nh_pi, 
+  sum(b2.pct_multiple*b2.population)/sum(b2.population) as bbg_avg_pct_multiple, 
+  sum(b2.pct_other*b2.population)/sum(b2.population) as bbg_avg_pct_other,
+  sum(b2.renter_occupied_households*b2.population)/sum(b2.population) as bbg_avg_renter_occupied_households, 
+  sum(b2.eviction_filings*b2.population)/sum(b2.population) as bbg_avg_eviction_filings, 
+  sum(b2.eviction_filing_rate*b2.population)/sum(b2.population) as bbg_avg_filing_rate, 
+  sum(b2.conversion_rate*b2.population)/sum(b2.population) as bbg_avg_conversion_rate, 
+  sum(b2.avg_hh_size*b2.population)/sum(b2.population) as bbg_avg_hh_size
                         from tmp_bbg b1
                         join tmp_bbg b2
                         on ST_Intersects(b1.geom, b2.geom)
                         and b1.year = b2.year
-                        group by b1.geo_id, b1.year) t
-                        where geographic.geo_id = t.gid and geographic.year = t.yr
-                        ;
+                        group by b1.geo_id, b1.year); 
 """
+
+'''SELECT redline_poly.poly_id, avg(c.year), avg(c.Total_Pop) AS Total_Pop, 
+    (SUM(c.pct_white*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_white, 
+    (SUM(c.pct_black*c.total_pop)/(SUM(c.total_pop) + 1)) AS PCT_BLACK, 
+    (SUM(c.pct_other*c.total_pop)/(SUM(c.total_pop) + 1)) as pct_other, 
+    (SUM(c.total_units*c.total_pop)/(SUM(c.total_pop) + 1)) AS total_units,
+    (SUM(c.median*c.total_pop)/(SUM(c.total_pop) + 1)) AS median, 
+    (SUM(c.pct_occupied*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_occupied, 
+    (SUM(c.pct_vacant*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_vacant, 
+    (SUM(c.pct_own_occ*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_own_occ, 
+    (SUM(c.pct_rent_occ*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_rent_occ, '''
 
 '''============================================================================
  OUTCOME TABLE
