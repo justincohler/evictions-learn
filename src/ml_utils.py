@@ -479,7 +479,7 @@ class Pipeline():
                     # Printing graph section, pull into function
                     if model_key == 'DT':
                         graph = self.visualize_tree(fit, X_train)
-                        print(graph.view())
+                        graph.view()
 
                     results.append(self.populate_outcome_table(
                         train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs))
