@@ -76,12 +76,12 @@ class DBInit():
                        CREATE_TABLE_EVICTIONS_GEO,
                        INSERT_EVICTIONS_GEO])
 
-    def create_n_year_average(self, source_col, target_table, lag):
+    def create_n_year_average(self, source_table, source_col, target_table, lag):
         target_col = '{}_avg_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
-        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
+        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT4")
         INSERT_N_YEAR_AVG = db_statements.INSERT_N_YEAR_AVG.format(
-            target_table, target_col, source_col, lag)
+            target_table, target_col, source_col, source_table, source_table, lag)
 
         logger.debug(INSERT_N_YEAR_AVG)
         try:

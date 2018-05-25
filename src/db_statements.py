@@ -416,18 +416,23 @@ INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
 
 ADD_COLUMN = "ALTER TABLE {} add column {} {};"
 
-INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                              on b1.geo_id=b2.geo_id
-                              and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);"""
+INSERT_N_YEAR_AVG = """UPDATE  {} bg
+                        set {} = tmp.aver
+                        from (
+                                select b1.geo_id, b1.year, avg(b2.{}) as aver
+                                from {} b1 join {} b2
+                                  on b1.geo_id=b2.geo_id
+                                  and b2.year between (b1.year - {}) and (b1.year - 1)
+                                group by (b1.geo_id, b1.year)
+                            ) as tmp
+                            where bg.geo_id=tmp.geo_id
+                            and bg.year=tmp.year"""
 
 INSERT_N_YEAR_PCT_CHANGE = """
                             UPDATE {} bg
                                 SET {} = tmp.pct_change
                                 FROM (
-                                  select b1.county, b1.year,
+                                  select b1.geo_id, b1.year,
                                   case
                                     when b1.{} = 0 and b2.{} = 0 then 0
                                     when b1.{} > 0 and b2.{} = 0 then 999999
@@ -435,10 +440,10 @@ INSERT_N_YEAR_PCT_CHANGE = """
                                     else (b1.{} - b2.{})/b2.{}*100
                                   end as pct_change
                                 from {} b1
-                                join {} b2 on b1.county=b2.county
+                                join {} b2 on b1.geo_id=b2.geo_id
                                     and b2.year = b1.year-5
                                 ) as tmp
-                            where bg.county=tmp.county
+                            where bg.geo_id=tmp.geo_id
                             and bg.year=tmp.year;
                             """
 
@@ -498,7 +503,7 @@ OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o
 
 DROP_TABLE_PERMITS = "DROP TABLE if exists permits;"
 
-CREATE_TABLE_PERMITS = """CREATE TABLE permits (   
+CREATE_TABLE_PERMITS = """CREATE TABLE permits (
     year SMALLINT,
     state varchar(2),
     county varchar(3),
