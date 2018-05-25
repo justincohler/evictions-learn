@@ -362,14 +362,15 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
-    def visualize_tree(self):
+    def visualize_tree(self, fit, X_train, show=True):
         viz = tree.export_graphviz(fit, out_file="tree.dot", feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
                            rounded=True, filled=True)
-        f = open("tree.dot")
-        dot_graph = f.read()
-        graph = graphviz.Source(dot_graph)
-        graph
+        if show:
+            f = open("tree.dot")
+            dot_graph = f.read()
+            graph = graphviz.Source(dot_graph)
+            return graph
 
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
@@ -474,17 +475,11 @@ class Pipeline():
                     classifier.set_params(**params)
                     fit = classifier.fit(X_train, y_train)
                     y_pred_probs = fit.predict_proba(X_test)[:, 1]
-                    '''
+                    
                     # Printing graph section, pull into function
                     if model_key == 'DT':
-                        viz = tree.export_graphviz(fit, out_file="tree.dot", feature_names=X_train.columns,
-                           class_names=['High Risk', 'Low Risk'],
-                           rounded=True, filled=True)
-                        f = open("tree.dot")
-                        dot_graph = f.read()
-                        graph = graphviz.Source(dot_graph)
-                        graph
-                    '''
+                        graph = self.visualize_tree(fit, X_train)
+                        print(graph.view())
 
                     results.append(self.populate_outcome_table(
                         train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs))
@@ -512,7 +507,7 @@ class Pipeline():
 def main():
     pipeline = Pipeline()
     logger.info("Loading chunk....")
-    df = pipeline.load_chunk()
+    df = pipeline.load_chunk(chunksize = 10000)
     logger.info("Chunk loaded.")
     columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
 
@@ -528,7 +523,7 @@ def main():
     feature_cols = ['population', 'poverty_rate', 
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value', 
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi', 
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings', 'evictions', 'eviction_rate', 
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings', 
     'eviction_filing_rate', 'imputed', 'subbed', 'population_pct_change_5yr', 
     'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr', 
     'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr', 
@@ -540,7 +535,7 @@ def main():
     excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr', 
     'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01', 
     'top10_num', 'top10_rate', 'top10_num_01', 'avg_hh_size', 'top10_rate_01', 'testcol' 'state', 'county', 'tract', 'pct_renter_occupied_pct_change_1yr',
-    'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate']
+    'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
 
     # check pct renter occupied pct change 1 year
     
