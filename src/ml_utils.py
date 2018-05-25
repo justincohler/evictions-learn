@@ -235,7 +235,12 @@ class Pipeline():
             df[col].fillna(col_median, inplace = True)
 
         # Drop cols with all NA's
-        df.dropna(axis = 1, how = "all", inplace = True)
+        #before = df.columns
+        #df.dropna(axis = 1, how = "all", inplace = True)
+        #after = df.columns
+
+        #diff = [x for x in before if x not in after]
+        #print(diff)
 
         return df
 
@@ -293,6 +298,55 @@ class Pipeline():
         precision = precision_score(y_true, preds_at_k)
         return precision
 
+    def recall_at_k(self, y_true, y_scores, k):
+        y_scores_sorted, y_true_sorted = self.joint_sort_descending(
+            np.array(y_scores), np.array(y_true))
+        preds_at_k = self.generate_binary_at_k(y_scores_sorted, k)
+        recall = recall_score(y_true_sorted, preds_at_k)
+        return recall
+
+    def f1_at_k(self, y_true, y_scores, k):
+        y_scores, y_true = joint_sort_descending(np.array(y_scores), np.array(y_true))
+        preds_at_k = generate_binary_at_k(y_scores, k)
+
+        f1 = f1_score(y_true, preds_at_k)
+
+        return f1
+
+    def plot_precision_recall_n(self, y_true, y_prob, model_name, output_type):
+        y_score = y_prob
+        precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_score)
+        precision_curve = precision_curve[:-1]
+        recall_curve = recall_curve[:-1]
+        pct_above_per_thresh = []
+        number_scored = len(y_score)
+        for value in pr_thresholds:
+            num_above_thresh = len(y_score[y_score >= value])
+            pct_above_thresh = num_above_thresh / float(number_scored)
+            pct_above_per_thresh.append(pct_above_thresh)
+        pct_above_per_thresh = np.array(pct_above_per_thresh)
+
+        plt.clf()
+        fig, ax1 = plt.subplots()
+        ax1.plot(pct_above_per_thresh, precision_curve, 'b')
+        ax1.set_xlabel('percent of population')
+        ax1.set_ylabel('precision', color='b')
+        ax2 = ax1.twinx()
+        ax2.plot(pct_above_per_thresh, recall_curve, 'r')
+        ax2.set_ylabel('recall', color='r')
+        ax1.set_ylim([0, 1])
+        ax1.set_ylim([0, 1])
+        ax2.set_xlim([0, 1])
+
+        name = model_name
+        plt.title(name)
+        if (output_type == 'save'):
+            plt.savefig(name, close=True)
+        elif (output_type == 'show'):
+            plt.show()
+        else:
+            plt.show()
+
     def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
         """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
         print(train_start)
@@ -307,11 +361,11 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
-    def populate_outcome_table(self, model_key, classifier, params, y_test, y_pred_probs):
+    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
 
-        return (model_key, classifier, params,
+        return (train_dates, test_dates, model_key, classifier, params,
                 roc_auc_score(y_test, y_pred_probs),
                 self.precision_at_k(
                     y_test_sorted, y_pred_probs_sorted, 1.0),
@@ -340,6 +394,20 @@ class Pipeline():
                 self.recall_at_k(
                     y_test_sorted, y_pred_probs_sorted, 30.0),
                 self.recall_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 50.0),
+                self.f1_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 1.0),
+                self.f1_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 2.0),
+                self.f1_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 5.0),
+                self.f1_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 10.0),
+                self.f1_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 20.0),
+                self.f1_at_k(
+                    y_test_sorted, y_pred_probs_sorted, 30.0),
+                self.f1_at_k(
                     y_test_sorted, y_pred_probs_sorted, 50.0),
                 )
 
@@ -374,8 +442,10 @@ class Pipeline():
                 train_end += relativedelta(months=+prediction_window)
                 results.extend(result)
 
-        results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_type', 'clf',
-                                                    'parameters', 'baseline', 'auc-roc', 'a_at_5', 'a_at_20', 'a_at_50', 'f1_at_5', 'f1_at_20', 'f1_at_50', 'p_at_1', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_50', 'r_at_1', 'r_at_5', 'r_at_10', 'r_at_20', 'r_at_50'))
+        results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
+                                                    'parameters', 'auc-roc', 'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50', 
+                                                    'r_at_1', 'r_at_2','r_at_5', 'r_at_10', 'r_at_20', 'r_at_30','r_at_50',
+                                                    'f1_at_1', 'f1_at_2','f1_at_5', 'f1_at_10', 'f1_at_20', 'f1_at_30','f1_at_50'))
 
         return results_df
 
@@ -395,7 +465,7 @@ class Pipeline():
                     fit = classifier.fit(X_train, y_train)
                     y_pred_probs = fit.predict_proba(X_test)[:, 1]
                     results.append(self.populate_outcome_table(
-                        model_key, classifier, params, y_test, y_pred_probs))
+                        train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs))
 
                     self.plot_precision_recall_n(
                         y_test, y_pred_probs, model_key+str(count), 'save')
@@ -417,25 +487,48 @@ class Pipeline():
         return results
 
 
-if __name__ == "__main__":
+def main():
     pipeline = Pipeline()
     logger.info("Loading chunk....")
     df = pipeline.load_chunk()
     logger.info("Chunk loaded.")
     columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
 
-    columnNumbers.remove(3)  # removing the year column
+    columnNumbers.remove(2)  # removing the year column
     df = df.iloc[:, columnNumbers]
 
     df['year'] = pd.to_datetime(df['year'].apply(str), format='%Y')
 
-    start = parser.parse("2001-01-01")
+    # Changing time to include 5 year pct changes, 
+    start = parser.parse("2005-01-01")
     end = parser.parse("2016-01-01")
     prediction_windows = [12]
-    feature_cols = df.drop(['top20_rate',  'year', 'name', 'parent_location',
-                            'state_code', 'geo_id'], axis=1).columns
+    feature_cols = ['population', 'poverty_rate', 
+    'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value', 
+    'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi', 
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings', 'evictions', 'eviction_rate', 
+    'eviction_filing_rate', 'imputed', 'subbed', 'population_pct_change_5yr', 
+    'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr', 
+    'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr', 
+    'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr', 
+    'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr', 
+    'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr', 
+    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
+
+    excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr', 
+    'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01', 
+    'top10_num', 'top10_rate', 'top10_num_01', 'avg_hh_size', 'top10_rate_01', 'testcol' 'state', 'county', 'tract', 'pct_renter_occupied_pct_change_1yr',
+    'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate']
+
+    # check pct renter occupied pct change 1 year
+    
     predictor_col = 'top20_rate'
-    #df = df[~df[predictor_col].isnull()]
     models_to_run = ['RF']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run)
+
+    #results_df.to_csv('test_results.csv')
+    return results_df
+
+if __name__ == "__main__":
+    main()
