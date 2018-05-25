@@ -24,6 +24,7 @@ from db_init import DBClient
 import logging
 from validation import *
 import graphviz
+import warnings
 
 logger = logging.getLogger('evictionslog')
 
@@ -103,7 +104,6 @@ class Pipeline():
 
         l = self.db.cur.fetchmany(chunksize)
         columns = [desc[0] for desc in self.db.cur.description]
-        print(columns)
         return pd.DataFrame(l, columns=columns)
 
     def categorical_to_dummy(self, df, column):
@@ -350,7 +350,6 @@ class Pipeline():
 
     def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
         """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
-        print(train_start)
         train_df = df[(df['year'] >= train_start) & (df['year'] <= train_end)]
         test_df = df[(df['year'] >= test_start) & (df['year'] <= test_end)]
 
@@ -372,11 +371,12 @@ class Pipeline():
             graph = graphviz.Source(dot_graph)
             return graph
 
+    # Update feature_set from "" once defined
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
 
-        return (train_dates, test_dates, model_key, classifier, params,
+        return (train_dates, test_dates, model_key, classifier, params, "", "",
                 roc_auc_score(y_test, y_pred_probs),
                 self.precision_at_k(
                     y_test_sorted, y_pred_probs_sorted, 1.0),
@@ -419,10 +419,10 @@ class Pipeline():
                 self.f1_at_k(
                     y_test_sorted, y_pred_probs_sorted, 30.0),
                 self.f1_at_k(
-                    y_test_sorted, y_pred_probs_sorted, 50.0),
+                    y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
-    def run_temporal(self, df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run, baselines_to_run=None):
+    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, baselines_to_run=None):
         results = []
         for prediction_window in prediction_windows:
             train_start = start
@@ -435,26 +435,29 @@ class Pipeline():
 
                 logger.info("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
                             .format(train_start, train_end, test_start, test_end, prediction_window))
-                # Build training and testing sets
-                #print(train_start, train_end, test_start, test_end)
-                X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
-                    df, train_start, train_end, test_start, test_end, feature_cols, predictor_col)
-                #before_fill = (X_train, X_test)
-                # Fill nulls here to avoid data leakage
-                X_train = self.fill_nulls(X_train)
-                X_test = self.fill_nulls(X_test)
-                #after_fill = (X_train, X_test)
+                # Loop over feature set and precitors
+                for feature_cols in feature_set_list:
+                    for predictor_col in predictor_col_list:
 
-                #return before_fill, after_fill
-                # Build classifiers
-                result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
-                                       (train_start, train_end), (test_start, test_end), baselines_to_run)
-                # Increment time
-                train_end += relativedelta(months=+prediction_window)
-                results.extend(result)
+                        # Build training and testing sets
+                        X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
+                            df, train_start, train_end, test_start, test_end, feature_cols, predictor_col)
+                        #before_fill = (X_train, X_test)
+                        # Fill nulls here to avoid data leakage
+                        X_train = self.fill_nulls(X_train)
+                        X_test = self.fill_nulls(X_test)
+                        #after_fill = (X_train, X_test)
+
+                        #return before_fill, after_fill
+                        # Build classifiers
+                        result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
+                                               (train_start, train_end), (test_start, test_end), baselines_to_run)
+                        # Increment time
+                        train_end += relativedelta(months=+prediction_window)
+                        results.extend(result)
 
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
-                                                    'parameters', 'auc-roc', 'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50', 
+                                                    'parameters', 'feature_set', 'outcome' 'auc-roc', 'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50', 
                                                     'r_at_1', 'r_at_2','r_at_5', 'r_at_10', 'r_at_20', 'r_at_30','r_at_50',
                                                     'f1_at_1', 'f1_at_2','f1_at_5', 'f1_at_10', 'f1_at_20', 'f1_at_30','f1_at_50'))
 
@@ -479,10 +482,10 @@ class Pipeline():
                     # Printing graph section, pull into function
                     if model_key == 'DT':
                         graph = self.visualize_tree(fit, X_train)
-                        graph.view()
+                        graph
 
                     results.append(self.populate_outcome_table(
-                        train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs))
+                        train_dates = train_dates, test_dates = test_dates, model_key =  model_key, classifier = classifier, params = params, y_test = y_test, y_pred_probs = y_pred_probs))
 
                     self.plot_precision_recall_n(
                         y_test, y_pred_probs, model_key+str(count), 'save')
@@ -507,7 +510,7 @@ class Pipeline():
 def main():
     pipeline = Pipeline()
     logger.info("Loading chunk....")
-    df = pipeline.load_chunk(chunksize = 10000)
+    df = pipeline.load_chunk()
     logger.info("Chunk loaded.")
     columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
 
@@ -517,10 +520,10 @@ def main():
     df['year'] = pd.to_datetime(df['year'].apply(str), format='%Y')
 
     # Changing time to include 5 year pct changes, 
-    start = parser.parse("2005-01-01")
+    start = parser.parse("2006-01-01")
     end = parser.parse("2016-01-01")
     prediction_windows = [12]
-    feature_cols = ['population', 'poverty_rate', 
+    feature_set_list = [['population', 'poverty_rate', 
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value', 
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi', 
     'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings', 
@@ -530,7 +533,7 @@ def main():
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr', 
     'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr', 
     'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr', 
-    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
+    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']]
 
     excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr', 
     'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01', 
@@ -539,10 +542,10 @@ def main():
 
     # check pct renter occupied pct change 1 year
     
-    predictor_col = 'top20_rate'
+    predictor_col_list = ['top20_rate']
     models_to_run = ['RF', 'DT']
     results_df = pipeline.run_temporal(
-        df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run)
+        df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run)
 
     #results_df.to_csv('test_results.csv')
     return results_df
