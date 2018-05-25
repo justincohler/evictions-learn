@@ -23,6 +23,7 @@ from scipy import optimize
 from db_init import DBClient
 import logging
 from validation import *
+import graphviz
 
 logger = logging.getLogger('evictionslog')
 
@@ -361,6 +362,15 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
+    def visualize_tree(self):
+        viz = tree.export_graphviz(fit, out_file="tree.dot", feature_names=X_train.columns,
+                           class_names=['High Risk', 'Low Risk'],
+                           rounded=True, filled=True)
+        f = open("tree.dot")
+        dot_graph = f.read()
+        graph = graphviz.Source(dot_graph)
+        graph
+
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
@@ -464,6 +474,18 @@ class Pipeline():
                     classifier.set_params(**params)
                     fit = classifier.fit(X_train, y_train)
                     y_pred_probs = fit.predict_proba(X_test)[:, 1]
+                    '''
+                    # Printing graph section, pull into function
+                    if model_key == 'DT':
+                        viz = tree.export_graphviz(fit, out_file="tree.dot", feature_names=X_train.columns,
+                           class_names=['High Risk', 'Low Risk'],
+                           rounded=True, filled=True)
+                        f = open("tree.dot")
+                        dot_graph = f.read()
+                        graph = graphviz.Source(dot_graph)
+                        graph
+                    '''
+
                     results.append(self.populate_outcome_table(
                         train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs))
 
@@ -523,7 +545,7 @@ def main():
     # check pct renter occupied pct change 1 year
     
     predictor_col = 'top20_rate'
-    models_to_run = ['RF']
+    models_to_run = ['RF', 'DT']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, feature_cols, predictor_col, models_to_run)
 
