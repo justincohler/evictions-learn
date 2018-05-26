@@ -19,6 +19,7 @@ from sklearn.metrics import *
 from sklearn.preprocessing import StandardScaler
 import random
 import matplotlib.pyplot as plt
+plt.rcParams.update({'figure.max_open_warning': 0})
 from scipy import optimize
 from db_init import DBClient
 import logging
@@ -345,8 +346,10 @@ class Pipeline():
             plt.savefig(name, close=True)
         elif (output_type == 'show'):
             plt.show()
+            plt.close()
         else:
             plt.show()
+            plt.close()
 
     def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
         """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
@@ -361,6 +364,17 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
+    def generate_feature_subsets(self, feature_set_list):
+        all_predictors=[]
+
+        predictor_subsets = get_subsets(feature_set_list)
+
+        for p in predictor_subsets:
+            merged = list(itertools.chain.from_iterable(p))
+            all_predictors.append(merged)
+
+        return all_predictors
+
     def visualize_tree(self, fit, X_train, show=True):
         viz = tree.export_graphviz(fit, out_file="tree.dot", feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
@@ -372,11 +386,11 @@ class Pipeline():
             return graph
 
     # Update feature_set from "" once defined
-    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, y_test, y_pred_probs):
+    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, outcome, params, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
 
-        return (train_dates, test_dates, model_key, classifier, params, "", "",
+        return (train_dates, test_dates, model_key, classifier, params, "feature_set", outcome,
                 roc_auc_score(y_test, y_pred_probs),
                 self.precision_at_k(
                     y_test_sorted, y_pred_probs_sorted, 1.0),
@@ -419,7 +433,7 @@ class Pipeline():
                 self.f1_at_k(
                     y_test_sorted, y_pred_probs_sorted, 30.0),
                 self.f1_at_k(
-                    y_test_sorted, y_pred_probs_sorted, 50.0)
+                    y_test_sorted, y_pred_probs_sorted, 50.0),
                 )
 
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, baselines_to_run=None):
@@ -451,19 +465,20 @@ class Pipeline():
                         #return before_fill, after_fill
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
-                                               (train_start, train_end), (test_start, test_end), baselines_to_run)
+                                               (train_start, train_end), (test_start, test_end), predictor_col, baselines_to_run)
                         # Increment time
                         train_end += relativedelta(months=+prediction_window)
                         results.extend(result)
-
+#
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
-                                                    'parameters', 'feature_set', 'outcome' 'auc-roc', 'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50', 
+                                                    'parameters', 'feature_set', 'outcome', 'auc-roc', 
+                                                    'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50', 
                                                     'r_at_1', 'r_at_2','r_at_5', 'r_at_10', 'r_at_20', 'r_at_30','r_at_50',
                                                     'f1_at_1', 'f1_at_2','f1_at_5', 'f1_at_10', 'f1_at_20', 'f1_at_30','f1_at_50'))
 
         return results_df
 
-    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, baselines_to_run=None):
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, outcome_label, baselines_to_run=None):
 
         self.generate_classifiers()
         results = []
@@ -485,7 +500,7 @@ class Pipeline():
                         graph
 
                     results.append(self.populate_outcome_table(
-                        train_dates = train_dates, test_dates = test_dates, model_key =  model_key, classifier = classifier, params = params, y_test = y_test, y_pred_probs = y_pred_probs))
+                        train_dates, test_dates, model_key, classifier, params, outcome_label, y_test, y_pred_probs))
 
                     self.plot_precision_recall_n(
                         y_test, y_pred_probs, model_key+str(count), 'save')
@@ -519,11 +534,13 @@ def main():
 
     df['year'] = pd.to_datetime(df['year'].apply(str), format='%Y')
 
-    # Changing time to include 5 year pct changes, 
+    # Set time period
     start = parser.parse("2006-01-01")
     end = parser.parse("2016-01-01")
     prediction_windows = [12]
-    feature_set_list = [['population', 'poverty_rate', 
+    
+    # Define feature sets
+    features = ['population', 'poverty_rate', 
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value', 
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi', 
     'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings', 
@@ -533,7 +550,8 @@ def main():
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr', 
     'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr', 
     'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr', 
-    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']]
+    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
+    feature_set_list = [features]
 
     excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr', 
     'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01', 
