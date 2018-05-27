@@ -45,11 +45,11 @@ class Pipeline():
 
         self.classifiers = {'RF': {
             "type": RandomForestClassifier(),
-            "params": {'n_estimators': [10], 'max_depth': [5, 50], 'max_features': ['sqrt'], 'min_samples_split': [10]}
+            "params": {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]}
         },
             'LR': {
             "type": LogisticRegression(),
-            "params": {'penalty': ['l1', 'l2'], 'C': [0.01, 0.1]}
+            "params": {'penalty': ['l2'], 'C': [0.01]}
         },
             'NB': {
             "type": GaussianNB(),
@@ -57,23 +57,23 @@ class Pipeline():
         },
             'SVM': {
             "type": svm.SVC(probability=True, random_state=0),
-            "params": {'C': [1, 10], 'kernel': ['linear']}
+            "params": {'C': [1], 'kernel': ['linear']}
         },
             'GB': {
             "type": GradientBoostingClassifier(),
-            "params": {'n_estimators': [5, 10], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [1, 5]}
+            "params": {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]}
         },
             'BAG': {
             "type": BaggingClassifier(),
-            "params": {'n_estimators': [10], 'max_samples': [5], 'max_features': [5, 20], 'bootstrap_features': [False, True]}
+            "params": {'n_estimators': [5], 'max_samples': [5], 'max_features': [5], 'bootstrap_features': [True]}
         },
             'DT': {
             "type": DecisionTreeClassifier(),
-            "params": {'criterion': ['gini', 'entropy'], 'max_depth': [5, 50], 'min_samples_split': [2, 10]}
+            "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
         },
             'KNN': {
             "type": KNeighborsClassifier(),
-            "params": {'n_neighbors': [10, 20], 'weights': ['uniform', 'distance'], 'algorithm': ['ball_tree', 'kd_tree']}
+            "params": {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']}
         }
         }
 
@@ -109,8 +109,7 @@ class Pipeline():
         l = []
 
         l = self.db.cur.fetchmany(chunksize)
-        columns = [desc[0] for desc in self.db.cur.description]
-        return pd.DataFrame(l, columns=columns)
+        return l
 
     def categorical_to_dummy(self, df, column):
         """Convert a categorical/discrete variable into a dummy variable.
@@ -277,11 +276,19 @@ class Pipeline():
 
     def get_subsets(self, d):
         subsets = []
-        #for k, v in d.iteritems():
-            for i in range(1, len(d.keys) + 1):
-                for combo in itertools.combinations(d.values, i):
-                    subsets.append(list(combo))
+        for i in range(1, len(d.keys())+1):
+
+                for combo in itertools.combinations(d.values(), i):
+                    combo = list(combo)
+                    combo = [item for sublist in combo for item in sublist]
+
+                    combolabels = []
+                    for key, val in d.items():
+                        if d[key][0] in combo:
+                            combolabels.append(key)
+                    subsets.append({"feature_set_labels": combolabels, "features": combo})
         return subsets
+
 
     def generate_outcome_table(self):
         """Return a dataframe with the formatted columns required to present model outcomes.
@@ -377,17 +384,6 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
-    def generate_feature_subsets(self, feature_set_list):
-        all_predictors=[]
-
-        predictor_subsets = self.get_subsets(feature_set_list)
-
-        for p in predictor_subsets:
-            merged = list(itertools.chain.from_iterable(p))
-            all_predictors.append(merged)
-
-        return all_predictors
-
     def visualize_tree(self, fit, X_train, run_number, show=True):
         filename = "{}.png".format(run_number)
 
@@ -404,11 +400,11 @@ class Pipeline():
             return filename
 
     # Update feature_set from "" once defined
-    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, outcome, model_result, params, y_test, y_pred_probs):
+    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, feature_set_labels, outcome, model_result, params, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
 
-        return (train_dates, test_dates, model_key, classifier, params, "feature_set", outcome, model_result,
+        return (train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result,
                 roc_auc_score(y_test, y_pred_probs),
                 self.precision_at_k(
                     y_test_sorted, y_pred_probs_sorted, 1.0),
@@ -475,7 +471,7 @@ class Pipeline():
 
                         # Build training and testing sets
                         X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
-                            df, train_start, train_end, test_start, test_end, feature_cols, predictor_col)
+                            df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
                         #before_fill = (X_train, X_test)
                         # Fill nulls here to avoid data leakage
                         X_train = self.fill_nulls(X_train)
@@ -485,7 +481,7 @@ class Pipeline():
                         #return before_fill, after_fill
                         # Build classifiers
                         result = self.classify(run_number, models_to_run, X_train, X_test, y_train, y_test,
-                                               (train_start, train_end), (test_start, test_end), predictor_col, baselines_to_run)
+                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col, baselines_to_run)
                         # Increment time
                         train_end += relativedelta(months=+prediction_window)
                         results.extend(result)
@@ -498,7 +494,7 @@ class Pipeline():
 
         return results_df
 
-    def classify(self, run_number, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, outcome_label, baselines_to_run=None):
+    def classify(self, run_number, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, baselines_to_run=None):
 
         self.generate_classifiers()
         results = []
@@ -531,7 +527,7 @@ class Pipeline():
                         model_result = None
 
                     results.append(self.populate_outcome_table(
-                        train_dates, test_dates, model_key, classifier, params, outcome_label, model_result, y_test, y_pred_probs))
+                        train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
 
                     self.plot_precision_recall_n(
                         y_test, y_pred_probs, model_key+str(run_number), 'save')
@@ -555,9 +551,19 @@ class Pipeline():
 
 def main():
     pipeline = Pipeline()
-    logger.info("Loading chunk....")
-    df = pipeline.load_chunk(chunksize=10000)
-    logger.info("Chunk loaded.")
+
+    chunk = pipeline.load_chunk(chunksize=5000)
+    data = chunk
+    max_chunks = 2
+    while chunk != [] and max_chunks > 0:
+        max_chunks = max_chunks - 1
+        logger.info("Loading chunk....")
+        chunk = pipeline.load_chunk(chunksize=5000)
+        data.extend(chunk)
+        logger.info("{} chunks left to load.".format(max_chunks))
+    columns = [desc[0] for desc in pipeline.db.cur.description]
+    df = pd.DataFrame(data, columns=columns)
+
     columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
 
     columnNumbers.remove(2)  # removing the year column
@@ -571,20 +577,23 @@ def main():
     prediction_windows = [12]
 
     # Define feature sets
-    feature_dict = {features1: ['population', 'poverty_rate',
+    demographic = ['population', 'poverty_rate',
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value',
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings'],
-    features2: ['eviction_filing_rate', 'imputed', 'subbed', 'population_pct_change_5yr',
+    'pct_multiple', 'pct_other','population_pct_change_5yr',
     'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr',
     'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
-    'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
-    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']}
-    feature_set_list = [features1, features2]
+    'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr']
 
-    all_features = pipeline.generate_feature_subsets(feature_set_list)
+    eviction = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
+    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
+
+    feature_dict = {"demographic": demographic,
+                    "eviction": eviction,
+                    }
+
+    all_features = pipeline.get_subsets(feature_dict)
 
     excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr',
     'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01',
@@ -594,7 +603,7 @@ def main():
     # check pct renter occupied pct change 1 year
 
     predictor_col_list = ['top20_rate']
-    models_to_run = ['RF', 'DT']
+    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
 

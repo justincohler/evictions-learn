@@ -48,7 +48,7 @@ class GB(ModelResult):
         self.feature_importances = feature_importances
 
     def __repr__(self):
-        return "{}: feature_importances: {}".format(self.feature_importances)
+        return "{}: feature_importances: {}".format(self.type, self.feature_importances)
 
 class BAG(ModelResult):
 
