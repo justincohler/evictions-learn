@@ -30,6 +30,7 @@ import graphviz
 import pydot
 import warnings
 from model_result import BAG, DT, GB, LR, RF, SVM
+import itertools
 
 logger = logging.getLogger('evictionslog')
 
@@ -274,6 +275,14 @@ class Pipeline():
         # TODO - implement
         return model.predict_proba(x_data)
 
+    def get_subsets(self, d):
+        subsets = []
+        #for k, v in d.iteritems():
+            for i in range(1, len(d.keys) + 1):
+                for combo in itertools.combinations(d.values, i):
+                    subsets.append(list(combo))
+        return subsets
+
     def generate_outcome_table(self):
         """Return a dataframe with the formatted columns required to present model outcomes.
 
@@ -371,7 +380,7 @@ class Pipeline():
     def generate_feature_subsets(self, feature_set_list):
         all_predictors=[]
 
-        predictor_subsets = get_subsets(feature_set_list)
+        predictor_subsets = self.get_subsets(feature_set_list)
 
         for p in predictor_subsets:
             merged = list(itertools.chain.from_iterable(p))
@@ -462,6 +471,7 @@ class Pipeline():
                 # Loop over feature set and precitors
                 for feature_cols in feature_set_list:
                     for predictor_col in predictor_col_list:
+                        print(feature_cols)
 
                         # Build training and testing sets
                         X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
@@ -561,18 +571,20 @@ def main():
     prediction_windows = [12]
 
     # Define feature sets
-    features = ['population', 'poverty_rate',
+    feature_dict = {features1: ['population', 'poverty_rate',
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value',
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings',
-    'eviction_filing_rate', 'imputed', 'subbed', 'population_pct_change_5yr',
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings'],
+    features2: ['eviction_filing_rate', 'imputed', 'subbed', 'population_pct_change_5yr',
     'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr',
     'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr',
     'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
-    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
-    feature_set_list = [features]
+    'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']}
+    feature_set_list = [features1, features2]
+
+    all_features = pipeline.generate_feature_subsets(feature_set_list)
 
     excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr',
     'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01',
@@ -584,7 +596,7 @@ def main():
     predictor_col_list = ['top20_rate']
     models_to_run = ['RF', 'DT']
     results_df = pipeline.run_temporal(
-        df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run)
+        df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
 
     #results_df.to_csv('test_results.csv')
     return results_df
