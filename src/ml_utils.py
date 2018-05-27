@@ -56,7 +56,7 @@ class Pipeline():
             "params": {}
         },
             'SVM': {
-            "type": svm.SVC(probability=True, random_state=0),
+            "type": svm.SVC(probability=True, random_state=0, cache_size=10000),
             "params": {'C': [1], 'kernel': ['linear']}
         },
             'GB': {
@@ -467,8 +467,6 @@ class Pipeline():
                 # Loop over feature set and precitors
                 for feature_cols in feature_set_list:
                     for predictor_col in predictor_col_list:
-                        print(feature_cols)
-
                         # Build training and testing sets
                         X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
                             df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
@@ -603,7 +601,8 @@ def main():
     # check pct renter occupied pct change 1 year
 
     predictor_col_list = ['top20_rate']
-    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'SVM']
+    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB']
+    the_dreaded = ['SVM']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
 
