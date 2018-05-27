@@ -67,6 +67,37 @@ CREATE_TABLE_BLOCKGROUP = """CREATE TABLE blockgroup
     subbed BOOLEAN
 );"""
 
+CREATE_TABLE_EVICTIONS = """CREATE TABLE evictions_{}
+(
+    geo_id CHAR(12),
+    year SMALLINT,
+    name VARCHAR(50),
+    parent_location VARCHAR(100),
+    population FLOAT4,
+    poverty_rate FLOAT4,
+    pct_renter_occupied FLOAT4,
+    median_gross_rent FLOAT4,
+    median_household_income FLOAT4,
+    median_property_value FLOAT4,
+    rent_burden FLOAT4,
+    pct_white FLOAT4,
+    pct_af_am FLOAT4,
+    pct_hispanic FLOAT4,
+    pct_am_ind FLOAT4,
+    pct_asian FLOAT4,
+    pct_nh_pi FLOAT4,
+    pct_multiple FLOAT4,
+    pct_other FLOAT4,
+    renter_occupied_households FLOAT4,
+    eviction_filings FLOAT4,
+    evictions FLOAT4,
+    eviction_rate FLOAT4,
+    eviction_filing_rate FLOAT4,
+    imputed BOOLEAN,
+    subbed BOOLEAN,
+    low_flag BOOLEAN
+);"""
+
 IDX_STATE_YEAR = "CREATE INDEX idx_state_year ON blockgroup (state, year);"
 IDX_YEAR = "CREATE INDEX idx_year ON blockgroup (year);"
 IDX_STATE = "CREATE INDEX idx_state ON blockgroup (state);"
@@ -77,12 +108,7 @@ IDX_STATE_TR = "create index idx_state_tr on evictions_tract (state);"
 IDX_STATE_CT = "create index idx_state_ct on evictions_county (state);"
 IDX_STATE_GEO = "create index idx_state_geo on geographic (state);"
 
-COPY_CSV_BLOCKGROUP = """COPY evictions.blockgroup(
-    state, geo_id, year, name, parent_location,population, poverty_rate, pct_renter_occupied,
-    median_gross_rent, median_household_income, median_property_value, rent_burden,
-    pct_white, pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple,
-    pct_other, renter_occupied_households, eviction_filings, evictions, eviction_rate,
-    eviction_filing_rate, imputed, subbed)
+COPY_CSV_EVICTIONS = """COPY {}
     FROM stdin WITH CSV HEADER DELIMITER as ','
 """
 RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO state_code;"
@@ -93,7 +119,7 @@ CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup add column county CHAR(5);
 UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
 UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
 UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
-# delete from evictions_tract where state not in ('18', '17', '26', '39', 
+# delete from evictions_tract where state not in ('18', '17', '26', '39',
 '''==========================================================================
 SHAPEFILE LOAD + GROUP BY GEO
 =========================================================================='''
@@ -160,6 +186,7 @@ GEOGRAPHIC TABLE
 ============================================================================'''
 
 DROP_TABLE_URBAN = "DROP TABLE IF EXISTS urban;"
+DROP_TABLE = "DROP TABLE IF EXISTS {};"
 DROP_TABLE_GEOGRAPHIC = "DROP TABLE IF EXISTS geographic;"
 
 
@@ -270,7 +297,6 @@ ADD COLUMN bbg_avg_pct_other_3pct FLOAT,
 ADD PRIMARY KEY(geo_id, year);"""
 
 
-
 COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID)
       from stdin with CSV HEADER DELIMITER as ',';"""
 
@@ -280,7 +306,7 @@ IDX_STATE_GEO = "CREATE INDEX idx_state_geo ON geographic (state);"
 
 
 UPDATE_VAR_URBAN = '''UPDATE evictions.geographic
-                      SET urban = 1 
+                      SET urban = 1
                       WHERE county IN (SELECT GEOID::varchar(5) FROM evictions.urban);'''
 
 UPDATE_VAR_DIV_NE = '''UPDATE evictions.geographic set div_ne = 1
@@ -370,7 +396,7 @@ insert into evictions.geographic (bbg_sum_evict, bbg_avg_evict_rate, bbg_avg_pop
                         avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
                         avg(b2.pct_hispanic) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind) as bbg_avg_pct_am_ind, avg(b2.pct_asian) as bbg_avg_pct_asian,
                         avg(b2.pct_nh_pi) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple) as bbg_avg_pct_multiple, avg(b2.pct_other) as bbg_avg_pct_other,
-                        avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households, avg(b2.eviction_filings) as bbg_avg_eviction_filings, 
+                        avg(b2.renter_occupied_households) as bbg_avg_renter_occupied_households, avg(b2.eviction_filings) as bbg_avg_eviction_filings,
                         avg(b2.eviction_filing_rate) as bbg_avg_filing_rate, avg(b2.conversion_rate) as bbg_avg_conversion_rate, avg(b2.avg_hh_size) as bbg_avg_hh_size
                         from tmp_bbg b1
                         join tmp_bbg b2
@@ -385,32 +411,32 @@ BBG_UPDATE = """
 UPDATE evictions.geographic SET
 bbg_sum_evict = t.bbg_sum_evict,
 bbg_avg_evict_rate = t.bbg_avg_evict_rate,
-bbg_avg_population = t.bbg_avg_population, 
-bbg_avg_poverty_rate = t.bbg_avg_poverty_rate, 
-bbg_avg_pct_renter_occupied = t.bbg_avg_pct_renter_occupied, 
+bbg_avg_population = t.bbg_avg_population,
+bbg_avg_poverty_rate = t.bbg_avg_poverty_rate,
+bbg_avg_pct_renter_occupied = t.bbg_avg_pct_renter_occupied,
 bbg_avg_median_gross_rent = t.bbg_avg_median_gross_rent,
-bbg_avg_median_household_income = t.bbg_avg_median_household_income, 
-bbg_avg_median_property_value = t.bbg_avg_median_property_value, 
-bbg_avg_rent_burden= t.bbg_avg_rent_burden, 
-bbg_avg_pct_white= t.bbg_avg_pct_white, 
-bbg_avg_pct_af_am= t.bbg_avg_pct_af_am, 
-bbg_avg_pct_hispanic = t.bbg_avg_pct_hispanic, 
+bbg_avg_median_household_income = t.bbg_avg_median_household_income,
+bbg_avg_median_property_value = t.bbg_avg_median_property_value,
+bbg_avg_rent_burden= t.bbg_avg_rent_burden,
+bbg_avg_pct_white= t.bbg_avg_pct_white,
+bbg_avg_pct_af_am= t.bbg_avg_pct_af_am,
+bbg_avg_pct_hispanic = t.bbg_avg_pct_hispanic,
 bbg_avg_pct_am_ind = t.bbg_avg_pct_am_ind,
-bbg_avg_pct_nh_pi = t.bbg_avg_pct_nh_pi, 
+bbg_avg_pct_nh_pi = t.bbg_avg_pct_nh_pi,
 bbg_avg_pct_asian = t.bbg_avg_pct_asian
 bbg_avg_pct_multiple = t.bbg_avg_pct_multiple,
-bbg_avg_pct_other = t.bbg_avg_pct_other, 
-bbg_avg_renter_occupied_households = t.bbg_avg_renter_occupied_households, 
-bbg_avg_eviction_filings = t.bbg_avg_eviction_filings, 
-bbg_avg_filing_rate = t.bbg_avg_filing_rate, 
-bbg_avg_conversion_rate = t.bbg_avg_conversion_rate, 
+bbg_avg_pct_other = t.bbg_avg_pct_other,
+bbg_avg_renter_occupied_households = t.bbg_avg_renter_occupied_households,
+bbg_avg_eviction_filings = t.bbg_avg_eviction_filings,
+bbg_avg_filing_rate = t.bbg_avg_filing_rate,
+bbg_avg_conversion_rate = t.bbg_avg_conversion_rate,
 bbg_avg_hh_size = t.bbg_avg_hh_size
 FROM bbg t
 where geographic.geo_id = t.gid and geographic.year = t.yr
 ;
 """
 
-CREATE_TEMP_BG = '''CREATE tmp_bbg AS (SELECT blockgroup.geo_id, blockgroup.year, evictions, eviction_rate, population, 
+CREATE_TEMP_BG = '''CREATE tmp_bbg AS (SELECT blockgroup.geo_id, blockgroup.year, evictions, eviction_rate, population,
                     poverty_rate, pct_renter_occupied, median_gross_rent, median_household_income, median_property_value,
                     rent_burden, pct_white, pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple,
                     pct_other, pct_renter_occupied_households, renter_occupied_households, eviction_filings, eviction_filing_rate,
@@ -418,45 +444,45 @@ CREATE_TEMP_BG = '''CREATE tmp_bbg AS (SELECT blockgroup.geo_id, blockgroup.year
                     );'''
 
 
-CREATE_TABLE_AS_BBG = """CREATE TABLE bbg as (SELECT b1.geo_id as gid, b1.year as yr, 
-  sum(b2.evictions*b2.population*b2.population)/sum(b2.population) as bbg_sum_evict, 
+CREATE_TABLE_AS_BBG = """CREATE TABLE bbg as (SELECT b1.geo_id as gid, b1.year as yr,
+  sum(b2.evictions*b2.population*b2.population)/sum(b2.population) as bbg_sum_evict,
   sum(b2.eviction_rate*b2.population)/sum(b2.population) as bbg_avg_evict_rate,
-  sum(b2.population*b2.population)/sum(b2.population) as bbg_avg_population, 
-  sum(b2.poverty_rate*b2.population)/sum(b2.population) as bbg_avg_poverty_rate, 
+  sum(b2.population*b2.population)/sum(b2.population) as bbg_avg_population,
+  sum(b2.poverty_rate*b2.population)/sum(b2.population) as bbg_avg_poverty_rate,
   sum(b2.pct_renter_occupied*b2.population)/sum(b2.population) as bbg_avg_pct_renter_occupied,
   sum(b2.median_gross_rent*b2.population)/sum(b2.population) as bbg_avg_median_gross_rent,
   sum(b2.median_household_income*b2.population)/sum(b2.population) as bbg_avg_median_household_income,
   sum(b2.median_property_value*b2.population)/sum(b2.population) as bbg_avg_median_property_value,
-  sum(b2.rent_burden*b2.population)/sum(b2.population) as bbg_avg_rent_burden, 
-  sum(b2.pct_white*b2.population)/sum(b2.population) as bbg_avg_pct_white, 
+  sum(b2.rent_burden*b2.population)/sum(b2.population) as bbg_avg_rent_burden,
+  sum(b2.pct_white*b2.population)/sum(b2.population) as bbg_avg_pct_white,
   sum(b2.pct_af_am*b2.population)/sum(b2.population) as bbg_avg_pct_af_am,
-  sum(b2.pct_hispanic*b2.population)/sum(b2.population) as bbg_avg_pct_hispanic, 
-  sum(b2.pct_am_ind*b2.population)/sum(b2.population) as bbg_avg_pct_am_ind, 
+  sum(b2.pct_hispanic*b2.population)/sum(b2.population) as bbg_avg_pct_hispanic,
+  sum(b2.pct_am_ind*b2.population)/sum(b2.population) as bbg_avg_pct_am_ind,
   sum(b2.pct_asian*b2.population)/sum(b2.population) as bbg_avg_pct_asian,
-  sum(b2.pct_nh_pi*b2.population)/sum(b2.population) as bbg_avg_pct_nh_pi, 
-  sum(b2.pct_multiple*b2.population)/sum(b2.population) as bbg_avg_pct_multiple, 
+  sum(b2.pct_nh_pi*b2.population)/sum(b2.population) as bbg_avg_pct_nh_pi,
+  sum(b2.pct_multiple*b2.population)/sum(b2.population) as bbg_avg_pct_multiple,
   sum(b2.pct_other*b2.population)/sum(b2.population) as bbg_avg_pct_other,
-  sum(b2.renter_occupied_households*b2.population)/sum(b2.population) as bbg_avg_renter_occupied_households, 
-  sum(b2.eviction_filings*b2.population)/sum(b2.population) as bbg_avg_eviction_filings, 
-  sum(b2.eviction_filing_rate*b2.population)/sum(b2.population) as bbg_avg_filing_rate, 
-  sum(b2.conversion_rate*b2.population)/sum(b2.population) as bbg_avg_conversion_rate, 
+  sum(b2.renter_occupied_households*b2.population)/sum(b2.population) as bbg_avg_renter_occupied_households,
+  sum(b2.eviction_filings*b2.population)/sum(b2.population) as bbg_avg_eviction_filings,
+  sum(b2.eviction_filing_rate*b2.population)/sum(b2.population) as bbg_avg_filing_rate,
+  sum(b2.conversion_rate*b2.population)/sum(b2.population) as bbg_avg_conversion_rate,
   sum(b2.avg_hh_size*b2.population)/sum(b2.population) as bbg_avg_hh_size
                         from tmp_bbg b1
                         join tmp_bbg b2
                         on ST_Intersects(b1.geom, b2.geom)
                         and b1.year = b2.year
-                        group by b1.geo_id, b1.year); 
+                        group by b1.geo_id, b1.year);
 """
 
-'''SELECT redline_poly.poly_id, avg(c.year), avg(c.Total_Pop) AS Total_Pop, 
-    (SUM(c.pct_white*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_white, 
-    (SUM(c.pct_black*c.total_pop)/(SUM(c.total_pop) + 1)) AS PCT_BLACK, 
-    (SUM(c.pct_other*c.total_pop)/(SUM(c.total_pop) + 1)) as pct_other, 
+'''SELECT redline_poly.poly_id, avg(c.year), avg(c.Total_Pop) AS Total_Pop,
+    (SUM(c.pct_white*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_white,
+    (SUM(c.pct_black*c.total_pop)/(SUM(c.total_pop) + 1)) AS PCT_BLACK,
+    (SUM(c.pct_other*c.total_pop)/(SUM(c.total_pop) + 1)) as pct_other,
     (SUM(c.total_units*c.total_pop)/(SUM(c.total_pop) + 1)) AS total_units,
-    (SUM(c.median*c.total_pop)/(SUM(c.total_pop) + 1)) AS median, 
-    (SUM(c.pct_occupied*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_occupied, 
-    (SUM(c.pct_vacant*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_vacant, 
-    (SUM(c.pct_own_occ*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_own_occ, 
+    (SUM(c.median*c.total_pop)/(SUM(c.total_pop) + 1)) AS median,
+    (SUM(c.pct_occupied*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_occupied,
+    (SUM(c.pct_vacant*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_vacant,
+    (SUM(c.pct_own_occ*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_own_occ,
     (SUM(c.pct_rent_occ*c.total_pop)/(SUM(c.total_pop)+1)) AS pct_rent_occ, '''
 
 '''============================================================================
@@ -500,19 +526,24 @@ INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
 
 ADD_COLUMN = "ALTER TABLE {} add column {} {};"
 
-INSERT_N_YEAR_AVG = """INSERT into {}(geo_id, year, {})
-                        select b1.geo_id, b1.year, avg(b2.{})
-                            from blockgroup b1 join blockgroup b2
-                              on b1.geo_id=b2.geo_id
-                              and b2.year between (b1.year - {}) and (b1.year - 1)
-                            group by (b1.geo_id, b1.year);"""
+INSERT_N_YEAR_AVG = """UPDATE  {} bg
+                        set {} = tmp.aver
+                        from (
+                                select b1.geo_id, b1.year, avg(b2.{}) as aver
+                                from {} b1 join {} b2
+                                  on b1.geo_id=b2.geo_id
+                                  and b2.year between (b1.year - {}) and (b1.year - 1)
+                                group by (b1.geo_id, b1.year)
+                            ) as tmp
+                            where bg.geo_id=tmp.geo_id
+                            and bg.year=tmp.year"""
 
-INSERT_N_YEAR_PCT_CHANGE =  """
+INSERT_N_YEAR_PCT_CHANGE = """
                             UPDATE {} bg
                                 SET {} = tmp.pct_change
                                 FROM (
-                                  select b1.geo_id, b1.year, 
-                                  case 
+                                  select b1.geo_id, b1.year,
+                                  case
                                     when b1.{} = 0 and b2.{} = 0 then 0
                                     when b1.{} > 0 and b2.{} = 0 then 999999
                                     when b1.{} < 0 and b2.{} = 0 then -999999
@@ -547,7 +578,7 @@ INSERT_LAG_CONVERSION = """INSERT INTO {}(geo_id, year, {})
                               AND b2.year-1 = b1.year;
                         """
 
-OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome o 
+OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome o
                             SET {} = val
                             from (select o1.geo_id as geo_id, o1.year as year, case
                                           when o1.{} - o2.{}} = 1 then 1
@@ -562,7 +593,7 @@ OUTCOME_CAT_CHANGE_0_1 = """UPDATE outcome o
                           and o.year = l.year;
                           """
 
-OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o 
+OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o
                             SET {} = val
                             from (select o1.geo_id as geo_id, o1.year as year, case
                                           when o1.{} - o2.{}} = -1 then 1
@@ -582,7 +613,7 @@ OUTCOME_CAT_CHANGE_1_0 = """UPDATE outcome o
 
 DROP_TABLE_PERMITS = "DROP TABLE if exists permits;"
 
-CREATE_TABLE_PERMITS = """CREATE TABLE permits (   
+CREATE_TABLE_PERMITS = """CREATE TABLE permits (
     year SMALLINT,
     state varchar(2),
     county varchar(3),
@@ -599,14 +630,14 @@ COPY_CSV_PERMITS = """COPY evictions.permits (
     year, state, county, region, division, total_bldg, total_units, total_value, geo_id)
     FROM stdin WITH CSV HEADER DELIMITER as ',' """
 
-                         
+
 '''=========================================================================
     Household Size Table
 ==========================================================================='''
 
 DROP_TABLE_HHSIZE = "DROP TABLE if exists hhsize;"
 
-CREATE_TABLE_HHSIZE = """CREATE TABLE hhsize (   
+CREATE_TABLE_HHSIZE = """CREATE TABLE hhsize (
     year SMALLINT,
     geo_id varchar(12),
     avg_size FLOAT,
@@ -621,7 +652,7 @@ CREATE_IDX_HH = "CREATE INDEX hh_year_gid on hhsize (geo_id, year);"
 
 CREATE_VAR_HHSIZE = "ALTER TABLE evictions.blockgroup add column avg_hh_size FLOAT;"
 
-UPDATE_VAR_HHSIZE = """UPDATE evictions.blockgroup set avg_hh_size =  hhsize.avg_size from hhsize 
+UPDATE_VAR_HHSIZE = """UPDATE evictions.blockgroup set avg_hh_size =  hhsize.avg_size from hhsize
                       where hhsize.geo_id = blockgroup.geo_id and hhsize.year =blockgroup.year;"""
 
 
@@ -645,5 +676,3 @@ CREATE_FUNCTION_BG_CURSOR = """create function bg_get_chunk(refcursor) returns r
                             	end;
                             	$$ language plpgsql;
                             """
-
-

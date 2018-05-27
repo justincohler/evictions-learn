@@ -1,3 +1,6 @@
+# Temporarily Ignored
+*.dot
+
 # Evictions-specific
 set_env.sh
 .DS_Store
