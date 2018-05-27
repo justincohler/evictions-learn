@@ -400,7 +400,7 @@ class Pipeline():
             return filename
 
     # Update feature_set from "" once defined
-    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, feature_set_labels, outcome, model_result, params, y_test, y_pred_probs):
+    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
 
@@ -603,7 +603,7 @@ def main():
     # check pct renter occupied pct change 1 year
 
     predictor_col_list = ['top20_rate']
-    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB']
+    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'SVM']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
 
