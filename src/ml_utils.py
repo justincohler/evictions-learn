@@ -1,5 +1,6 @@
 """Utilities for machine learning pipelines used in the evictions-learn project."""
 import os
+from io import StringIO
 import numpy as np
 import pandas as pd
 from dateutil import parser
@@ -17,6 +18,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import *
 from sklearn.preprocessing import StandardScaler
+from IPython.display import Image
 import random
 import matplotlib.pyplot as plt
 plt.rcParams.update({'figure.max_open_warning': 0})
@@ -25,7 +27,9 @@ from db_init import DBClient
 import logging
 from validation import *
 import graphviz
+import pydot
 import warnings
+from model_result import BAG, DT, GB, LR, RF, SVM
 
 logger = logging.getLogger('evictionslog')
 
@@ -215,7 +219,7 @@ class Pipeline():
         '''
         isnull = df.isnull().any()
         isnull_cols = list(isnull[isnull == True].index)
-        
+
         return isnull_cols
 
     def fill_nulls(self,df):
@@ -375,22 +379,27 @@ class Pipeline():
 
         return all_predictors
 
-    def visualize_tree(self, fit, X_train, show=True):
-        viz = tree.export_graphviz(fit, out_file="tree.dot", feature_names=X_train.columns,
+    def visualize_tree(self, fit, X_train, run_number, show=True):
+        filename = "{}.png".format(run_number)
+
+        viz = tree.export_graphviz(fit, out_file=filename, feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
                            rounded=True, filled=True)
         if show:
-            f = open("tree.dot")
-            dot_graph = f.read()
-            graph = graphviz.Source(dot_graph)
+            with open(filename) as f:
+                dot_graph = f.read()
+                graph = graphviz.Source(dot_graph)
             return graph
 
+        else:
+            return filename
+
     # Update feature_set from "" once defined
-    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, outcome, params, y_test, y_pred_probs):
+    def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, outcome, model_result, params, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
 
-        return (train_dates, test_dates, model_key, classifier, params, "feature_set", outcome,
+        return (train_dates, test_dates, model_key, classifier, params, "feature_set", outcome, model_result,
                 roc_auc_score(y_test, y_pred_probs),
                 self.precision_at_k(
                     y_test_sorted, y_pred_probs_sorted, 1.0),
@@ -433,10 +442,11 @@ class Pipeline():
                 self.f1_at_k(
                     y_test_sorted, y_pred_probs_sorted, 30.0),
                 self.f1_at_k(
-                    y_test_sorted, y_pred_probs_sorted, 50.0),
+                    y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, baselines_to_run=None):
+        run_number = 0
         results = []
         for prediction_window in prediction_windows:
             train_start = start
@@ -464,26 +474,25 @@ class Pipeline():
 
                         #return before_fill, after_fill
                         # Build classifiers
-                        result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
+                        result = self.classify(run_number, models_to_run, X_train, X_test, y_train, y_test,
                                                (train_start, train_end), (test_start, test_end), predictor_col, baselines_to_run)
                         # Increment time
                         train_end += relativedelta(months=+prediction_window)
                         results.extend(result)
 #
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
-                                                    'parameters', 'feature_set', 'outcome', 'auc-roc', 
-                                                    'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50', 
+                                                    'parameters', 'feature_set', 'outcome', 'model_result', 'auc-roc',
+                                                    'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50',
                                                     'r_at_1', 'r_at_2','r_at_5', 'r_at_10', 'r_at_20', 'r_at_30','r_at_50',
                                                     'f1_at_1', 'f1_at_2','f1_at_5', 'f1_at_10', 'f1_at_20', 'f1_at_30','f1_at_50'))
 
         return results_df
 
-    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, outcome_label, baselines_to_run=None):
+    def classify(self, run_number, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, outcome_label, baselines_to_run=None):
 
         self.generate_classifiers()
         results = []
         for model_key in models_to_run:
-            count = 1
             logger.info("Running {}...".format(model_key))
             classifier = self. classifiers[model_key]["type"]
             grid = ParameterGrid(self.classifiers[model_key]["params"])
@@ -493,19 +502,31 @@ class Pipeline():
                     classifier.set_params(**params)
                     fit = classifier.fit(X_train, y_train)
                     y_pred_probs = fit.predict_proba(X_test)[:, 1]
-                    
+
                     # Printing graph section, pull into function
                     if model_key == 'DT':
-                        graph = self.visualize_tree(fit, X_train)
-                        graph
+                        graph = self.visualize_tree(fit, X_train, run_number, show=False)
+                        model_result = DT(graph)
+                    elif model_key == 'SVM':
+                        model_result = SVM(fit.coef_)
+                    elif model_key == 'RF':
+                        model_result = RF(fit.feature_importances_)
+                    elif model_key == 'LR':
+                        model_result = LR(fit.coef_, fit.intercept_)
+                    elif model_key == 'GB':
+                        model_result = GB(fit.feature_importances_)
+                    elif model_key == 'BAG':
+                        model_result = BAG(fit.base_estimator_, fit.estimators_features_)
+                    else:
+                        model_result = None
 
                     results.append(self.populate_outcome_table(
-                        train_dates, test_dates, model_key, classifier, params, outcome_label, y_test, y_pred_probs))
+                        train_dates, test_dates, model_key, classifier, params, outcome_label, model_result, y_test, y_pred_probs))
 
                     self.plot_precision_recall_n(
-                        y_test, y_pred_probs, model_key+str(count), 'save')
-                    count = count + 1
+                        y_test, y_pred_probs, model_key+str(run_number), 'save')
 
+                    run_number = run_number + 1
                 except IndexError as e:
                     print('Error:', e)
                     continue
@@ -525,7 +546,7 @@ class Pipeline():
 def main():
     pipeline = Pipeline()
     logger.info("Loading chunk....")
-    df = pipeline.load_chunk()
+    df = pipeline.load_chunk(chunksize=10000)
     logger.info("Chunk loaded.")
     columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
 
@@ -538,28 +559,28 @@ def main():
     start = parser.parse("2006-01-01")
     end = parser.parse("2016-01-01")
     prediction_windows = [12]
-    
+
     # Define feature sets
-    features = ['population', 'poverty_rate', 
-    'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value', 
-    'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi', 
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings', 
-    'eviction_filing_rate', 'imputed', 'subbed', 'population_pct_change_5yr', 
-    'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr', 
-    'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr', 
-    'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr', 
-    'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr', 
-    'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr', 
+    features = ['population', 'poverty_rate',
+    'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value',
+    'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'eviction_filings',
+    'eviction_filing_rate', 'imputed', 'subbed', 'population_pct_change_5yr',
+    'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr',
+    'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr',
+    'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
+    'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr',
+    'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
     'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
     feature_set_list = [features]
 
-    excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr', 
-    'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01', 
+    excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr',
+    'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01',
     'top10_num', 'top10_rate', 'top10_num_01', 'avg_hh_size', 'top10_rate_01', 'testcol' 'state', 'county', 'tract', 'pct_renter_occupied_pct_change_1yr',
     'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
 
     # check pct renter occupied pct change 1 year
-    
+
     predictor_col_list = ['top20_rate']
     models_to_run = ['RF', 'DT']
     results_df = pipeline.run_temporal(

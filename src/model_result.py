@@ -1,16 +1,17 @@
 from abc import ABC
 
 class ModelResult(ABC):
-
+    def __init__(self):
+        self.type="GenericModelResult"
 
 class DT(ModelResult):
 
     def __init__(self, tree_viz):
         self.type="DT"
-        self.tree_viz = None
+        self.tree_viz = tree_viz
 
-    def __repr__():
-        return self.type + ": {tree vizualization: " + self.tree_viz + "}"
+    def __repr__(self):
+        return "{}: tree_viz: {}".format(self.type, self.tree_viz)
 
 class SVM(ModelResult):
 
@@ -18,8 +19,8 @@ class SVM(ModelResult):
         self.type="SVM"
         self.coef = coef
 
-    def __repr__():
-        return self.type + ": {coefficients: " + self.coef + "}"
+    def __repr__(self):
+        return "{}: coefficients: {}".format(self.type, self.coef)
 
 class RF(ModelResult):
 
@@ -27,8 +28,8 @@ class RF(ModelResult):
         self.type="RF"
         self.feature_importances = feature_importances
 
-    def __repr__():
-        return self.type + ": {feature importances: " + self.feature_importances + "}"
+    def __repr__(self):
+        return "{}: feature_importances: {}".format(self.type, self.feature_importances)
 
 class LR(ModelResult):
 
@@ -37,8 +38,8 @@ class LR(ModelResult):
         self.coef = coef
         self.intercept = intercept
 
-    def __repr__():
-        return self.type + ": {coefficients: " + self.coef + ", intercept: " + self.intercept +"}"
+    def __repr__(self):
+        return "{}: coefficients: {}, intercept: {}".format(self.type, self.coef, self.intercept)
 
 class GB(ModelResult):
 
@@ -46,8 +47,8 @@ class GB(ModelResult):
         self.type="GB"
         self.feature_importances = feature_importances
 
-    def __repr__():
-        return self.type + ": {feature importances: " + self.feature_importances + "}"
+    def __repr__(self):
+        return "{}: feature_importances: {}".format(self.feature_importances)
 
 class BAG(ModelResult):
 
@@ -56,5 +57,5 @@ class BAG(ModelResult):
         self.base_estimator = base_estimator
         self.estimators_features = estimators_features
 
-    def __repr__():
-        return self.type + ": {base estimator: " + self.base_estimator + ", estimator features: " + self.estimators_features + "}"        
+    def __repr__(self):
+        return "{}: base_estimator: {}, estimator_features: {}".format(self.type, self.base_estimator, self.estimators_features)
