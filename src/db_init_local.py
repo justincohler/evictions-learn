@@ -280,6 +280,9 @@ class DBInit():
     def test_conn(self):
         self.db.write(["create table test (id int);"])
 
+    def ev_lag(self, table):
+        
+
 if __name__=="__main__":
     initializer = DBInit()
     #initializer.evictions_init()
