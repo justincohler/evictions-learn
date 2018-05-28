@@ -277,6 +277,9 @@ class DBInit():
         self.db.write([db_statements.CREATE_VAR_HHSIZE, db_statements.UPDATE_VAR_HHSIZE, db_statements.DROP_TABLE_HHSIZE])
         return True
 
+    def ev_lag(self, col, table):
+        self.db.write([db.DROP_COL_EV.format(table, col)])
+
 if __name__=="__main__":
     initializer = DBInit()
     #initializer.evictions_init()
@@ -285,15 +288,15 @@ if __name__=="__main__":
     #for geog in ["state", "county", "tract"]:
     #    initializer.group_by_geo(geog)
 
-    #for geo in ["blck_grp"]:
-    #	initializer.census_shp(geo)
+    for geo in ["blck_grp"]:
+    	initializer.census_shp(geo)
     	#if geo != "blck_grp":
     	#	initializer.group_by_geo(geo)
     #initializer.avg_bordering_block_groups()
 
     #initializer.permit_import()
 
-    initializer.hhsize_import()
+    #initializer.hhsize_import()
 
     #initializer.geo_features_table()
     #initializer.db.write(["ALTER TABLE evictions.blockgroup add urban boolean DEFAULT(FALSE)"])
