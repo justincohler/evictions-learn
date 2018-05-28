@@ -593,16 +593,20 @@ def main():
     prediction_windows = [12]
 
     # Define feature sets
-    demographic = ['population', 'poverty_rate',
+    demo = ['population', 'poverty_rate',
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value',
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other','population_pct_change_5yr',
+    'pct_multiple', 'pct_other']
+
+    demo_5yr = ['population_pct_change_5yr',
     'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr',
     'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr']
 
-    eviction = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
+    econ = 
+
+    eviction_lag = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
     'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
 
     pipeline.feature_dict = {"demographic": demographic,
