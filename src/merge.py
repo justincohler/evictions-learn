@@ -7,7 +7,8 @@ from db_init_local import
 	# drop/add lag columns
 	# update lag columns from table
 # Create permits, hh_size lags, hh_size at tract level
-# Merge in permits, geographic, tracts
+# Merge in permits, tracts
+#### fix urban
 # Should I drop the evictions cols from tracts/ blockgroup? No 
 # Why diff # obs across tables?
 

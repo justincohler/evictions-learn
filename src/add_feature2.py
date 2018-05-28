@@ -36,7 +36,7 @@ cols = [
 ]
 
 conv = ["conversion_rate"]
-for table in ["blockgroup"]:
+for table in ["evictions_tract"]:
     lags = [3, 5]
     for lag in lags:
         for col in conv:
@@ -48,7 +48,7 @@ for table in ["blockgroup"]:
                 print("Added {} year average to {} for feature {}".format(lag, table, col))
 
 
-for table in ["blockgroup"]:
+for table in ["evictions_tract"]:
     lags = [1, 3, 5]
     for lag in lags:
         for col in conv:
