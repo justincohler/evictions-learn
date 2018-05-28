@@ -40,6 +40,7 @@ class Pipeline():
     def __init__(self):
         self.db = DBClient()
         self.classifiers = self.generate_classifiers()
+        self.run_number = 0
 
     def generate_classifiers(self):
 
@@ -384,8 +385,8 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
-    def visualize_tree(self, fit, X_train, run_number, show=True):
-        filename = "{}.png".format(run_number)
+    def visualize_tree(self, fit, X_train, show=True):
+        filename = "{}.png".format(self.run_number)
 
         viz = tree.export_graphviz(fit, out_file=filename, feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
@@ -451,7 +452,7 @@ class Pipeline():
                 )
 
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, baselines_to_run=None):
-        run_number = 0
+        self.run_number = 0
         results = []
         for prediction_window in prediction_windows:
             train_start = start
@@ -478,7 +479,7 @@ class Pipeline():
 
                         #return before_fill, after_fill
                         # Build classifiers
-                        result = self.classify(run_number, models_to_run, X_train, X_test, y_train, y_test,
+                        result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
                                                (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col, baselines_to_run)
                         # Increment time
                         train_end += relativedelta(months=+prediction_window)
@@ -492,7 +493,7 @@ class Pipeline():
 
         return results_df
 
-    def classify(self, run_number, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, baselines_to_run=None):
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, baselines_to_run=None):
 
         self.generate_classifiers()
         results = []
@@ -509,7 +510,7 @@ class Pipeline():
 
                     # Printing graph section, pull into function
                     if model_key == 'DT':
-                        graph = self.visualize_tree(fit, X_train, run_number, show=False)
+                        graph = self.visualize_tree(fit, X_train, show=False)
                         model_result = DT(graph)
                     elif model_key == 'SVM':
                         model_result = SVM(fit.coef_)
@@ -528,9 +529,9 @@ class Pipeline():
                         train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
 
                     self.plot_precision_recall_n(
-                        y_test, y_pred_probs, model_key+str(run_number), 'save')
+                        y_test, y_pred_probs, model_key+str(self.run_number), 'save')
 
-                    run_number = run_number + 1
+                    self.run_number = self.run_number + 1
                 except IndexError as e:
                     print('Error:', e)
                     continue
@@ -552,7 +553,7 @@ def main():
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-    max_chunks = 2
+    max_chunks = 1
     while chunk != [] and max_chunks > 0:
         max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
