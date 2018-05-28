@@ -82,7 +82,7 @@ class DBInit():
         target_col = '{}_avg_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
-        INSERT_N_YEAR_AVG = db_statements.INSERT_N_YEAR_AVG.format(target_table, target_col, source_col, lag)
+        INSERT_N_YEAR_AVG = db_statements.INSERT_N_YEAR_AVG.format(target_table, target_col, source_col, target_table, target_table, lag)
 
         logger.debug(INSERT_N_YEAR_AVG)
         try:
@@ -288,8 +288,8 @@ if __name__=="__main__":
     #for geog in ["state", "county", "tract"]:
     #    initializer.group_by_geo(geog)
 
-    for geo in ["blck_grp"]:
-    	initializer.census_shp(geo)
+    #for geo in ["blck_grp"]:
+    #	initializer.census_shp(geo)
     	#if geo != "blck_grp":
     	#	initializer.group_by_geo(geo)
     #initializer.avg_bordering_block_groups()

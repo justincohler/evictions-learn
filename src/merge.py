@@ -8,7 +8,8 @@ from db_init_local import
 	# update lag columns from table
 # Create permits, hh_size lags
 # Merge in permits, geographic, tracts
-# Should I drop the evictions cols from tracts/ blockgroup?
+# Should I drop the evictions cols from tracts/ blockgroup? No 
+# Why diff # obs across tables?
 
 
 init = DBInit()
@@ -56,7 +57,7 @@ cols = [
   ]
 
 
-update blockgroup bg set
+"""update blockgroup bg set
 	population_avg_3yr=t.population_avg_3yr,
 	poverty_rate_avg_3yr=t.poverty_rate_avg_3yr,
 	pct_renter_occupied_3yr=t.pct_renter_occupied_3yr,
@@ -79,8 +80,29 @@ update blockgroup bg set
 	eviction_rate_avg_3yr=t.eviction_rate_avg_3yr,
 	eviction_filing_rate_avg_3yr=t.eviction_filing_rate_avg_3yr
 from blockgroup_3yr t 
-where bg.geo_id=t.geo_id and bg.year=t.year;
+where bg.geo_id=t.geo_id and bg.year=t.year;"""
 
+# update conversion_rate
+
+for table in ["blockgroup", "evictions_tract"]:
+  for lag in [3, 5]:
+    print("Adding {} year lag to {} for feature {}".format(lag, table, "conversion_rate"))
+    res = init.create_n_year_average("conversion_rate", table, lag)
+    if not res:
+            break
+        else:
+            print("Added {} year pct change to {} for feature {}".format(lag, table, col))
+
+for table in ["blockgroup", "evictions_tract"]:
+  for pct in [1, 3, 5]:
+    print("Adding {} year pct change to {} for feature {}".format(lag, table, "conversion_rate"))
+    res = init.create_n_year_pct_change(table, col, table, lag)
+    if not res:
+            break
+        else:
+            print("Added {} year pct change to {} for feature {}".format(lag, table, col))
+
+'''
 for table in ["blockgroup", "evictions_tract"]:
     for col in evcols:
 
@@ -90,3 +112,4 @@ for table in ["blockgroup", "evictions_tract"]:
             break
         else:
             print("Added {} year pct change to {} for feature {}".format(lag, table, col))
+'''
