@@ -40,6 +40,8 @@ class Pipeline():
     def __init__(self):
         self.db = DBClient()
         self.classifiers = self.generate_classifiers()
+        self.run_number = 0
+        self.feature_dict = {}
 
     def generate_classifiers(self):
 
@@ -70,6 +72,10 @@ class Pipeline():
             'DT': {
             "type": DecisionTreeClassifier(),
             "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
+        },
+            'BASELINE_DT': {
+            "type": DecisionTreeClassifier(),
+            "params": {'criterion': ['gini'], 'max_depth': [3]}
         },
             'KNN': {
             "type": KNeighborsClassifier(),
@@ -274,17 +280,17 @@ class Pipeline():
         # TODO - implement
         return model.predict_proba(x_data)
 
-    def get_subsets(self, d):
+    def get_subsets(self):
         subsets = []
-        for i in range(1, len(d.keys())+1):
+        for i in range(1, len(self.feature_dict.keys())+1):
 
-                for combo in itertools.combinations(d.values(), i):
+                for combo in itertools.combinations(self.feature_dict.values(), i):
                     combo = list(combo)
                     combo = [item for sublist in combo for item in sublist]
 
                     combolabels = []
-                    for key, val in d.items():
-                        if d[key][0] in combo:
+                    for key, val in self.feature_dict.items():
+                        if self.feature_dict[key][0] in combo:
                             combolabels.append(key)
                     subsets.append({"feature_set_labels": combolabels, "features": combo})
         return subsets
@@ -384,8 +390,8 @@ class Pipeline():
 
         return X_train, y_train, X_test, y_test
 
-    def visualize_tree(self, fit, X_train, run_number, show=True):
-        filename = "{}.png".format(run_number)
+    def visualize_tree(self, fit, X_train, show=True):
+        filename = "{}.png".format(self.run_number)
 
         viz = tree.export_graphviz(fit, out_file=filename, feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
@@ -450,8 +456,8 @@ class Pipeline():
                     y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
-    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, baselines_to_run=None):
-        run_number = 0
+    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run):
+        self.run_number = 0
         results = []
         for prediction_window in prediction_windows:
             train_start = start
@@ -478,72 +484,87 @@ class Pipeline():
 
                         #return before_fill, after_fill
                         # Build classifiers
-                        result = self.classify(run_number, models_to_run, X_train, X_test, y_train, y_test,
-                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col, baselines_to_run)
+                        result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
+                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col)
                         # Increment time
                         train_end += relativedelta(months=+prediction_window)
                         results.extend(result)
 #
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
-                                                    'parameters', 'feature_set', 'outcome', 'model_result', 'auc-roc',
+                                                    'parameters', 'feature_sets', 'outcome', 'model_result', 'auc-roc',
                                                     'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50',
                                                     'r_at_1', 'r_at_2','r_at_5', 'r_at_10', 'r_at_20', 'r_at_30','r_at_50',
                                                     'f1_at_1', 'f1_at_2','f1_at_5', 'f1_at_10', 'f1_at_20', 'f1_at_30','f1_at_50'))
 
         return results_df
 
-    def classify(self, run_number, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, baselines_to_run=None):
+    def match_label_array(self, feature_set_labels, feature_values, match_type):
+        labels = []
+        for fset in feature_set_labels:
+            labels.extend(self.feature_dict[fset])
+
+        fi = feature_values
+
+        fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
+        fi_names.sort_values(by=[match_type])
+
+        return fi_names
+
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label):
 
         self.generate_classifiers()
         results = []
         for model_key in models_to_run:
-            logger.info("Running {}...".format(model_key))
-            classifier = self. classifiers[model_key]["type"]
-            grid = ParameterGrid(self.classifiers[model_key]["params"])
-            for params in grid:
-                logger.info("Running with params {}".format(params))
-                try:
-                    classifier.set_params(**params)
-                    fit = classifier.fit(X_train, y_train)
-                    y_pred_probs = fit.predict_proba(X_test)[:, 1]
+            if model_key == 'BASELINE_RAND':
+                pct_negative = len(y_train[y_train == 0])/len(y_train)
+                y_pred_probs = np.random.rand(len(y_test))
+                y_pred_probs = [1 if row > pct_negative else 0 for row in y_pred_probs]
+                results.append(self.populate_outcome_table(
+                    train_dates, test_dates, model_key,model_key, {}, feature_set_labels, outcome_label, None, y_test, y_pred_probs))
+            elif model_key == 'BASELINE_PRIOR':
+                results.append(self.populate_outcome_table(
+                    train_dates, test_dates, model_key, model_key, {}, feature_set_labels, outcome_label, None, y_test, X_test))
 
-                    # Printing graph section, pull into function
-                    if model_key == 'DT':
-                        graph = self.visualize_tree(fit, X_train, run_number, show=False)
-                        model_result = DT(graph)
-                    elif model_key == 'SVM':
-                        model_result = SVM(fit.coef_)
-                    elif model_key == 'RF':
-                        model_result = RF(fit.feature_importances_)
-                    elif model_key == 'LR':
-                        model_result = LR(fit.coef_, fit.intercept_)
-                    elif model_key == 'GB':
-                        model_result = GB(fit.feature_importances_)
-                    elif model_key == 'BAG':
-                        model_result = BAG(fit.base_estimator_, fit.estimators_features_)
-                    else:
-                        model_result = None
+            else:
+                logger.info("Running {}...".format(model_key))
+                classifier = self. classifiers[model_key]["type"]
+                grid = ParameterGrid(self.classifiers[model_key]["params"])
+                for params in grid:
+                    logger.info("Running with params {}".format(params))
+                    try:
+                        classifier.set_params(**params)
+                        fit = classifier.fit(X_train, y_train)
+                        y_pred_probs = fit.predict_proba(X_test)[:, 1]
 
-                    results.append(self.populate_outcome_table(
-                        train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
+                        # Printing graph section, pull into function
+                        if model_key == 'DT':
+                            graph = self.visualize_tree(fit, X_train, show=False)
+                            model_result = DT(graph)
+                        elif model_key == 'SVM':
+                            model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"))
+                        elif model_key == 'RF':
+                            model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
+                        elif model_key == 'LR':
+                            model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"), fit.intercept_)
+                        elif model_key == 'GB':
+                            model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
+                        elif model_key == 'BAG':
+                            model_result = BAG(fit.base_estimator_, fit.estimators_features_)
+                        else:
+                            model_result = None
 
-                    self.plot_precision_recall_n(
-                        y_test, y_pred_probs, model_key+str(run_number), 'save')
+                        results.append(self.populate_outcome_table(
+                            train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
 
-                    run_number = run_number + 1
-                except IndexError as e:
-                    print('Error:', e)
-                    continue
+                        self.plot_precision_recall_n(
+                            y_test, y_pred_probs, model_key+str(self.run_number), 'save')
+
+                        self.run_number = self.run_number + 1
+                    except IndexError as e:
+                        print('Error:', e)
+                        continue
             logger.info("{} finished.".format(model_key))
 
-        if baselines_to_run != None:
-            for baseline in baselines_to_run:
-                if baseline == "RAND":
-                    pct_negative = len(y_train[y_train == 0])/len(y_train)
-                    y_pred_probs = np.random.rand(len(y_test))
-                    y_pred_probs = [1 if row > pct_negative else 0 for row in y_pred_probs]
-                    results.append(self.populate_outcome_table(
-                        baseline, baseline, {}, y_test, y_pred_probs))
         return results
 
 
@@ -552,7 +573,7 @@ def main():
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-    max_chunks = 2
+    max_chunks = 0
     while chunk != [] and max_chunks > 0:
         max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
@@ -587,11 +608,11 @@ def main():
     eviction = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
     'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
 
-    feature_dict = {"demographic": demographic,
+    pipeline.feature_dict = {"demographic": demographic,
                     "eviction": eviction,
                     }
 
-    all_features = pipeline.get_subsets(feature_dict)
+    all_features = pipeline.get_subsets()
 
     excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr',
     'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01',
@@ -599,15 +620,18 @@ def main():
     'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
 
     # check pct renter occupied pct change 1 year
-
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top10_rate"]}]
     predictor_col_list = ['top20_rate']
-    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB']
+    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
+
     the_dreaded = ['SVM']
     results_df = pipeline.run_temporal(
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
 
+    results_df.append(pipeline.run_temporal(df, start, end, prediction_windows, [], predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR']))
+
     #results_df.to_csv('test_results.csv')
-    return results_df
+    return results_df, pipeline
 
 if __name__ == "__main__":
     main()

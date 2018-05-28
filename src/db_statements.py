@@ -401,9 +401,9 @@ insert into evictions.geographic (bbg_sum_evict, bbg_avg_evict_rate, bbg_avg_pop
                         avg(b2.rent_burden *b2.population)/sum(b2.population) as bbg_avg_rent_burden, avg(b2.pct_white *b2.population)/sum(b2.population) as bbg_avg_pct_white, avg(b2.pct_af_am *b2.population)/sum(b2.population) as bbg_avg_pct_af_am,
                         avg(b2.pct_hispanic *b2.population)/sum(b2.population) as bbg_avg_pct_hispanic, avg(b2.pct_am_ind *b2.population)/sum(b2.population) as bbg_avg_pct_am_ind, avg(b2.pct_asian *b2.population)/sum(b2.population) as bbg_avg_pct_asian,
                         avg(b2.pct_nh_pi *b2.population)/sum(b2.population) as bbg_avg_pct_nh_pi, avg(b2.pct_multiple *b2.population)/sum(b2.population) as bbg_avg_pct_multiple, avg(b2.pct_other *b2.population)/sum(b2.population) as bbg_avg_pct_other,
-                        avg(b2.renter_occupied_households *b2.population)/sum(b2.population) as bbg_avg_renter_occupied_households, avg(b2.eviction_filings *b2.population)/sum(b2.population) as bbg_avg_eviction_filings, 
+                        avg(b2.renter_occupied_households *b2.population)/sum(b2.population) as bbg_avg_renter_occupied_households, avg(b2.eviction_filings *b2.population)/sum(b2.population) as bbg_avg_eviction_filings,
                         avg(b2.eviction_filing_rate *b2.population)/sum(b2.population) as bbg_avg_filing_rate, avg(b2.conversion_rate *b2.population)/sum(b2.population) as bbg_avg_conversion_rate, avg(b2.avg_hh_size *b2.population)/sum(b2.population) as bbg_avg_hh_size
-=======
+
                     select sum(b2.evictions) as bbg_sum_evict, avg(b2.eviction_rate) as bbg_avg_evict_rate,
                         avg(b2.population) as bbg_avg_population, avg(b2.poverty_rate) as bbg_avg_poverty_rate, avg(b2.pct_renter_occupied) as bbg_avg_pct_renter_occupied,
                         avg(b2.rent_burden) as bbg_avg_rent_burden, avg(b2.pct_white) as bbg_avg_pct_white, avg(b2.pct_af_am) as bbg_avg_pct_af_am,
@@ -453,37 +453,37 @@ CREATE_TMP_BBG = '''CREATE TABLE tmp_bbg AS (
                     population, poverty_rate, pct_renter_occupied, median_gross_rent,
                     median_household_income, median_property_value, rent_burden, pct_white,
                     pct_af_am, pct_hispanic, pct_am_ind, pct_asian, pct_nh_pi, pct_multiple, pct_other,
-                    renter_occupied_households, eviction_filings, eviction_filing_rate, conversion_rate, 
+                    renter_occupied_households, eviction_filings, eviction_filing_rate, conversion_rate,
                     avg_hh_size, census_blck_grp_shp.geom
-                    from evictions.blockgroup join evictions.census_blck_grp_shp 
+                    from evictions.blockgroup join evictions.census_blck_grp_shp
                     on blockgroup.geo_id = census_blck_grp_shp.geoid10
                 );'''
 
 CREATE_IDX_TMP_GIDYR = "CREATE INDEX idx_gid_yr on tmp_bbg (geo_id, year);"
 
 
-CREATE_TABLE_AS_BBG = """CREATE TABLE bbg as (SELECT b1.geo_id as gid, b1.year as yr, 
-  sum(b2.evictions *b2.population)/sum(b2.population) as bbg_sum_evict, 
+CREATE_TABLE_AS_BBG = """CREATE TABLE bbg as (SELECT b1.geo_id as gid, b1.year as yr,
+  sum(b2.evictions *b2.population)/sum(b2.population) as bbg_sum_evict,
   sum(b2.eviction_rate *b2.population)/sum(b2.population) as bbg_avg_evict_rate,
-  sum(b2.population *b2.population)/sum(b2.population) as bbg_avg_population, 
-  sum(b2.poverty_rate *b2.population)/sum(b2.population) as bbg_avg_poverty_rate, 
+  sum(b2.population *b2.population)/sum(b2.population) as bbg_avg_population,
+  sum(b2.poverty_rate *b2.population)/sum(b2.population) as bbg_avg_poverty_rate,
   sum(b2.pct_renter_occupied *b2.population)/sum(b2.population) as bbg_avg_pct_renter_occupied,
   sum(b2.median_gross_rent *b2.population)/sum(b2.population) as bbg_avg_median_gross_rent,
   sum(b2.median_household_income *b2.population)/sum(b2.population) as bbg_avg_median_household_income,
   sum(b2.median_property_value *b2.population)/sum(b2.population) as bbg_avg_median_property_value,
-  sum(b2.rent_burden *b2.population)/sum(b2.population) as bbg_avg_rent_burden, 
-  sum(b2.pct_white *b2.population)/sum(b2.population) as bbg_avg_pct_white, 
+  sum(b2.rent_burden *b2.population)/sum(b2.population) as bbg_avg_rent_burden,
+  sum(b2.pct_white *b2.population)/sum(b2.population) as bbg_avg_pct_white,
   sum(b2.pct_af_am *b2.population)/sum(b2.population) as bbg_avg_pct_af_am,
-  sum(b2.pct_hispanic *b2.population)/sum(b2.population) as bbg_avg_pct_hispanic, 
-  sum(b2.pct_am_ind *b2.population)/sum(b2.population) as bbg_avg_pct_am_ind, 
+  sum(b2.pct_hispanic *b2.population)/sum(b2.population) as bbg_avg_pct_hispanic,
+  sum(b2.pct_am_ind *b2.population)/sum(b2.population) as bbg_avg_pct_am_ind,
   sum(b2.pct_asian *b2.population)/sum(b2.population) as bbg_avg_pct_asian,
-  sum(b2.pct_nh_pi *b2.population)/sum(b2.population) as bbg_avg_pct_nh_pi, 
-  sum(b2.pct_multiple *b2.population)/sum(b2.population) as bbg_avg_pct_multiple, 
+  sum(b2.pct_nh_pi *b2.population)/sum(b2.population) as bbg_avg_pct_nh_pi,
+  sum(b2.pct_multiple *b2.population)/sum(b2.population) as bbg_avg_pct_multiple,
   sum(b2.pct_other *b2.population)/sum(b2.population) as bbg_avg_pct_other,
-  sum(b2.renter_occupied_households *b2.population)/sum(b2.population) as bbg_avg_renter_occupied_households, 
-  sum(b2.eviction_filings *b2.population)/sum(b2.population) as bbg_avg_eviction_filings, 
-  sum(b2.eviction_filing_rate *b2.population)/sum(b2.population) as bbg_avg_filing_rate, 
-  sum(b2.conversion_rate *b2.population)/sum(b2.population) as bbg_avg_conversion_rate, 
+  sum(b2.renter_occupied_households *b2.population)/sum(b2.population) as bbg_avg_renter_occupied_households,
+  sum(b2.eviction_filings *b2.population)/sum(b2.population) as bbg_avg_eviction_filings,
+  sum(b2.eviction_filing_rate *b2.population)/sum(b2.population) as bbg_avg_filing_rate,
+  sum(b2.conversion_rate *b2.population)/sum(b2.population) as bbg_avg_conversion_rate,
   sum(b2.avg_hh_size *b2.population)/sum(b2.population) as bbg_avg_hh_size"""
 
 CREATE_TEMP_BG = '''CREATE tmp_bbg AS (SELECT blockgroup.geo_id, blockgroup.year, evictions, eviction_rate, population,
@@ -699,6 +699,7 @@ UPDATE_VAR_HHSIZE = """UPDATE evictions.blockgroup set avg_hh_size =  hhsize.avg
 ============================================================================'''
 
 ADD_CONVERSION_LAGS = "ALTER TABLE evictions.evictions_tract add column conversion_rate float8;"
+
 UPDATE_CONVERSION_RATE = """
 update evictions_tract et
     set conversion_rate = l.conversion_rate
@@ -842,6 +843,7 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup ADD COLUMN
   div_enc int;
 """
 
+
 UPDATE_COLS_TR = """
 UPDATE blockgroup b SET
 b.population_avg_5yr_tr = t.population_avg_5yr,
@@ -885,6 +887,7 @@ b.avg_hh_size_pct_change_5yr_tr = t.avg_hh_size_pct_change_5yr_tr
 FROM evictions_tract t 
 where b.tract = t.geo_id and b.year = t.year;
 """
+
 
 UPDATE_COLS_GEO = """
 UPDATE blockgroup b SET
