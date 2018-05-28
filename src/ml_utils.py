@@ -41,6 +41,7 @@ class Pipeline():
         self.db = DBClient()
         self.classifiers = self.generate_classifiers()
         self.run_number = 0
+        self.feature_dict = {}
 
     def generate_classifiers(self):
 
@@ -275,17 +276,17 @@ class Pipeline():
         # TODO - implement
         return model.predict_proba(x_data)
 
-    def get_subsets(self, d):
+    def get_subsets(self):
         subsets = []
-        for i in range(1, len(d.keys())+1):
+        for i in range(1, len(self.feature_dict.keys())+1):
 
-                for combo in itertools.combinations(d.values(), i):
+                for combo in itertools.combinations(self.feature_dict.values(), i):
                     combo = list(combo)
                     combo = [item for sublist in combo for item in sublist]
 
                     combolabels = []
-                    for key, val in d.items():
-                        if d[key][0] in combo:
+                    for key, val in self.feature_dict.items():
+                        if self.feature_dict[key][0] in combo:
                             combolabels.append(key)
                     subsets.append({"feature_set_labels": combolabels, "features": combo})
         return subsets
@@ -486,12 +487,24 @@ class Pipeline():
                         results.extend(result)
 #
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
-                                                    'parameters', 'feature_set', 'outcome', 'model_result', 'auc-roc',
+                                                    'parameters', 'feature_sets', 'outcome', 'model_result', 'auc-roc',
                                                     'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50',
                                                     'r_at_1', 'r_at_2','r_at_5', 'r_at_10', 'r_at_20', 'r_at_30','r_at_50',
                                                     'f1_at_1', 'f1_at_2','f1_at_5', 'f1_at_10', 'f1_at_20', 'f1_at_30','f1_at_50'))
 
         return results_df
+
+    def match_label_array(self, feature_set_labels, feature_values, match_type):
+        labels = []
+        for fset in feature_set_labels:
+            labels.extend(self.feature_dict[fset])
+
+        fi = feature_values
+
+        fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
+        fi_names.sort_values(by=[match_type])
+
+        return fi_names
 
     def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, baselines_to_run=None):
 
@@ -513,13 +526,13 @@ class Pipeline():
                         graph = self.visualize_tree(fit, X_train, show=False)
                         model_result = DT(graph)
                     elif model_key == 'SVM':
-                        model_result = SVM(fit.coef_)
+                        model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"))
                     elif model_key == 'RF':
-                        model_result = RF(fit.feature_importances_)
+                        model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
                     elif model_key == 'LR':
-                        model_result = LR(fit.coef_, fit.intercept_)
+                        model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"), fit.intercept_)
                     elif model_key == 'GB':
-                        model_result = GB(fit.feature_importances_)
+                        model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
                     elif model_key == 'BAG':
                         model_result = BAG(fit.base_estimator_, fit.estimators_features_)
                     else:
@@ -588,11 +601,11 @@ def main():
     eviction = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
     'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
 
-    feature_dict = {"demographic": demographic,
+    pipeline.feature_dict = {"demographic": demographic,
                     "eviction": eviction,
                     }
 
-    all_features = pipeline.get_subsets(feature_dict)
+    all_features = pipeline.get_subsets()
 
     excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr',
     'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01',
@@ -608,7 +621,7 @@ def main():
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
 
     #results_df.to_csv('test_results.csv')
-    return results_df
+    return results_df, pipeline
 
 if __name__ == "__main__":
     main()
