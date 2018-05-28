@@ -34,7 +34,7 @@ class DBClient():
                                 , port = self.DB_PORT)
         
         if conn.closed == 0:
-            logger.info("Connected to evictions DB.")
+            logger.info("Connected to evictions DB local.")
         else:
             logger.info("failed to connect")
         self.conn = conn

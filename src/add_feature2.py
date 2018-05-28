@@ -41,7 +41,7 @@ for table in ["blockgroup"]:
     for lag in lags:
         for col in conv:
             print("Adding {} year average to {} for feature {}".format(lag, table, col))
-            res = init.create_n_year_average(table, col, table, lag)
+            res = init.create_n_year_average(col, table, lag)
             if not res:
                 break
             else:
