@@ -391,23 +391,18 @@ class Pipeline():
         return X_train, y_train, X_test, y_test
 
     def visualize_tree(self, fit, X_train, show=True):
+        num = self.run_number
 
         viz = tree.export_graphviz(fit, out_file=None, feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
                            rounded=True, filled=True)
+
+        viz_source = graphviz.Source(viz)
+        viz_source.format = 'png'
+        viz_source.render('tree_viz'+str(num), view=False)
         
-        return graphviz.Source(viz)
+        return 'tree_viz'+str(num)+'.png'
 
-        #if show:
-        #    with open(filename) as f:
-        #        dot_graph = f.read()
-        #        graph = graphviz.Source(dot_graph)
-        #    return graph
-
-        #else:
-        #    return filename
-
-    # Update feature_set from "" once defined
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
