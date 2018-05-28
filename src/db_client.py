@@ -8,6 +8,7 @@ import db_statements
 
 logger = logging.getLogger('evictionslog')
 
+
 class DBClient():
 
     def __init__(self):
@@ -27,28 +28,25 @@ class DBClient():
             self.DB_HOST = os.environ['DB_HOST']
             self.DB_PORT = os.environ['DB_PORT']
 
-        conn = psycopg2.connect(database="evictions"
-                                , user = self.DB_USER
-                                , password = self.DB_PASSWORD
-                                , host = self.DB_HOST
-                                , port = self.DB_PORT)
+        conn = psycopg2.connect(database="evictions", user=self.DB_USER,
+                                password=self.DB_PASSWORD, host=self.DB_HOST, port=self.DB_PORT)
         logger.info("Connected to evictions DB.")
         self.conn = conn
 
         with self.conn.cursor() as cur:
             cur.execute(db_statements.SET_SCHEMA)
-            #cur.callproc("bg_get_chunk", ["bg_cursor"])
-        #self.cur = self.conn.cursor("bg_cursor")
+            cur.callproc("bg_get_chunk", ["bg_cursor"])
+        self.cur = self.conn.cursor("bg_cursor")
 
         logger.info("Set schema to 'evictions'.")
-        #logger.info("Set background cursor.")
+        logger.info("Set background cursor.")
         atexit.register(self.exit)
 
     def write(self, statements, values=None):
         """Execute statements, close the cursor on exit (write-only)."""
         with self.conn.cursor() as cur:
             for statement in statements:
-                    cur.execute(statement)
+                cur.execute(statement)
 
         self.conn.commit()
 
@@ -72,6 +70,6 @@ class DBClient():
         self.conn.commit()
 
     def exit(self):
-        #self.conn.cursor.close()
+        # self.conn.cursor.close()
         self.conn.close()
         logger.info("Connection closed.")
