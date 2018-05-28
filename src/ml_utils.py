@@ -391,19 +391,21 @@ class Pipeline():
         return X_train, y_train, X_test, y_test
 
     def visualize_tree(self, fit, X_train, show=True):
-        filename = "{}.png".format(self.run_number)
 
-        viz = tree.export_graphviz(fit, out_file=filename, feature_names=X_train.columns,
+        viz = tree.export_graphviz(fit, out_file=None, feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
                            rounded=True, filled=True)
-        if show:
-            with open(filename) as f:
-                dot_graph = f.read()
-                graph = graphviz.Source(dot_graph)
-            return graph
+        
+        return graphviz.Source(viz)
 
-        else:
-            return filename
+        #if show:
+        #    with open(filename) as f:
+        #        dot_graph = f.read()
+        #        graph = graphviz.Source(dot_graph)
+        #    return graph
+
+        #else:
+        #    return filename
 
     # Update feature_set from "" once defined
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
@@ -468,7 +470,7 @@ class Pipeline():
                 test_end = test_start + \
                     relativedelta(months=+prediction_window) - relativedelta(days=+1)
 
-                logger.info("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
+                logger.debug("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
                             .format(train_start, train_end, test_start, test_end, prediction_window))
                 # Loop over feature set and precitors
                 for feature_cols in feature_set_list:
@@ -506,7 +508,7 @@ class Pipeline():
         fi = feature_values
 
         fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
-        fi_names.sort_values(by=[match_type])
+        fi_names.sort_values(by=[match_type], ascending=False, inplace=True)
 
         return fi_names
 
@@ -625,10 +627,13 @@ def main():
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
 
     the_dreaded = ['SVM']
-    results_df = pipeline.run_temporal(
+    results_df1 = pipeline.run_temporal(
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
+    print('done standard')
 
-    results_df.append(pipeline.run_temporal(df, start, end, prediction_windows, [], predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR']))
+    results_df2 = pipeline.run_temporal(df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
+    print('done baseline')
+    results_df = results_df1.append(results_df2)
 
     #results_df.to_csv('test_results.csv')
     return results_df, pipeline
