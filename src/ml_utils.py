@@ -391,21 +391,18 @@ class Pipeline():
         return X_train, y_train, X_test, y_test
 
     def visualize_tree(self, fit, X_train, show=True):
-        filename = "{}.png".format(self.run_number)
+        num = self.run_number
 
-        viz = tree.export_graphviz(fit, out_file=filename, feature_names=X_train.columns,
+        viz = tree.export_graphviz(fit, out_file=None, feature_names=X_train.columns,
                            class_names=['High Risk', 'Low Risk'],
                            rounded=True, filled=True)
-        if show:
-            with open(filename) as f:
-                dot_graph = f.read()
-                graph = graphviz.Source(dot_graph)
-            return graph
 
-        else:
-            return filename
+        viz_source = graphviz.Source(viz)
+        viz_source.format = 'png'
+        viz_source.render('tree_viz'+str(num), view=False)
+        
+        return 'tree_viz'+str(num)+'.png'
 
-    # Update feature_set from "" once defined
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
@@ -468,7 +465,7 @@ class Pipeline():
                 test_end = test_start + \
                     relativedelta(months=+prediction_window) - relativedelta(days=+1)
 
-                logger.info("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
+                logger.debug("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
                             .format(train_start, train_end, test_start, test_end, prediction_window))
                 # Loop over feature set and precitors
                 for feature_cols in feature_set_list:
@@ -506,7 +503,7 @@ class Pipeline():
         fi = feature_values
 
         fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
-        fi_names.sort_values(by=[match_type])
+        fi_names.sort_values(by=[match_type], ascending=False, inplace=True)
 
         return fi_names
 
@@ -596,16 +593,20 @@ def main():
     prediction_windows = [12]
 
     # Define feature sets
-    demographic = ['population', 'poverty_rate',
+    demo = ['population', 'poverty_rate',
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value',
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other','population_pct_change_5yr',
+    'pct_multiple', 'pct_other']
+
+    demo_5yr = ['population_pct_change_5yr',
     'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr',
     'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr']
 
-    eviction = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
+    econ = 
+
+    eviction_lag = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
     'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
 
     pipeline.feature_dict = {"demographic": demographic,
@@ -625,10 +626,13 @@ def main():
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
 
     the_dreaded = ['SVM']
-    results_df = pipeline.run_temporal(
+    results_df1 = pipeline.run_temporal(
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
+    print('done standard')
 
-    results_df.append(pipeline.run_temporal(df, start, end, prediction_windows, [], predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR']))
+    results_df2 = pipeline.run_temporal(df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
+    print('done baseline')
+    results_df = results_df1.append(results_df2)
 
     #results_df.to_csv('test_results.csv')
     return results_df, pipeline
