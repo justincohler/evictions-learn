@@ -606,6 +606,7 @@ def main():
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr']
 
+    #### Real Feature Sets ####
     demographic = ['population', 'poverty_rate',
     'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value',
     'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
@@ -622,7 +623,12 @@ def main():
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
     'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr','avg_hh_size_pct_change_5yr']
 
-    #econ = 
+    economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
+    'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr', 
+    'total_units_pct_change_1yr', 'total_value_pct_change_1yr', 'total_bldg_pct_change_3yr', 'total_units_pct_change_3yr', 
+    'total_value_pct_change_3yr', 'total_bldg_pct_change_5yr', 'total_units_pct_change_5yr', 'total_value_pct_change_5yr']
+
+    geographic = ['div_sa', 'div_inc', 'urban']
 
     eviction = ['eviction_filings_lag','evictions_lag','eviction_rate_lag','eviction_filing_rate_lag','conversion_rate_lag',
     'eviction_filings_avg_3yr_lag', 'evictions_avg_3yr_lag', 'eviction_rate_avg_3yr_lag', 'eviction_filing_rate_avg_3yr_lag',
@@ -643,6 +649,15 @@ def main():
     'pct_am_ind_pct_change_5yr_tr','pct_asian_pct_change_5yr_tr','pct_nh_pi_pct_change_5yr_tr','pct_multiple_pct_change_5yr_tr',
     'pct_other_pct_change_5yr_tr','renter_occupied_households_pct_change_5yr_tr','pct_renter_occupied_pct_change_5yr_tr',
     'avg_hh_size_pct_change_5yr_tr']
+
+    tract_eviction = ['eviction_filings_lag_tr','evictions_lag_tr','eviction_rate_lag_tr','eviction_filing_rate_lag_tr','conversion_rate_lag_tr',
+    'eviction_filings_avg_3yr_lag_tr', 'evictions_avg_3yr_lag_tr', 'eviction_rate_avg_3yr_lag_tr', 'eviction_filing_rate_avg_3yr_lag_tr',
+    'eviction_filings_avg_5yr_lag_tr', 'evictions_avg_5yr_lag_tr', 'eviction_rate_avg_5yr_lag_tr', 'eviction_filing_rate_avg_5yr_lag_tr', 
+    'conversion_rate_avg_5yr_lag_tr', 'eviction_filings_pct_change_1yr_lag_tr','evictions_pct_change_1yr_lag_tr','eviction_rate_pct_change_1yr_lag_tr',
+    'eviction_filing_rate_pct_change_1yr_lag_tr','conversion_rate_pct_change_1yr_lag_tr','eviction_filings_pct_change_3yr_lag_tr',
+    'evictions_pct_change_3yr_lag_tr','eviction_rate_pct_change_3yr_lag_tr','eviction_filing_rate_pct_change_3yr_lag_tr',
+    'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
+    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
 
     pipeline.feature_dict = {"demographic": demo,
                     "eviction": demo_5yr,
