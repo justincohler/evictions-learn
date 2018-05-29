@@ -31,6 +31,10 @@ import pydot
 import warnings
 from model_result import BAG, DT, GB, LR, RF, SVM
 import itertools
+from aequitas.group import Group
+from aequitas.fairness import Fairness
+from aequitas.bias import Bias
+from aequitas.preprocessing import preprocess_input_df
 
 logger = logging.getLogger('evictionslog')
 
@@ -39,6 +43,7 @@ class Pipeline():
 
     def __init__(self):
         self.db = DBClient()
+        self.df = pd.DataFrame()
         self.classifiers = self.generate_classifiers()
         self.run_number = 0
         self.feature_dict = {}
@@ -400,7 +405,7 @@ class Pipeline():
         viz_source = graphviz.Source(viz)
         viz_source.format = 'png'
         viz_source.render('tree_viz'+str(num), view=False)
-        
+
         return 'tree_viz'+str(num)+'.png'
 
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
@@ -565,6 +570,20 @@ class Pipeline():
         return results
 
 
+    def analyze_bias_and_fairness(self, df):
+        df = preprocess_input_df(df, required_cols='top20_rate')
+
+        g = Group()
+        xtab, _ = g.get_crosstabs(df)
+
+        b = Bias()
+        bdf = b.get_disparity_predefined_groups(xtab, {'race':'Caucasian', 'sex':'Male', 'age_cat':'25 - 45'})
+
+        f = Fairness()
+        fdf = f.get_group_value_fairness(bdf)
+
+        return xtab, bdf, fdf
+
 def main():
     pipeline = Pipeline()
 
@@ -578,14 +597,14 @@ def main():
         data.extend(chunk)
         logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
-    df = pd.DataFrame(data, columns=columns)
+    pipeline.df = pd.DataFrame(data, columns=columns)
 
-    columnNumbers = [x for x in range(df.shape[1])]  # list of columns' integer indices
+    columnNumbers = [x for x in range(pipeline.df.shape[1])]  # list of columns' integer indices
 
     columnNumbers.remove(2)  # removing the year column
-    df = df.iloc[:, columnNumbers]
+    pipeline.df = pipeline.df.iloc[:, columnNumbers]
 
-    df['year'] = pd.to_datetime(df['year'].apply(str), format='%Y')
+    pipeline.df['year'] = pd.to_datetime(pipeline.df['year'].apply(str), format='%Y')
 
     # Set time period
     start = parser.parse("2006-01-01")
@@ -604,13 +623,12 @@ def main():
     'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr']
 
-    econ = 
-
     eviction_lag = ['renter_occupied_households', 'eviction_filings', 'eviction_filing_rate', 'imputed', 'subbed', 'renter_occupied_households_pct_change_5yr', 'eviction_filings_pct_change_5yr',
     'eviction_filing_rate_pct_change_5yr', 'renter_occupied_households_pct_change_1yr']
 
-    pipeline.feature_dict = {"demographic": demographic,
-                    "eviction": eviction,
+    pipeline.feature_dict = {"demo": demo,
+                            "demo_5yr": demo_5yr,
+                    "eviction_lag": eviction_lag,
                     }
 
     all_features = pipeline.get_subsets()
@@ -627,10 +645,10 @@ def main():
 
     the_dreaded = ['SVM']
     results_df1 = pipeline.run_temporal(
-        df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
+        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
     print('done standard')
 
-    results_df2 = pipeline.run_temporal(df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
+    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
     print('done baseline')
     results_df = results_df1.append(results_df2)
 
