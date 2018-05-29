@@ -11,10 +11,17 @@ cols1yr = [
     "eviction_filing_rate"
 ]
 
+evcols = [
+    "eviction_filings",
+    "evictions",
+    "eviction_rate",
+    "eviction_filing_rate",]
+
+    #"conversion_rate"
+
 cols = [
     "population",
     "poverty_rate",
-    "pct_renter_occupied",
     "median_gross_rent",
     "median_household_income",
     "median_property_value",
@@ -29,17 +36,32 @@ cols = [
     "pct_other",
     "renter_occupied_households",
     "pct_renter_occupied",
-    "eviction_filings",
-    "evictions",
-    "eviction_rate",
-    "eviction_filing_rate"
+    "avg_hh_size"
+    
 ]
 
-conv = ["conversion_rate"]
-for table in ["evictions_tract"]:
+permits = [
+"total_bldg",
+"total_units",
+"total_value"
+]
+
+#for table in ["blockgroup"]:
+#    lags = [3]
+#    for lag in lags:
+#        for col in evcols:
+#            print("Adding {} year pct change to {} for feature {}".format(lag, table, col))
+#            res = init.create_n_year_pct_change(table, col, table, lag)
+#            if not res:
+#                break
+#            else:
+#                print("Added {} year pct change to {} for feature {}".format(lag, table, col))
+
+
+for table in ["permits"]:
     lags = [3, 5]
     for lag in lags:
-        for col in conv:
+        for col in permits:
             print("Adding {} year average to {} for feature {}".format(lag, table, col))
             res = init.create_n_year_average(col, table, lag)
             if not res:
@@ -47,16 +69,49 @@ for table in ["evictions_tract"]:
             else:
                 print("Added {} year average to {} for feature {}".format(lag, table, col))
 
-
-for table in ["evictions_tract"]:
-    lags = [1, 3, 5]
+"""
+for table in ["tr"]:
+    lags = [5]
     for lag in lags:
-        for col in conv:
+        for col in cols:
+            print("Adding {} year average to {} for feature {}".format(lag, table, col))
+            res = init.create_n_year_average(col, table, lag)
+            if not res:
+                break
+            else:
+                print("Added {} year average to {} for feature {}".format(lag, table, col))
+
             print("Adding {} year pct change to {} for feature {}".format(lag, table, col))
             res = init.create_n_year_pct_change(table, col, table, lag)
             if not res:
                 break
             else:
                 print("Added {} year pct change to {} for feature {}".format(lag, table, col))
+
+"""
+
+for table in ["permits"]:
+    lags = [1, 3, 5]
+    for lag in lags:
+        for col in permits:
+            print("Adding {} year pct change to {} for feature {}".format(lag, table, col))
+            res = init.create_n_year_pct_change(table, col, table, lag)
+            if not res:
+                break
+            else:
+                print("Added {} year pct change to {} for feature {}".format(lag, table, col))
+"""
+
+for table in ["tr"]:
+    lags = [3, 5]
+    for lag in lags:
+        for col in evcols:
+            print("Adding {} year average to {} for feature {}".format(lag, table, col))
+            res = init.create_n_year_average(col, table, lag)
+            if not res:
+                break
+            else:
+                print("Added {} year average to {} for feature {}".format(lag, table, col))
+"""
 
 

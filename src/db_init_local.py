@@ -280,10 +280,30 @@ class DBInit():
     def test_conn(self):
         self.db.write(["create table test (id int);"])
 
-    def ev_lag(self, table):
+    def ev_lag_tr(self):
+        self.db.write(["drop table if exists ev_lag_tr;"])
+        self.db.write([db_statements.CREATE_EV_TABLE.format("tr", "tr")
+        ])
+        self.db.write(["create index lag_gy on ev_lag_tr (geo_id, year);"])
+        self.db.write(["create index lag_y on ev_lag_tr (year);"])
+        self.db.write([db_statements.UPDATE_COLS_LAG_TR])
+        self.db.write(["drop table ev_lag_tr;"])
+
+    def ev_lag_bg(self):
+        self.db.write(["drop table if exists ev_lag_blockgroup;"])
+        self.db.write([db_statements.CREATE_EV_TABLE.format("blockgroup", "blockgroup")
+        ])
+        self.db.write(["create index lag_gy_bg on ev_lag_blockgroup (geo_id, year);"])
+        self.db.write(["create index lag_y_bg on ev_lag_blockgroup (year);"])
+        self.db.write([db_statements.UPDATE_COLS_LAG_BG])
+        self.db.write(["drop table ev_lag_blockgroup;"])
+
+        
+
         
 
 if __name__=="__main__":
+    
     initializer = DBInit()
     #initializer.evictions_init()
     #initializer.geo_init()

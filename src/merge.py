@@ -1,16 +1,9 @@
-from db_init_local import 
+from db_init_local import DBInit
 
-# questions - do we want 3 year averages/ pct changes for non-eviction census data
-# For blockgroup, tract
-	# add conversion rate pct change and average features (questions for J about function)
-	# create table as for eviction columns
-	# drop/add lag columns
-	# update lag columns from table
-# Create permits, hh_size lags, hh_size at tract level
-# Merge in permits, tracts
+# Merge in tracts
 #### fix urban
 # Should I drop the evictions cols from tracts/ blockgroup? No 
-# Why diff # obs across tables?
+
 
 
 init = DBInit()
@@ -42,20 +35,20 @@ cols = [
     "pct_renter_occupied"
     ]
 
-  times = [
-  "_avg_5yr",
-  "_pct_change_5yr",
-  "_avg_3yr",
-  "_pct_change_3yr"
-  ]
+times = [
+"_avg_5yr",
+"_pct_change_5yr",
+"_avg_3yr",
+"_pct_change_3yr"
+]
 
-  ev_times = [
-  "_avg_5yr",
-  "_pct_change_5yr",
-  "_avg_3yr",
-  "_pct_change_3yr"
-  "_pct_change_1yr"
-  ]
+ev_times = [
+"_avg_5yr",
+"_pct_change_5yr",
+"_avg_3yr",
+"_pct_change_3yr"
+"_pct_change_1yr"
+]
 
 
 """update blockgroup bg set
@@ -87,12 +80,12 @@ where bg.geo_id=t.geo_id and bg.year=t.year;"""
 
 
 
-for table in ["blockgroup", "evictions_tract"]:
-    
+#print("Adding {} blockgroup lags")
+#init.ev_lag_bg()
+#print("Added blockgroup lags")
 
-        print("Adding {} year pct change to {} for feature {}".format(lag, table, col))
-        res = init.create_n_year_pct_change(table, col, table, lag)
-        if not res:
-            break
-        else:
-            print("Added {} year pct change to {} for feature {}".format(lag, table, col))
+print("Adding {} tract lags")
+init.ev_lag_tr()
+print("Added tract lags")
+
+
