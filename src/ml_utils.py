@@ -554,7 +554,8 @@ class Pipeline():
                 grid = ParameterGrid(self.classifiers[model_key]["params"])
                 self.gridsize = len(grid)
                 for params in grid:
-                    total_runs = int(self.prediction_windows * self.temporal_lags * self.feature_combos * self.predictors * self.models * self.gridsize)
+                    total_runs = self.prediction_windows * self.temporal_lags * self.feature_combos * self.predictors  * self.models  * self.gridsize
+                    total_runs = int(total_runs)
 
                     logger.info("Running run # {}/{} with model {}, params {}".format(self.run_number, total_runs, model_key, params))
                     try:
@@ -700,7 +701,7 @@ def main():
     'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
 
     # check pct renter occupied pct change 1 year
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
     predictor_col_list = ['top20_rate', 'top20_num']
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
     the_dreaded = ['SVM']
