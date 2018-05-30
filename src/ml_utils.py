@@ -560,27 +560,27 @@ class Pipeline():
                         y_pred_probs = fit.predict_proba(X_test)[:, 1]
 
                         # Printing graph section, pull into function
-                        if model_key == 'DT':
-                            graph = self.visualize_tree(fit, X_train, show=False)
-                            model_result = DT(graph)
-                        elif model_key == 'SVM':
-                            model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"))
-                        elif model_key == 'RF':
-                            model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
-                        elif model_key == 'LR':
-                            model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"), fit.intercept_)
-                        elif model_key == 'GB':
-                            model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
-                        elif model_key == 'BAG':
-                            model_result = BAG(fit.base_estimator_, fit.estimators_features_)
-                        else:
-                            model_result = None
+                        #if model_key == 'DT':
+                        #    graph = self.visualize_tree(fit, X_train, show=False)
+                        #    model_result = DT(graph)
+                        #elif model_key == 'SVM':
+                        #    model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"))
+                        #elif model_key == 'RF':
+                        #    model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
+                        #elif model_key == 'LR':
+                        #    model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"), fit.intercept_)
+                        #elif model_key == 'GB':
+                        #    model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
+                        #elif model_key == 'BAG':
+                        #    model_result = BAG(fit.base_estimator_, fit.estimators_features_)
+                        #else:
+                        #    model_result = None
 
                         results.append(self.populate_outcome_table(
-                            train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
+                            train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, None, y_test, y_pred_probs))
 
-                        self.plot_precision_recall_n(
-                            y_test, y_pred_probs, model_key+str(self.run_number), 'save')
+                        #self.plot_precision_recall_n(
+                        #    y_test, y_pred_probs, model_key+str(self.run_number), 'save')
 
                         self.run_number = self.run_number + 1
                     except IndexError as e:
