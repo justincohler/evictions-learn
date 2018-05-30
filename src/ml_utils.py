@@ -259,7 +259,7 @@ class Pipeline():
             #else:
             col_median = df[col].median()
             print(col_median)
-            df[col].fillna(0, inplace=True) #.fillna(col_median, inplace = True)
+            df[col] = df[col].fillna(df[col].median()) #.fillna(col_median, inplace = True)
 
         print('after', df[isnull_cols])
 
@@ -496,8 +496,8 @@ class Pipeline():
                             df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
                         #before_fill = (X_train, X_test)
                         # Fill nulls here to avoid data leakage
-                        X_train = X_train.fillna(X_train.median()).fillna(X_train.median()).fillna(0)
-                        X_test = X_test.fillna(X_test.median()).fillna(X_train.median()).fillna(0)
+                        X_train = self.fill_nulls(X_train) #.fillna(X_train.median()).fillna(X_train.median()).fillna(0)
+                        X_test = self.fill_nulls(X_test) #X_test.fillna(X_test.median()).fillna(X_train.median()).fillna(0)
 
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
@@ -610,13 +610,13 @@ def main():
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-#    max_chunks = 0
-    while chunk != []: #and max_chunks > 0:
-        #max_chunks = max_chunks - 1
+    max_chunks = 1
+    while chunk != [] and max_chunks > 0:
+        max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
         chunk = pipeline.load_chunk(chunksize=20000)
         data.extend(chunk)
-        #logger.info("{} chunks left to load.".format(max_chunks))
+        logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
@@ -629,7 +629,7 @@ def main():
 
     # Set time period
     start = parser.parse("2006-01-01")
-    end = parser.parse("2016-01-01")
+    end = parser.parse("2017-01-01")
     prediction_windows = [12]
 
     # Define feature sets
@@ -645,7 +645,7 @@ def main():
     'median_household_income_pct_change_5yr','median_property_value_pct_change_5yr','rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr','pct_af_am_pct_change_5yr','pct_hispanic_pct_change_5yr','pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
+    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #  'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
 
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr',
@@ -699,7 +699,7 @@ def main():
     print('done standard')
 
     # Run random and prior year baselines
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
     results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
     print('done baseline')
     
