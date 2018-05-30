@@ -245,15 +245,15 @@ class Pipeline():
 
         # Fill nulls with median
         for col in isnull_cols:
-            if col == 'rent_burden':
-                col_median = df.rent_burden.median().to_dict()
-                print('median', col_median)
-                df.rent_burden.fillna(col_median, inplace = True)
-                print('isna?', df.rent_burden.isna())
-            else:
-                col_median = df[col].median().to_dict()
-                print(col_median)
-                df[col].fillna(col_median, inplace = True)
+            #if col == 'rent_burden':
+            #    col_median = df.rent_burden.median()
+            #    print('median', col_median)
+            #    df.rent_burden.fillna(col_median, inplace = True).fillna(col_median, inplace = True)
+            #    print('isna?', df.rent_burden.isna())
+            #else:
+            col_median = df[col].median()
+            print(col_median)
+            df[col].fillna(0, inplace=True) #.fillna(col_median, inplace = True)
 
         print('after', df[isnull_cols])
 
@@ -486,8 +486,8 @@ class Pipeline():
                             df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
                         #before_fill = (X_train, X_test)
                         # Fill nulls here to avoid data leakage
-                        X_train = X_train.fillna(X_train.median().to_dict()) #self.fill_nulls(X_train)
-                        X_test = X_test.fillna(X_test.median().to_dict()) #self.fill_nulls(X_test)
+                        X_train = X_train.fillna(0) #X_train.where(pd.notna(X_train), X_train.median(), axis='columns') #.fillna(X_train.median().to_dict()) #self.fill_nulls(X_train)
+                        X_test = X_test.fillna(0) # X_test.where(pd.notna(X_train), X_train.median(), axis='columns') #.fillna(X_test.median().to_dict()) #self.fill_nulls(X_test)
                         #after_fill = (X_train, X_test)
 
                         #return before_fill, after_fill
@@ -530,8 +530,9 @@ class Pipeline():
                 results.append(self.populate_outcome_table(
                     train_dates, test_dates, model_key,model_key, {}, feature_set_labels, outcome_label, None, y_test, y_pred_probs))
             elif model_key == 'BASELINE_PRIOR':
+                lag_feature = {"features":[outcome_label+"_lag"]}
                 results.append(self.populate_outcome_table(
-                    train_dates, test_dates, model_key, model_key, {}, feature_set_labels, outcome_label, None, y_test, X_test))
+                    train_dates, test_dates, model_key, model_key, {}, lag_feature, outcome_label, None, y_test, X_test))
 
             else:
                 logger.info("Running {}...".format(model_key))
@@ -621,18 +622,17 @@ def main():
     demographic = ['population', 'poverty_rate',
     'pct_renter_occupied', 
     'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'rent_burden'] #, 'avg_hh_size']'rent_burden', 'median_gross_rent', 'median_household_income', 'median_property_value',
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'avg_hh_size', 'rent_burden','median_gross_rent', 'median_household_income', 'median_property_value'] #, 'avg_hh_size']'rent_burden', 'median_gross_rent', 'median_household_income', 'median_property_value',
 
     demographic_5yr = ['population_avg_5yr','poverty_rate_avg_5yr','median_gross_rent_avg_5yr',
     'median_household_income_avg_5yr','median_property_value_avg_5yr','rent_burden_avg_5yr','pct_white_avg_5yr',
     'pct_af_am_avg_5yr','pct_hispanic_avg_5yr','pct_am_ind_avg_5yr','pct_asian_avg_5yr','pct_nh_pi_avg_5yr',
     'pct_multiple_avg_5yr','pct_other_avg_5yr','renter_occupied_households_avg_5yr','pct_renter_occupied_avg_5yr',
-    'avg_hh_size_avg_5yr',
     'population_pct_change_5yr','poverty_rate_pct_change_5yr','median_gross_rent_pct_change_5yr',
     'median_household_income_pct_change_5yr','median_property_value_pct_change_5yr','rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr','pct_af_am_pct_change_5yr','pct_hispanic_pct_change_5yr','pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr','avg_hh_size_pct_change_5yr']
+    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
 
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr', 
@@ -670,17 +670,13 @@ def main():
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
 
     pipeline.feature_dict = {"demographic": demographic,
-                    #"demographic_5yr": demographic_5yr,
-                    #"economic": economic, #good shape
-                    #"geographic": geographic, #good
-                    #"eviction": eviction, #good
-                    #"tract": tract, #good without avg hh size
-                    #"tract_eviction": tract_eviction, # good
+                    "demographic_5yr": demographic_5yr,
+                    "economic": economic, #good shape
+                    "geographic": geographic, #good
+                    "eviction": eviction, #good
+                    "tract": tract, #good without avg hh size
+                    "tract_eviction": tract_eviction, # good
                     }
-
-    #pipeline.feature_dict = {"demographic": demo,
-    #                "eviction": demo_5yr,
-    #                }
 
     all_features = pipeline.get_subsets()
 
@@ -690,11 +686,10 @@ def main():
     'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
 
     # check pct renter occupied pct change 1 year
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
     predictor_col_list = ['top20_rate', 'top20_num']
-    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
+    models_to_run = ['RF'] #, 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
 
-    the_dreaded = ['SVM']
     results_df1 = pipeline.run_temporal(
         df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
     print('done standard')
@@ -703,7 +698,7 @@ def main():
     print('done baseline')
     results_df = results_df1.append(results_df2)
 
-    #results_df.to_csv('test_results.csv')
+    results_df.to_csv('test_results.csv')
     return results_df, pipeline
 
 if __name__ == "__main__":
