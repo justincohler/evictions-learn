@@ -478,12 +478,12 @@ class Pipeline():
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run):
         self.run_number = 0
         results = []
-        self.prediction_windows = prediction_windows
+        self.prediction_windows = len(prediction_windows)
         for prediction_window in prediction_windows:
             train_start = start
             train_end = train_start + \
                 relativedelta(months=+prediction_window) - relativedelta(days=+1)
-            self.temporal_lags =  ((end.year - train_end.year)*12 + d1.month - d2.month)/prediction_window
+            self.temporal_lags =  ((end.year - train_end.year)*12 + end.month - end.month)/prediction_window
             while train_end + relativedelta(months=+prediction_window) <= end:
                 test_start = train_end + relativedelta(days=+1)
                 test_end = test_start + \
@@ -550,14 +550,13 @@ class Pipeline():
                 results.append(self.populate_outcome_table(
                     train_dates, test_dates, model_key, model_key, {}, feature_set_labels, outcome_label, None, y_test, X_test))
             else:
-                logger.info("Running {}...".format(model_key))
                 classifier = self. classifiers[model_key]["type"]
                 grid = ParameterGrid(self.classifiers[model_key]["params"])
                 self.gridsize = len(grid)
                 for params in grid:
-                    total_runs = self.prediction_windows * self.temporal_lags * self.feature_combos * self.predictors * self.models * self.gridsize
+                    total_runs = int(self.prediction_windows * self.temporal_lags * self.feature_combos * self.predictors * self.models * self.gridsize)
 
-                    logger.info("Running run # {}/{} with params {}".format(self.run_number, total_runs, params))
+                    logger.info("Running run # {}/{} with model {}, params {}".format(self.run_number, total_runs, model_key, params))
                     try:
                         classifier.set_params(**params)
                         fit = classifier.fit(X_train, y_train)
@@ -590,7 +589,7 @@ class Pipeline():
                     except IndexError as e:
                         print('Error:', e)
                         continue
-            logger.info("{} finished.".format(model_key))
+            logger.debug("{} finished.".format(model_key))
 
         return results
 
@@ -614,7 +613,7 @@ def main():
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-    max_chunks = 1
+    max_chunks = 0
     while chunk != [] and max_chunks > 0:
         max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
@@ -637,26 +636,11 @@ def main():
     prediction_windows = [12]
 
     # Define feature sets
-    # works with current db
-    demo = ['population', 'poverty_rate',
-    'pct_renter_occupied', 'median_gross_rent', 'median_household_income', 'median_property_value',
-    'rent_burden', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other']
-
-    # works with current db
-    demo_5yr = ['population_pct_change_5yr',
-    'poverty_rate_pct_change_5yr', 'pct_renter_occupied_pct_change_5yr', 'median_gross_rent_pct_change_5yr',
-    'median_household_income_pct_change_5yr', 'median_property_value_pct_change_5yr', 'rent_burden_pct_change_5yr',
-    'pct_white_pct_change_5yr', 'pct_af_am_pct_change_5yr', 'pct_hispanic_pct_change_5yr', 'pct_am_ind_pct_change_5yr',
-    'pct_asian_pct_change_5yr', 'pct_nh_pi_pct_change_5yr', 'pct_multiple_pct_change_5yr', 'pct_other_pct_change_5yr']
-
-    #### Real Feature Sets ####
     demographic = ['population', 'poverty_rate',
-    'pct_renter_occupied',
-    'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'avg_hh_size', 'rent_burden','median_gross_rent', 'median_household_income', 'median_property_value'] #, 'avg_hh_size']'rent_burden', 'median_gross_rent', 'median_household_income', 'median_property_value',
-
-    demographic_5yr = ['population_avg_5yr','poverty_rate_avg_5yr','median_gross_rent_avg_5yr',
+    'pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'avg_hh_size',
+    'rent_burden','median_gross_rent', 'median_household_income', 'median_property_value',
+    'population_avg_5yr','poverty_rate_avg_5yr','median_gross_rent_avg_5yr',
     'median_household_income_avg_5yr','median_property_value_avg_5yr','rent_burden_avg_5yr','pct_white_avg_5yr',
     'pct_af_am_avg_5yr','pct_hispanic_avg_5yr','pct_am_ind_avg_5yr','pct_asian_avg_5yr','pct_nh_pi_avg_5yr',
     'pct_multiple_avg_5yr','pct_other_avg_5yr','renter_occupied_households_avg_5yr','pct_renter_occupied_avg_5yr',
@@ -669,9 +653,8 @@ def main():
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr',
     'total_units_pct_change_1yr', 'total_value_pct_change_1yr', 'total_bldg_pct_change_3yr', 'total_units_pct_change_3yr',
-    'total_value_pct_change_3yr', 'total_bldg_pct_change_5yr', 'total_units_pct_change_5yr', 'total_value_pct_change_5yr']
-
-    geographic = ['div_sa', 'div_enc', 'urban']
+    'total_value_pct_change_3yr', 'total_bldg_pct_change_5yr', 'total_units_pct_change_5yr', 'total_value_pct_change_5yr',
+    'div_sa', 'div_enc', 'urban']
 
     eviction = ['eviction_filings_lag','evictions_lag','eviction_rate_lag','eviction_filing_rate_lag','conversion_rate_lag',
     'eviction_filings_avg_3yr_lag', 'evictions_avg_3yr_lag', 'eviction_rate_avg_3yr_lag', 'eviction_filing_rate_avg_3yr_lag',
@@ -690,24 +673,23 @@ def main():
     'median_gross_rent_pct_change_5yr_tr','median_household_income_pct_change_5yr_tr','median_property_value_pct_change_5yr_tr',
     'rent_burden_pct_change_5yr_tr','pct_white_pct_change_5yr_tr','pct_af_am_pct_change_5yr_tr','pct_hispanic_pct_change_5yr_tr',
     'pct_am_ind_pct_change_5yr_tr','pct_asian_pct_change_5yr_tr','pct_nh_pi_pct_change_5yr_tr','pct_multiple_pct_change_5yr_tr',
-    'pct_other_pct_change_5yr_tr','renter_occupied_households_pct_change_5yr_tr','pct_renter_occupied_pct_change_5yr_tr'] #'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'
-
-    tract_eviction = ['eviction_filings_lag_tr','evictions_lag_tr','eviction_rate_lag_tr','eviction_filing_rate_lag_tr','conversion_rate_lag_tr',
+    'pct_other_pct_change_5yr_tr','renter_occupied_households_pct_change_5yr_tr','pct_renter_occupied_pct_change_5yr_tr',
+    'eviction_filings_lag_tr','evictions_lag_tr','eviction_rate_lag_tr','eviction_filing_rate_lag_tr','conversion_rate_lag_tr',
     'eviction_filings_avg_3yr_lag_tr', 'evictions_avg_3yr_lag_tr', 'eviction_rate_avg_3yr_lag_tr', 'eviction_filing_rate_avg_3yr_lag_tr',
     'eviction_filings_avg_5yr_lag_tr', 'evictions_avg_5yr_lag_tr', 'eviction_rate_avg_5yr_lag_tr', 'eviction_filing_rate_avg_5yr_lag_tr',
     'conversion_rate_avg_5yr_lag_tr', 'eviction_filings_pct_change_1yr_lag_tr','evictions_pct_change_1yr_lag_tr','eviction_rate_pct_change_1yr_lag_tr',
     'eviction_filing_rate_pct_change_1yr_lag_tr','conversion_rate_pct_change_1yr_lag_tr','eviction_filings_pct_change_3yr_lag_tr',
     'evictions_pct_change_3yr_lag_tr','eviction_rate_pct_change_3yr_lag_tr','eviction_filing_rate_pct_change_3yr_lag_tr',
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
-    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
+    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr'] #'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'
 
     pipeline.feature_dict = {"demographic": demographic,
-                    "demographic_5yr": demographic_5yr,
+                    #"demographic_5yr": demographic_5yr,
                     "economic": economic, #good shape
-                    "geographic": geographic, #good
+                    #"geographic": geographic, #good
                     "eviction": eviction, #good
                     "tract": tract, #good without avg hh size
-                    "tract_eviction": tract_eviction, # good
+                    #"tract_eviction": tract_eviction, # good
                     }
 
     all_features = pipeline.get_subsets()
@@ -718,7 +700,7 @@ def main():
     'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
 
     # check pct renter occupied pct change 1 year
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
     predictor_col_list = ['top20_rate', 'top20_num']
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
     the_dreaded = ['SVM']
