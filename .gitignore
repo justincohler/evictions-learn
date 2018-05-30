@@ -1,5 +1,6 @@
 # Temporarily Ignored
 *.dot
+src/images/
 
 # Evictions-specific
 set_env.sh
