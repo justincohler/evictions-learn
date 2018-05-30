@@ -58,11 +58,11 @@ class Pipeline():
 
         self.classifiers = {'RF': {
             "type": RandomForestClassifier(),
-            "params": {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]}
+            "params": {'n_estimators': [10, 100], 'max_depth': [5, 25], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]}
         },
             'LR': {
             "type": LogisticRegression(),
-            "params": {'penalty': ['l2'], 'C': [0.01]}
+            "params": {'penalty': ['l1', 'l2'], 'C': [0.0001, 0.001, 0.01 0.1, 1, 10]}
         },
             'NB': {
             "type": GaussianNB(),
@@ -74,15 +74,15 @@ class Pipeline():
         },
             'GB': {
             "type": GradientBoostingClassifier(),
-            "params": {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]}
+            "params": {'n_estimators': [10, 50], 'learning_rate': [.001, 0.1 0.5], 'subsample': [0.1, 0.5, 1], 'max_depth': [5, 50]}
         },
             'BAG': {
             "type": BaggingClassifier(),
-            "params": {'n_estimators': [5], 'max_samples': [5], 'max_features': [3], 'bootstrap_features': [True]}
+            "params": {'n_estimators': [5], 'max_samples': [5], 'max_features': [5], 'bootstrap_features': [True]}
         },
             'DT': {
             "type": DecisionTreeClassifier(),
-            "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
+            "params": {'criterion': ['gini', 'entropy'], 'max_depth': [1, 5, 10, 20], 'min_samples_split': [10]}
         },
             'BASELINE_DT': {
             "type": DecisionTreeClassifier(),
@@ -90,7 +90,7 @@ class Pipeline():
         },
             'KNN': {
             "type": KNeighborsClassifier(),
-            "params": {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']}
+            "params": {'n_neighbors': [1, 5, 10, 25], 'weights': ['uniform', 'distance'], 'algorithm': ['kd_tree']}
         }
         }
 
@@ -685,33 +685,33 @@ def main():
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr'] #'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'
 
+    # Assign feature dictionary to object
     pipeline.feature_dict = {"demographic": demographic,
-                    #"demographic_5yr": demographic_5yr,
-                    "economic": economic, #good shape
-                    #"geographic": geographic, #good
-                    "eviction": eviction, #good
-                    "tract": tract, #good without avg hh size
-                    #"tract_eviction": tract_eviction, # good
+                    "economic": economic,
+                    "eviction": eviction,
+                    "tract": tract, 
                     }
 
+    # Generate all feature subsets
     all_features = pipeline.get_subsets()
-
-    # check pct renter occupied pct change 1 year
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
+    
+    # Outcome features to loop over
     predictor_col_list = ['top20_rate', 'top20_num']
+    
+    # Run set of standard models, including a baseline shallow decision tree
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
-    the_dreaded = ['SVM']
     results_df1 = pipeline.run_temporal(
         pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
     print('done standard')
 
-    start = parser.parse("2006-01-01")
-    end = parser.parse("2016-01-01")
+    # Features for prior year baseline
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
 
+    # Run random and prior year baselines
     results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
     print('done baseline')
+    
     results_df = results_df1.append(results_df2)
-
     results_df.to_csv('test_results.csv')
     return results_df, pipeline
 
