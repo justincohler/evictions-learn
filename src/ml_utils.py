@@ -27,14 +27,9 @@ from db_init import DBClient
 import logging
 from validation import *
 import graphviz
-import pydot
 import warnings
 from model_result import BAG, DT, GB, LR, RF, SVM
 import itertools
-from aequitas.group import Group
-from aequitas.fairness import Fairness
-from aequitas.bias import Bias
-from aequitas.preprocessing import preprocess_input_df
 
 logger = logging.getLogger('evictionslog')
 
@@ -62,7 +57,7 @@ class Pipeline():
         },
             'LR': {
             "type": LogisticRegression(),
-            "params": {'penalty': ['l1', 'l2'], 'C': [0.0001, 0.001, 0.01 0.1, 1, 10]}
+            "params": {'penalty': ['l1', 'l2'], 'C': [0.01, 0.1, 1, 10]}
         },
             'NB': {
             "type": GaussianNB(),
@@ -74,7 +69,7 @@ class Pipeline():
         },
             'GB': {
             "type": GradientBoostingClassifier(),
-            "params": {'n_estimators': [10, 50], 'learning_rate': [.001, 0.1 0.5], 'subsample': [0.1, 0.5, 1], 'max_depth': [5, 50]}
+            "params": {'n_estimators': [10, 50], 'learning_rate': [.001, 0.1, 0.5], 'subsample': [0.1, 0.5, 1], 'max_depth': [5, 50]}
         },
             'BAG': {
             "type": BaggingClassifier(),
@@ -633,7 +628,7 @@ def main():
     pipeline.df['year'] = pd.to_datetime(pipeline.df['year'].apply(str), format='%Y')
 
     # Set time period
-    start = parser.parse("2006-01-01")
+    start = parser.parse("2014-01-01")
     end = parser.parse("2017-01-01")
     prediction_windows = [12]
 
@@ -701,7 +696,7 @@ def main():
     # Run set of standard models, including a baseline shallow decision tree
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
     results_df1 = pipeline.run_temporal(
-        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
+        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, ['NB'])
     print('done standard')
 
     # Features for prior year baseline
