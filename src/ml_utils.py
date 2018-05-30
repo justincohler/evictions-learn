@@ -248,26 +248,15 @@ class Pipeline():
         # Find columns with missing values
         df = df.replace([np.inf, -np.inf], np.nan)
         isnull_cols = self.cols_with_nulls(df)
-        print('before', df[isnull_cols])
+        #print('before', df[isnull_cols])
 
         # Fill nulls with median
         for col in isnull_cols:
-            #if col == 'rent_burden':
-            #    col_median = df.rent_burden.median()
-            #    print('median', col_median)
-            #    df.rent_burden.fillna(col_median, inplace = True).fillna(col_median, inplace = True)
-            #    print('isna?', df.rent_burden.isna())
-            #else:
             col_median = df[col].median()
             print(col_median)
-            df[col] = df[col].fillna(df[col].median()) #.fillna(col_median, inplace = True)
+            df[col] = df[col].fillna(df[col].median()) 
 
-        print('after', df[isnull_cols])
-
-        # Drop cols with all NA's
-        #before = df.columns
-        #df.dropna(axis = 1, how = "all", inplace = True)
-        #after = df.columns
+        #print('after', df[isnull_cols])
 
         #diff = [x for x in before if x not in after]
         #print(diff)
@@ -495,10 +484,10 @@ class Pipeline():
                         # Build training and testing sets
                         X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
                             df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
-                        #before_fill = (X_train, X_test)
+                        
                         # Fill nulls here to avoid data leakage
-                        X_train = self.fill_nulls(X_train) #.fillna(X_train.median()).fillna(X_train.median()).fillna(0)
-                        X_test = self.fill_nulls(X_test) #X_test.fillna(X_test.median()).fillna(X_train.median()).fillna(0)
+                        X_train = self.fill_nulls(X_train) 
+                        X_test = self.fill_nulls(X_test) 
 
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
@@ -509,7 +498,7 @@ class Pipeline():
                 # Increment time
                 train_end = train_end + relativedelta(months=+prediction_window)
 
-#
+        # Build results dataframe
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
                                                     'parameters', 'feature_sets', 'outcome', 'model_result', 'auc-roc',
                                                     'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50',
@@ -611,13 +600,13 @@ def main():
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-    max_chunks = 1
-    while chunk != [] and max_chunks > 0:
-        max_chunks = max_chunks - 1
+    #max_chunks = 1
+    while chunk != []:# and max_chunks > 0:
+        #max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
         chunk = pipeline.load_chunk(chunksize=20000)
         data.extend(chunk)
-        logger.info("{} chunks left to load.".format(max_chunks))
+        #logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
