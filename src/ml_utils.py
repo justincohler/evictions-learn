@@ -502,12 +502,12 @@ class Pipeline():
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
                                                (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col)
-                        
+
                         results.extend(result)
 
                 # Increment time
                 train_end = train_end + relativedelta(months=+prediction_window)
-                        
+
 #
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
                                                     'parameters', 'feature_sets', 'outcome', 'model_result', 'auc-roc',
@@ -699,10 +699,10 @@ def main():
     print('done standard')
 
     # Run random and prior year baselines
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
     results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
     print('done baseline')
-    
+
     # Generate final results dataframe and write to csv
     results_df = results_df1.append(results_df2)
     results_df.to_csv('test_results.csv')
