@@ -491,8 +491,8 @@ class Pipeline():
                             df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
                         #before_fill = (X_train, X_test)
                         # Fill nulls here to avoid data leakage
-                        X_train = X_train.fillna(X_train.median().to_dict()) #self.fill_nulls(X_train)
-                        X_test = X_test.fillna(X_test.median().to_dict()) #self.fill_nulls(X_test)
+                        X_train = X_train.fillna(X_train.median()).fillna(X_train.median()).fillna(0)
+                        X_test = X_test.fillna(X_test.median()).fillna(X_train.median()).fillna(0)
                         #after_fill = (X_train, X_test)
 
                         #return before_fill, after_fill
@@ -535,9 +535,10 @@ class Pipeline():
                 results.append(self.populate_outcome_table(
                     train_dates, test_dates, model_key,model_key, {}, feature_set_labels, outcome_label, None, y_test, y_pred_probs))
             elif model_key == 'BASELINE_PRIOR':
+                print(X_test.shape)
+                X_test = X_test[outcome_label+'_lag']
                 results.append(self.populate_outcome_table(
                     train_dates, test_dates, model_key, model_key, {}, feature_set_labels, outcome_label, None, y_test, X_test))
-
             else:
                 logger.info("Running {}...".format(model_key))
                 classifier = self. classifiers[model_key]["type"]
@@ -638,7 +639,7 @@ def main():
 
     #### Real Feature Sets ####
     demographic = ['population', 'poverty_rate',
-    'pct_renter_occupied', 
+    'pct_renter_occupied',
     'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
     'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'rent_burden'] #, 'avg_hh_size']'rent_burden', 'median_gross_rent', 'median_household_income', 'median_property_value',
 
@@ -712,7 +713,6 @@ def main():
     prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
     predictor_col_list = ['top20_rate', 'top20_num']
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
-
     the_dreaded = ['SVM']
     results_df1 = pipeline.run_temporal(
         pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
