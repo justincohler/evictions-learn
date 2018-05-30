@@ -20,7 +20,6 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import *
 from sklearn.preprocessing import StandardScaler
-from IPython.display import Image
 import random
 import matplotlib.pyplot as plt
 plt.rcParams.update({'figure.max_open_warning': 0})
