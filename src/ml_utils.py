@@ -45,8 +45,14 @@ class Pipeline():
         self.db = DBClient()
         self.df = pd.DataFrame()
         self.classifiers = self.generate_classifiers()
-        self.run_number = 0
         self.feature_dict = {}
+        self.run_number = 0
+        self.prediction_windows = 0
+        self.temporal_lags = 0
+        self.feature_combos = 0
+        self.predictors = 0
+        self.models = 0
+        self.gridsize = 0
 
     def generate_classifiers(self):
 
@@ -250,15 +256,15 @@ class Pipeline():
 
         # Fill nulls with median
         for col in isnull_cols:
-            if col == 'rent_burden':
-                col_median = df.rent_burden.median().to_dict()
-                print('median', col_median)
-                df.rent_burden.fillna(col_median, inplace = True)
-                print('isna?', df.rent_burden.isna())
-            else:
-                col_median = df[col].median().to_dict()
-                print(col_median)
-                df[col].fillna(col_median, inplace = True)
+            #if col == 'rent_burden':
+            #    col_median = df.rent_burden.median()
+            #    print('median', col_median)
+            #    df.rent_burden.fillna(col_median, inplace = True).fillna(col_median, inplace = True)
+            #    print('isna?', df.rent_burden.isna())
+            #else:
+            col_median = df[col].median()
+            print(col_median)
+            df[col].fillna(0, inplace=True) #.fillna(col_median, inplace = True)
 
         print('after', df[isnull_cols])
 
@@ -472,10 +478,12 @@ class Pipeline():
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run):
         self.run_number = 0
         results = []
+        self.prediction_windows = prediction_windows
         for prediction_window in prediction_windows:
             train_start = start
             train_end = train_start + \
                 relativedelta(months=+prediction_window) - relativedelta(days=+1)
+            self.temporal_lags =  ((end.year - train_end.year)*12 + d1.month - d2.month)/prediction_window
             while train_end + relativedelta(months=+prediction_window) <= end:
                 test_start = train_end + relativedelta(days=+1)
                 test_end = test_start + \
@@ -484,7 +492,9 @@ class Pipeline():
                 logger.info("\nTemporally validating on:\nTrain: {} - {}\nTest: {} - {}\nPrediction window: {} months\n"
                             .format(train_start, train_end, test_start, test_end, prediction_window))
                 # Loop over feature set and precitors
+                self.feature_combos = len(feature_set_list)
                 for feature_cols in feature_set_list:
+                    self.predictors = len(predictor_col_list)
                     for predictor_col in predictor_col_list:
                         # Build training and testing sets
                         X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
@@ -527,6 +537,7 @@ class Pipeline():
 
         self.generate_classifiers()
         results = []
+        self.models = len(models_to_run)
         for model_key in models_to_run:
             if model_key == 'BASELINE_RAND':
                 pct_negative = len(y_train[y_train == 0])/len(y_train)
@@ -535,7 +546,6 @@ class Pipeline():
                 results.append(self.populate_outcome_table(
                     train_dates, test_dates, model_key,model_key, {}, feature_set_labels, outcome_label, None, y_test, y_pred_probs))
             elif model_key == 'BASELINE_PRIOR':
-                print(X_test.shape)
                 X_test = X_test[outcome_label+'_lag']
                 results.append(self.populate_outcome_table(
                     train_dates, test_dates, model_key, model_key, {}, feature_set_labels, outcome_label, None, y_test, X_test))
@@ -543,8 +553,11 @@ class Pipeline():
                 logger.info("Running {}...".format(model_key))
                 classifier = self. classifiers[model_key]["type"]
                 grid = ParameterGrid(self.classifiers[model_key]["params"])
+                self.gridsize = len(grid)
                 for params in grid:
-                    logger.info("Running with params {}".format(params))
+                    total_runs = self.prediction_windows * self.temporal_lags * self.feature_combos * self.predictors * self.models * self.gridsize
+
+                    logger.info("Running run # {}/{} with params {}".format(self.run_number, total_runs, params))
                     try:
                         classifier.set_params(**params)
                         fit = classifier.fit(X_train, y_train)
@@ -641,18 +654,17 @@ def main():
     demographic = ['population', 'poverty_rate',
     'pct_renter_occupied',
     'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'rent_burden'] #, 'avg_hh_size']'rent_burden', 'median_gross_rent', 'median_household_income', 'median_property_value',
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'avg_hh_size', 'rent_burden','median_gross_rent', 'median_household_income', 'median_property_value'] #, 'avg_hh_size']'rent_burden', 'median_gross_rent', 'median_household_income', 'median_property_value',
 
     demographic_5yr = ['population_avg_5yr','poverty_rate_avg_5yr','median_gross_rent_avg_5yr',
     'median_household_income_avg_5yr','median_property_value_avg_5yr','rent_burden_avg_5yr','pct_white_avg_5yr',
     'pct_af_am_avg_5yr','pct_hispanic_avg_5yr','pct_am_ind_avg_5yr','pct_asian_avg_5yr','pct_nh_pi_avg_5yr',
     'pct_multiple_avg_5yr','pct_other_avg_5yr','renter_occupied_households_avg_5yr','pct_renter_occupied_avg_5yr',
-    'avg_hh_size_avg_5yr',
     'population_pct_change_5yr','poverty_rate_pct_change_5yr','median_gross_rent_pct_change_5yr',
     'median_household_income_pct_change_5yr','median_property_value_pct_change_5yr','rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr','pct_af_am_pct_change_5yr','pct_hispanic_pct_change_5yr','pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr','avg_hh_size_pct_change_5yr']
+    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
 
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr',
@@ -690,17 +702,13 @@ def main():
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
 
     pipeline.feature_dict = {"demographic": demographic,
-                    #"demographic_5yr": demographic_5yr,
-                    #"economic": economic, #good shape
-                    #"geographic": geographic, #good
-                    #"eviction": eviction, #good
-                    #"tract": tract, #good without avg hh size
-                    #"tract_eviction": tract_eviction, # good
+                    "demographic_5yr": demographic_5yr,
+                    "economic": economic, #good shape
+                    "geographic": geographic, #good
+                    "eviction": eviction, #good
+                    "tract": tract, #good without avg hh size
+                    "tract_eviction": tract_eviction, # good
                     }
-
-    #pipeline.feature_dict = {"demographic": demo,
-    #                "eviction": demo_5yr,
-    #                }
 
     all_features = pipeline.get_subsets()
 
@@ -710,7 +718,7 @@ def main():
     'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
 
     # check pct renter occupied pct change 1 year
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
     predictor_col_list = ['top20_rate', 'top20_num']
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
     the_dreaded = ['SVM']
@@ -722,7 +730,7 @@ def main():
     print('done baseline')
     results_df = results_df1.append(results_df2)
 
-    #results_df.to_csv('test_results.csv')
+    results_df.to_csv('test_results.csv')
     return results_df, pipeline
 
 if __name__ == "__main__":
