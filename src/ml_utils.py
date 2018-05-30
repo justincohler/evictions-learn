@@ -4,6 +4,8 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 from dateutil import parser
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn.tree as tree
@@ -705,7 +707,7 @@ def main():
 
     # Generate final results dataframe and write to csv
     results_df = results_df1.append(results_df2)
-    results_df.to_csv('test_results.csv')
+    results_df.to_csv('claire_run1.csv')
 
     return results_df, pipeline
 
