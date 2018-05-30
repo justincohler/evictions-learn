@@ -535,13 +535,13 @@ PRIMARY KEY (geo_id, year)
 );"""
 
 INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
-                            ntile(5) over(ORDER BY evictions DESC *b2.population)/sum(b2.population) as num_quint,
-                            ntile(5) over(ORDER BY eviction_rate DESC *b2.population)/sum(b2.population) as rate_quint
+                            ntile(5) over(ORDER BY evictions DESC) as num_quint,
+                            ntile(5) over(ORDER BY eviction_rate DESC) as rate_quint
                         FROM blockgroup
                         WHERE year = {}
                         AND evictions IS NOT NULL
                         )
-                    INSERT INTO outcome (geo_id, year, top20_num, top20_rate)
+                    INSERT INTO outcomes (geo_id, year, top20_num, top20_rate)
                         SELECT geo_id, year,
                         CASE
                             WHEN tmp.num_quint = 1 THEN 1
