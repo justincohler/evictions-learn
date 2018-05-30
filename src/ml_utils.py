@@ -498,15 +498,16 @@ class Pipeline():
                         # Fill nulls here to avoid data leakage
                         X_train = X_train.fillna(X_train.median()).fillna(X_train.median()).fillna(0)
                         X_test = X_test.fillna(X_test.median()).fillna(X_train.median()).fillna(0)
-                        #after_fill = (X_train, X_test)
 
-                        #return before_fill, after_fill
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
                                                (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col)
-                        # Increment time
-                        train_end = train_end + relativedelta(months=+prediction_window)
+                        
                         results.extend(result)
+
+                # Increment time
+                train_end = train_end + relativedelta(months=+prediction_window)
+                        
 #
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
                                                     'parameters', 'feature_sets', 'outcome', 'model_result', 'auc-roc',
@@ -680,35 +681,32 @@ def main():
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr'] #'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'
 
     pipeline.feature_dict = {"demographic": demographic,
-                    #"demographic_5yr": demographic_5yr,
-                    "economic": economic, #good shape
-                    #"geographic": geographic, #good
-                    "eviction": eviction, #good
-                    "tract": tract, #good without avg hh size
-                    #"tract_eviction": tract_eviction, # good
+                    "economic": economic,
+                    "eviction": eviction,
+                    "tract": tract
                     }
 
+    # Generate all feature subsets
     all_features = pipeline.get_subsets()
 
-    excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr',
-    'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01',
-    'top10_num', 'top10_rate', 'top10_num_01', 'avg_hh_size', 'top10_rate_01', 'testcol' 'state', 'county', 'tract', 'pct_renter_occupied_pct_change_1yr',
-    'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
-
-    # check pct renter occupied pct change 1 year
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
-    predictor_col_list = ['top20_rate', 'top20_num']
+    # Define models and predictors to run
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
-    the_dreaded = ['SVM']
+    predictor_col_list = ['top20_rate', 'top20_num']
+
+    # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
         pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
     print('done standard')
 
+    # Run random and prior year baselines
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
     results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
     print('done baseline')
+    
+    # Generate final results dataframe and write to csv
     results_df = results_df1.append(results_df2)
-
     results_df.to_csv('test_results.csv')
+
     return results_df, pipeline
 
 if __name__ == "__main__":
