@@ -878,7 +878,7 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
   ADD COLUMN evictions_pct_change_5yr_lag_tr float4,
   ADD COLUMN eviction_rate_pct_change_5yr_lag_tr float4,
   ADD COLUMN eviction_filing_rate_pct_change_5yr_lag_tr float4,
-  ADD COLUMN conversion_rate_pct_change_5yr_lag_tr float4,
+  ADD COLUMN conversion_rate_pct_change_5yr_lag_tr float4,"""
   
 
 
@@ -953,9 +953,6 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
   pct_other_pct_change_5yr_tr,
   renter_occupied_households_pct_change_5yr_tr,
   avg_hh_size_pct_change_5yr_tr,
-
-
-
   total_bldg int,
   total_units int,
   total_value float8,
