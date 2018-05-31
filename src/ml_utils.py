@@ -643,13 +643,13 @@ def main():
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-    max_chunks = 1
-    while chunk != [] and max_chunks > 0:
-        max_chunks = max_chunks - 1
+    #max_chunks = 1
+    while chunk != []:# and max_chunks > 0:
+        #max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
         chunk = pipeline.load_chunk(chunksize=20000)
         data.extend(chunk)
-        logger.info("{} chunks left to load.".format(max_chunks))
+        #logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
