@@ -1026,7 +1026,7 @@ total_value_avg_5yr = permits.total_value_avg_5yr,
 ============================================================================'''
 CREATE_BG_CURSOR = """declare bg_cursor CURSOR WITHOUT HOLD FOR
                          select * from blockgroup bg
-                        	inner join outcome o on o.geo_id=bg.geo_id and o.year=bg.year
+                        	inner join outcomes o on o.geo_id=bg.geo_id and o.year=bg.year
                         	where bg.geo_id in
                         		(select geos.geo_id from
                         			(select distinct bg.geo_id
@@ -1042,7 +1042,7 @@ CREATE_FUNCTION_BG_CURSOR = """create function bg_get_chunk(refcursor) returns r
                             	begin
                             		open $1 for
                             			select * from blockgroup bg
-											inner join outcome o on o.geo_id=bg.geo_id and o.year=bg.year
+											inner join outcomes o on o.geo_id=bg.geo_id and o.year=bg.year
 											where bg.geo_id in
 												(select geos.geo_id from
 													(select distinct bg.geo_id
