@@ -8,8 +8,15 @@
 
 #pg_dump -h evictions.cuvbjnrvbddj.us-east-1.rds.amazonaws.com -p 5432 -U ev_user -f geographic.sql -d evictions -v  --table=geographic | psql -d evictions
 
+#pg_dump -h localhost -p 5432 -U alenastern -f bg_local.sql -d evictions -v  --table=blockgroup 
 
-Drop_State = "delete from evictions_tract where state not in ('18', '17', '26', '39', '55', '10', '11', '12', '13', '24', '37', '45', '51', '54');"
+#pg_dump -h evictions.cuvbjnrvbddj.us-east-1.rds.amazonaws.com -p 5432 -U ev_user -f block_aws.sql -d evictions -v  --table=blockgroup 
+
+#psql -h evictions.cuvbjnrvbddj.us-east-1.rds.amazonaws.com -p 5432 -U ev_user -d evictions -f bg_comp.sql
+
+#sed 's/double precision/float4/' bg_local.sql
+
+#Drop_State = "delete from evictions_tract where state not in ('18', '17', '26', '39', '55', '10', '11', '12', '13', '24', '37', '45', '51', '54');"
 
 
 '''============================================================================
@@ -302,14 +309,14 @@ ADD PRIMARY KEY(geo_id, year);"""
 
 
 COPY_CSV_URBAN = """COPY evictions.urban(UA, STATE, COUNTY, GEOID)
-      from stdin with CSV HEADER DELIMITER as ',';"""
+      from '/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_states.csv' with CSV HEADER DELIMITER as ',';"""
 
 
 IDX_COUNTY_GEO = "CREATE INDEX idx_county_geo ON geographic (county);"
 IDX_STATE_GEO = "CREATE INDEX idx_state_geo ON geographic (state);"
 
 
-UPDATE_VAR_URBAN = '''UPDATE evictions.geographic
+UPDATE_VAR_URBAN = '''UPDATE evictions.blockgroup
                       SET urban = 1
                       WHERE county IN (SELECT GEOID::varchar(5) FROM evictions.urban);'''
 
@@ -535,13 +542,13 @@ PRIMARY KEY (geo_id, year)
 );"""
 
 INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
-                            ntile(5) over(ORDER BY evictions DESC) as num_quint,
-                            ntile(5) over(ORDER BY eviction_rate DESC) as rate_quint
+                            ntile(5) over(ORDER BY evictions DESC *b2.population)/sum(b2.population) as num_quint,
+                            ntile(5) over(ORDER BY eviction_rate DESC *b2.population)/sum(b2.population) as rate_quint
                         FROM blockgroup
                         WHERE year = {}
                         AND evictions IS NOT NULL
                         )
-                    INSERT INTO outcomes (geo_id, year, top20_num, top20_rate)
+                    INSERT INTO outcome (geo_id, year, top20_num, top20_rate)
                         SELECT geo_id, year,
                         CASE
                             WHEN tmp.num_quint = 1 THEN 1
@@ -561,7 +568,7 @@ INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
     FUNCTIONS & EXTENSIONS
 ============================================================================'''
 
-ADD_COLUMN = "ALTER TABLE {} {} {};"
+ADD_COLUMN = "ALTER TABLE {} ADD COLUMN {} {};"
 
 INSERT_N_YEAR_AVG = """UPDATE  {} bg
                         set {} = tmp.aver
@@ -720,45 +727,159 @@ CREATE_EV_TABLE = """CREATE TABLE ev_lag_{} as (SELECT geo_id, year, eviction_fi
                                             conversion_rate_pct_change_3yr, eviction_filings_pct_change_5yr, evictions_pct_change_5yr, eviction_rate_pct_change_5yr, eviction_filing_rate_pct_change_5yr, 
                                             conversion_rate_pct_change_5yr FROM {});"""
 
+ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup 
+  DROP COLUMN eviction_filings_lag,
+  DROP COLUMN evictions_lag,
+  DROP COLUMN eviction_rate_lag,
+  DROP COLUMN eviction_filing_rate_lag,
+  DROP COLUMN conversion_rate_lag,
+  DROP COLUMN eviction_filings_avg_3yr_lag,
+  DROP COLUMN evictions_avg_3yr_lag,
+  DROP COLUMN eviction_rate_avg_3yr_lag,
+  DROP COLUMN eviction_filing_rate_avg_3yr_lag,
+  DROP COLUMN conversion_rate_avg_3yr_lag,
+  
+  DROP COLUMN eviction_filings_avg_5yr_lag,
+  DROP COLUMN evictions_avg_5yr_lag,
+  DROP COLUMN eviction_rate_avg_5yr_lag,
+  DROP COLUMN eviction_filing_rate_avg_5yr_lag,
+  DROP COLUMN conversion_rate_avg_5yr_lag,
+  DROP COLUMN eviction_filings_pct_change_1yr_lag,
+  DROP COLUMN evictions_pct_change_1yr_lag,
+  DROP COLUMN eviction_rate_pct_change_1yr_lag,
+  DROP COLUMN eviction_filing_rate_pct_change_1yr_lag,
+  DROP COLUMN conversion_rate_pct_change_1yr_lag,
+
+  DROP COLUMN eviction_filings_pct_change_3yr_lag,
+  DROP COLUMN evictions_pct_change_3yr_lag,
+  DROP COLUMN eviction_rate_pct_change_3yr_lag,
+  DROP COLUMN eviction_filing_rate_pct_change_3yr_lag,
+  DROP COLUMN conversion_rate_pct_change_3yr_lag,
+  DROP COLUMN eviction_filings_pct_change_5yr_lag,
+  DROP COLUMN evictions_pct_change_5yr_lag,
+  DROP COLUMN eviction_rate_pct_change_5yr_lag,
+  DROP COLUMN eviction_filing_rate_pct_change_5yr_lag,
+  DROP COLUMN conversion_rate_pct_change_5yr_lag,
+
+  DROP COLUMN eviction_filings_lag_tr,
+  DROP COLUMN evictions_lag_tr,
+  DROP COLUMN eviction_rate_lag_tr,
+  DROP COLUMN eviction_filing_rate_lag_tr,
+  DROP COLUMN conversion_rate_lag_tr,
+  DROP COLUMN eviction_filings_avg_3yr_lag_tr,
+  DROP COLUMN evictions_avg_3yr_lag_tr,
+  DROP COLUMN eviction_rate_avg_3yr_lag_tr,
+  DROP COLUMN eviction_filing_rate_avg_3yr_lag_tr,
+  DROP COLUMN conversion_rate_avg_3yr_lag_tr,
+
+  DROP COLUMN eviction_filings_avg_5yr_lag_tr,
+  DROP COLUMN evictions_avg_5yr_lag_tr,
+  DROP COLUMN eviction_rate_avg_5yr_lag_tr,
+  DROP COLUMN eviction_filing_rate_avg_5yr_lag_tr,
+  DROP COLUMN conversion_rate_avg_5yr_lag_tr,
+  DROP COLUMN eviction_filings_pct_change_1yr_lag_tr,
+  DROP COLUMN evictions_pct_change_1yr_lag_tr,
+  DROP COLUMN eviction_rate_pct_change_1yr_lag_tr,
+  DROP COLUMN eviction_filing_rate_pct_change_1yr_lag_tr,
+  DROP COLUMN conversion_rate_pct_change_1yr_lag_tr,
+
+  DROP COLUMN eviction_filings_pct_change_3yr_lag_tr,
+  DROP COLUMN evictions_pct_change_3yr_lag_tr,
+  DROP COLUMN eviction_rate_pct_change_3yr_lag_tr,
+  DROP COLUMN eviction_filing_rate_pct_change_3yr_lag_tr,
+  DROP COLUMN conversion_rate_pct_change_3yr_lag_tr,
+  DROP COLUMN eviction_filings_pct_change_5yr_lag_tr,
+  DROP COLUMN evictions_pct_change_5yr_lag_tr,
+  DROP COLUMN eviction_rate_pct_change_5yr_lag_tr,
+  DROP COLUMN eviction_filing_rate_pct_change_5yr_lag_tr,
+  DROP COLUMN conversion_rate_pct_change_5yr_lag_tr;"""
 
 
 #Clean add column, float8
 ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup 
-  eviction_filings_lag,
-  evictions_lag,
-  eviction_rate_lag,
-  eviction_filing_rate_lag,
-  conversion_rate_lag,
-  eviction_filings_avg_3yr_lag,
-  evictions_avg_3yr_lag,
-  eviction_rate_avg_3yr_lag,
-  eviction_filing_rate_avg_3yr_lag,
-  conversion_rate_avg_3yr_lag,
-  eviction_filings_avg_5yr_lag,
-  evictions_avg_5yr_lag,
-  eviction_rate_avg_5yr_lag,
-  eviction_filing_rate_avg_5yr_lag,
-  conversion_rate_avg_5yr_lag,
-  eviction_filings_pct_change_1yr_lag,
-  evictions_pct_change_1yr_lag,
-  eviction_rate_pct_change_1yr_lag,
-  eviction_filing_rate_pct_change_1yr_lag,
-  conversion_rate_pct_change_1yr_lag,
-  eviction_filings_pct_change_3yr_lag,
-  evictions_pct_change_3yr_lag,
-  eviction_rate_pct_change_3yr_lag,
-  eviction_filing_rate_pct_change_3yr_lag,
-  conversion_rate_pct_change_3yr_lag,
-  eviction_filings_pct_change_5yr_lag,
-  evictions_pct_change_5yr_lag,
-  eviction_rate_pct_change_5yr_lag,
-  eviction_filing_rate_pct_change_5yr_lag,
-  conversion_rate_pct_change_5yr_lag,
-  eviction_filings_avg_3yr_lag_tr,
-  evictions_avg_3yr_lag_tr,
-  eviction_rate_avg_3yr_lag_tr,
-  eviction_filing_rate_avg_3yr_lag_tr,
-  conversion_rate_avg_3yr_lag_tr,
+  ADD COLUMN eviction_filings_lag float4,
+  ADD COLUMN evictions_lag float4,
+  ADD COLUMN eviction_rate_lag float4,
+  ADD COLUMN eviction_filing_rate_lag float4,
+  ADD COLUMN conversion_rate_lag float4,
+  ADD COLUMN eviction_filings_avg_3yr_lag float4,
+  ADD COLUMN evictions_avg_3yr_lag float4,
+  ADD COLUMN eviction_rate_avg_3yr_lag float4,
+  ADD COLUMN eviction_filing_rate_avg_3yr_lag float4,
+  ADD COLUMN conversion_rate_avg_3yr_lag float4,
+  ADD COLUMN eviction_filings_avg_5yr_lag float4,
+  ADD COLUMN evictions_avg_5yr_lag float4,
+  ADD COLUMN eviction_rate_avg_5yr_lag float4,
+  ADD COLUMN eviction_filing_rate_avg_5yr_lag float4,
+  ADD COLUMN conversion_rate_avg_5yr_lag float4,
+  ADD COLUMN eviction_filings_pct_change_1yr_lag float4,
+  ADD COLUMN evictions_pct_change_1yr_lag float4,
+  ADD COLUMN eviction_rate_pct_change_1yr_lag float4,
+  ADD COLUMN eviction_filing_rate_pct_change_1yr_lag float4,
+  ADD COLUMN conversion_rate_pct_change_1yr_lag float4,
+  ADD COLUMN eviction_filings_pct_change_3yr_lag float4,
+  ADD COLUMN evictions_pct_change_3yr_lag float4,
+  ADD COLUMN eviction_rate_pct_change_3yr_lag float4,
+  ADD COLUMN eviction_filing_rate_pct_change_3yr_lag float4,
+  ADD COLUMN conversion_rate_pct_change_3yr_lag float4,
+  ADD COLUMN eviction_filings_pct_change_5yr_lag float4,
+  ADD COLUMN evictions_pct_change_5yr_lag float4,
+  ADD COLUMN eviction_rate_pct_change_5yr_lag float4,
+  ADD COLUMN eviction_filing_rate_pct_change_5yr_lag float4,
+  ADD COLUMN conversion_rate_pct_change_5yr_lag float4,
+
+
+
+  ADD COLUMN population_tr float8,
+  ADD COLUMN poverty_rate_tr float8,
+  ADD COLUMN median_gross_rent_tr float8, 
+  ADD COLUMN median_household_income_tr float8,
+  ADD COLUMN median_property_value_tr float8,
+  ADD COLUMN rent_burden_tr float8,
+  ADD COLUMN pct_white_tr float8,
+  ADD COLUMN pct_af_am_tr float8,
+  ADD COLUMN pct_hispanic_tr float8,
+  ADD COLUMN pct_am_ind_tr float8,
+  ADD COLUMN pct_asian_tr float8,
+  ADD COLUMN pct_nh_pi_tr float8,
+  ADD COLUMN pct_multiple_tr float8,
+  ADD COLUMN pct_other_tr float8,
+  ADD COLUMN renter_occupied_households_tr float8,
+  ADD COLUMN pct_renter_occupied_tr float8,
+  ADD COLUMN avg_hh_size_tr float8,
+  
+  ADD COLUMN eviction_filings_lag_tr float4,
+  ADD COLUMN evictions_lag_tr float4,
+  ADD COLUMN eviction_rate_lag_tr float4,
+  ADD COLUMN eviction_filing_rate_lag_tr float4,
+  ADD COLUMN conversion_rate_lag_tr float4,
+  ADD COLUMN eviction_filings_avg_3yr_lag_tr float4,
+  ADD COLUMN evictions_avg_3yr_lag_tr float4,
+  ADD COLUMN eviction_rate_avg_3yr_lag_tr float4,
+  ADD COLUMN eviction_filing_rate_avg_3yr_lag_tr float4,
+  ADD COLUMN conversion_rate_avg_3yr_lag_tr float4,
+  ADD COLUMN eviction_filings_avg_5yr_lag_tr float4,
+  ADD COLUMN evictions_avg_5yr_lag_tr float4,
+  ADD COLUMN eviction_rate_avg_5yr_lag_tr float4,
+  ADD COLUMN eviction_filing_rate_avg_5yr_lag_tr float4,
+  ADD COLUMN conversion_rate_avg_5yr_lag_tr float4,
+  ADD COLUMN eviction_filings_pct_change_1yr_lag_tr float4,
+  ADD COLUMN evictions_pct_change_1yr_lag_tr float4,
+  ADD COLUMN eviction_rate_pct_change_1yr_lag_tr float4,
+  ADD COLUMN eviction_filing_rate_pct_change_1yr_lag_tr float4,
+  ADD COLUMN conversion_rate_pct_change_1yr_lag_tr float4,
+  ADD COLUMN eviction_filings_pct_change_3yr_lag_tr float4,
+  ADD COLUMN evictions_pct_change_3yr_lag_tr float4,
+  ADD COLUMN eviction_rate_pct_change_3yr_lag_tr float4,
+  ADD COLUMN eviction_filing_rate_pct_change_3yr_lag_tr float4,
+  ADD COLUMN conversion_rate_pct_change_3yr_lag_tr float4,
+  ADD COLUMN eviction_filings_pct_change_5yr_lag_tr float4,
+  ADD COLUMN evictions_pct_change_5yr_lag_tr float4,
+  ADD COLUMN eviction_rate_pct_change_5yr_lag_tr float4,
+  ADD COLUMN eviction_filing_rate_pct_change_5yr_lag_tr float4,
+  ADD COLUMN conversion_rate_pct_change_5yr_lag_tr float4,
+  
+
 
   population_avg_5yr_tr,
   poverty_rate_avg_5yr_tr,
@@ -777,17 +898,6 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
   renter_occupied_households_avg_5yr_tr,
   pct_renter_occupied_avg_5yr_tr,
   avg_hh_size_avg_5yr_tr,
-  eviction_filings_avg_5yr_lag_tr,
-  evictions_avg_5yr_lag_tr,
-  eviction_rate_avg_5yr_lag_tr,
-  eviction_filing_rate_avg_5yr_lag_tr,
-  conversion_rate_avg_5yr_lag_tr,
-
-  eviction_filings_pct_change_3yr_lag_tr,
-  evictions_pct_change_3yr_lag_tr,
-  eviction_rate_pct_change_3yr_lag_tr,
-  eviction_filing_rate_pct_change_3yr_lag_tr,
-  conversion_rate_pct_change_3yr_lag_tr,
   population_pct_change_5yr_tr,
   poverty_rate_pct_change_5yr_tr,
   pct_renter_occupied_pct_change_5yr_tr,
@@ -806,23 +916,11 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
   renter_occupied_households_pct_change_5yr_tr,
   avg_hh_size_pct_change_5yr_tr,
 
-  eviction_filings_pct_change_5yr_lag_tr,
-  evictions_pct_change_5yr_lag_tr,
-  eviction_rate_pct_change_5yr_lag_tr,
-  eviction_filing_rate_pct_change_5yr_lag_tr,
-  conversion_rate_pct_change_5yr_lag_tr,
-  eviction_filings_pct_change_1yr_lag_tr,
-  evictions_pct_change_1yr_lag_tr,
-  eviction_rate_pct_change_1yr_lag_tr,
-  eviction_filing_rate_pct_change_1yr_lag_tr,
-  conversion_rate_pct_change_1yr_lag_tr,
 
-  eviction_filings_lag_tr,
-  evictions_lag_tr,
-  eviction_rate_lag_tr,
-  eviction_filing_rate_lag_tr,
-  conversion_rate_lag_tr,
 
+  total_bldg int,
+  total_units int,
+  total_value float8,
   total_bldg_pct_change_1yr,
   total_bldg_pct_change_3yr,
   total_bldg_pct_change_5yr,
@@ -845,47 +943,67 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
 
 
 UPDATE_COLS_TR = """
-UPDATE blockgroup b SET
-b.population_avg_5yr_tr = t.population_avg_5yr,
-b.poverty_rate_avg_5yr_tr = t.poverty_rate_avg_5yr,
-b.pct_renter_occupied_5yr_tr = t.pct_renter_occupied_5yr,
-b.median_gross_rent_avg_5yr_tr = t.median_gross_rent_avg_5yr_tr, 
-b.median_household_income_avg_5yr_tr =t.median_household_income_avg_5yr_tr ,
-b.median_property_value_avg_5yr_tr = t.median_property_value_avg_5yr_tr,
-b.rent_burden_avg_5yr_tr = t.rent_burden_avg_5yr_tr,
-b.pct_white_avg_5yr_tr = t.pct_white_avg_5yr_tr,
-b.pct_af_am_avg_5yr_tr = t.pct_af_am_avg_5yr_tr,
-b.pct_hispanic_avg_5yr_tr = t.pct_hispanic_avg_5yr_tr,
-b.pct_am_ind_avg_5yr_tr = t.pct_am_ind_avg_5yr_tr,
-b.pct_asian_avg_5yr_tr = t.pct_asian_avg_5yr_tr,
-b.pct_nh_pi_avg_5yr_tr = t.pct_nh_pi_avg_5yr_tr,
-b.pct_multiple_avg_5yr_tr = t.pct_multiple_avg_5yr_tr,
-b.pct_other_avg_5yr_tr = t.pct_other_avg_5yr_tr,
-b.renter_occupied_households_avg_5yr_tr = t.renter_occupied_households_avg_5yr_tr,
-b.pct_renter_occupied_avg_5yr_tr = t.pct_renter_occupied_avg_5yr_tr,
-b.avg_hh_size_avg_5yr_tr = t.avg_hh_size_avg_5yr_tr,
-
-b.population_pct_change_5yr_tr = t.population_pct_change_5yr,
-b.poverty_rate_pct_change_5yr_tr = t.poverty_rate_pct_change_5yr,
-b.pct_renter_occupied_5yr_tr = t.pct_renter_occupied_5yr,
-b.median_gross_rent_pct_change_5yr_tr = t.median_gross_rent_pct_change_5yr_tr, 
-b.median_household_income_pct_change_5yr_tr =t.median_household_income_pct_change_5yr_tr ,
-b.median_property_value_pct_change_5yr_tr = t.median_property_value_pct_change_5yr_tr,
-b.rent_burden_pct_change_5yr_tr = t.rent_burden_pct_change_5yr_tr,
-b.pct_white_pct_change_5yr_tr = t.pct_white_pct_change_5yr_tr,
-b.pct_af_am_pct_change_5yr_tr = t.pct_af_am_pct_change_5yr_tr,
-b.pct_hispanic_pct_change_5yr_tr = t.pct_hispanic_pct_change_5yr_tr,
-b.pct_am_ind_pct_change_5yr_tr = t.pct_am_ind_pct_change_5yr_tr,
-b.pct_asian_pct_change_5yr_tr = t.pct_asian_pct_change_5yr_tr,
-b.pct_nh_pi_pct_change_5yr_tr = t.pct_nh_pi_pct_change_5yr_tr,
-b.pct_multiple_pct_change_5yr_tr = t.pct_multiple_pct_change_5yr_tr,
-b.pct_other_pct_change_5yr_tr = t.pct_other_pct_change_5yr_tr,
-b.renter_occupied_households_pct_change_5yr_tr = t.renter_occupied_households_pct_change_5yr_tr,
-b.pct_renter_occupied_pct_change_5yr_tr = t.pct_renter_occupied_pct_change_5yr_tr,
-b.avg_hh_size_pct_change_5yr_tr = t.avg_hh_size_pct_change_5yr_tr
+UPDATE blockgroup SET
+population_tr = t.population,
+poverty_rate_tr = t.poverty_rate,
+median_gross_rent_tr = t.median_gross_rent, 
+median_household_income_tr =t.median_household_income,
+median_property_value_tr = t.median_property_value,
+rent_burden_tr = t.rent_burden,
+pct_white_tr = t.pct_white,
+pct_af_am_tr = t.pct_af_am,
+pct_hispanic_tr = t.pct_hispanic,
+pct_am_ind_tr = t.pct_am_ind,
+pct_asian_tr = t.pct_asian,
+pct_nh_pi_tr = t.pct_nh_pi,
+pct_multiple_tr = t.pct_multiple,
+pct_other_tr = t.pct_other,
+renter_occupied_households_tr = t.renter_occupied_households,
+pct_renter_occupied_tr = t.pct_renter_occupied,
+avg_hh_size_tr = t.avg_hh_size
 
 FROM tr t 
-where b.tract = t.geo_id and b.year = t.year;
+where blockgroup.tract = t.geo_id and blockgroup.year = t.year;
+
+
+population_avg_5yr_tr = t.population_avg_5yr,
+poverty_rate_avg_5yr_tr = t.poverty_rate_avg_5yr,
+median_gross_rent_avg_5yr_tr = t.median_gross_rent_avg_5yr, 
+median_household_income_avg_5yr_tr =t.median_household_income_avg_5yr,
+median_property_value_avg_5yr_tr = t.median_property_value_avg_5yr,
+rent_burden_avg_5yr_tr = t.rent_burden_avg_5yr,
+pct_white_avg_5yr_tr = t.pct_white_avg_5yr,
+pct_af_am_avg_5yr_tr = t.pct_af_am_avg_5yr,
+pct_hispanic_avg_5yr_tr = t.pct_hispanic_avg_5yr,
+pct_am_ind_avg_5yr_tr = t.pct_am_ind_avg_5yr,
+pct_asian_avg_5yr_tr = t.pct_asian_avg_5yr,
+pct_nh_pi_avg_5yr_tr = t.pct_nh_pi_avg_5yr,
+pct_multiple_avg_5yr_tr = t.pct_multiple_avg_5yr,
+pct_other_avg_5yr_tr = t.pct_other_avg_5yr,
+renter_occupied_households_avg_5yr_tr = t.renter_occupied_households_avg_5yr,
+pct_renter_occupied_avg_5yr_tr = t.pct_renter_occupied_avg_5yr,
+avg_hh_size_avg_5yr_tr = t.avg_hh_size_avg_5yr,
+
+population_pct_change_5yr_tr = t.population_pct_change_5yr,
+poverty_rate_pct_change_5yr_tr = t.poverty_rate_pct_change_5yr,
+median_gross_rent_pct_change_5yr_tr = t.median_gross_rent_pct_change_5yr, 
+median_household_income_pct_change_5yr_tr =t.median_household_income_pct_change_5yr,
+median_property_value_pct_change_5yr_tr = t.median_property_value_pct_change_5yr,
+rent_burden_pct_change_5yr_tr = t.rent_burden_pct_change_5yr,
+pct_white_pct_change_5yr_tr = t.pct_white_pct_change_5yr,
+pct_af_am_pct_change_5yr_tr = t.pct_af_am_pct_change_5yr,
+pct_hispanic_pct_change_5yr_tr = t.pct_hispanic_pct_change_5yr,
+pct_am_ind_pct_change_5yr_tr = t.pct_am_ind_pct_change_5yr,
+pct_asian_pct_change_5yr_tr = t.pct_asian_pct_change_5yr,
+pct_nh_pi_pct_change_5yr_tr = t.pct_nh_pi_pct_change_5yr,
+pct_multiple_pct_change_5yr_tr = t.pct_multiple_pct_change_5yr,
+pct_other_pct_change_5yr_tr = t.pct_other_pct_change_5yr,
+renter_occupied_households_pct_change_5yr_tr = t.renter_occupied_households_pct_change_5yr,
+pct_renter_occupied_pct_change_5yr_tr = t.pct_renter_occupied_pct_change_5yr,
+avg_hh_size_pct_change_5yr_tr = t.avg_hh_size_pct_change_5yr
+
+FROM tr t 
+where blockgroup.tract = t.geo_id and blockgroup.year = t.year;
 """
 
 
@@ -936,7 +1054,7 @@ eviction_filing_rate_pct_change_5yr_lag = e.eviction_rate_pct_change_5yr,
 conversion_rate_pct_change_5yr_lag = e.conversion_rate_pct_change_5yr
 
 FROM ev_lag_blockgroup e
-where blockgroup.geo_id = e.geo_id and blockgroup.year = e.year - 1;"""
+where blockgroup.geo_id = e.geo_id and blockgroup.year = e.year + 1;"""
 
 UPDATE_COLS_LAG_TR = """
 UPDATE blockgroup SET
@@ -978,7 +1096,7 @@ eviction_filing_rate_pct_change_5yr_lag_tr = e.eviction_rate_pct_change_5yr,
 conversion_rate_pct_change_5yr_lag_tr = e.conversion_rate_pct_change_5yr
 
 FROM ev_lag_tr e
-where blockgroup.tract = e.geo_id and blockgroup.year = e.year - 1;"""
+where blockgroup.tract = e.geo_id and blockgroup.year = e.year + 1;"""
 
 
 
@@ -990,7 +1108,7 @@ where blockgroup.tract = e.geo_id and blockgroup.year = e.year - 1;"""
 
 """
 
-"""alter table evictions.tr avg_hh_size;
+AVG_HH_SIZE_TR = """alter table evictions.tr avg_hh_size;
 update evictions.tr set avg_hh_size = t.avg_hh_size from (
 select tract, year, avg(avg_size) as avg_hh_size from
 hhsize group by tract, year) t
@@ -998,10 +1116,10 @@ where t.tract = tr.geo_id and t.year = tr.year;"""
 
 
 UPDATE_PERMITS = """
-evictions.blockgroup set 
-total_units = permits.total_units
-total_bldg = permits.total_bldg
-total_value = permits.total_value
+update evictions.blockgroup set 
+total_units = permits.total_units,
+total_bldg = permits.total_bldg,
+total_value = permits.total_value,
 total_bldg_pct_change_1yr = permits.total_bldg_pct_change_1yr,
 total_bldg_pct_change_3yr = permits.total_bldg_pct_change_3yr,
 total_bldg_pct_change_5yr = permits.total_bldg_pct_change_5yr,
@@ -1016,9 +1134,26 @@ total_value_pct_change_1yr = permits.total_value_pct_change_1yr,
 total_value_pct_change_3yr = permits.total_value_pct_change_3yr,
 total_value_pct_change_5yr = permits.total_value_pct_change_5yr,
 total_value_avg_3yr = permits.total_value_avg_3yr,
-total_value_avg_5yr = permits.total_value_avg_5yr,
+total_value_avg_5yr = permits.total_value_avg_5yr
+from permits where blockgroup.county = permits.geo_id and blockgroup.year = permits.year;
 
 """
+
+REM_999999 = """UPDATE blockgroup set {}_pct_change_{}yr{} = max from (select year, max({}_pct_change_{}yr{}) as max 
+from blockgroup where {}_pct_change_{}yr{} != 999999 group by year) as tmp
+where tmp.year = blockgroup.year and {}_pct_change_{}yr{} = 999999;"""
+
+REM_999999_ev = """UPDATE blockgroup set {}_pct_change_{}yr_lag{} = max from (select year, max({}_pct_change_{}yr_lag{}) as max 
+from blockgroup where {}_pct_change_{}yr_lag{} != 999999 group by year) as tmp
+where tmp.year = blockgroup.year and {}_pct_change_{}yr_lag{} = 999999;"""
+
+#REM_neg999999 = """UPDATE blockgroup set {}_pct_change_{}yr = min from (select year, min({}_tr) as min 
+#from blockgroup where {} != -999999 group by year) as tmp
+#where tmp.year = blockgroup.year and {}_pct_change_{}yr = -999999;"""
+
+#REM_999999_tr = """UPDATE blockgroup set {}_pct_change_{}yr = max from (select year, max({}_tr) as max 
+#from blockgroup where {} != 999999 group by year) as tmp
+#where tmp.year = blockgroup.year and {}_pct_change_{}yr = 999999;"""
 
 
 '''============================================================================
