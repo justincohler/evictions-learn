@@ -4,6 +4,8 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 from dateutil import parser
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn.tree as tree
@@ -18,7 +20,6 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import *
 from sklearn.preprocessing import StandardScaler
-from IPython.display import Image
 import random
 import matplotlib.pyplot as plt
 plt.rcParams.update({'figure.max_open_warning': 0})
@@ -49,45 +50,75 @@ class Pipeline():
         self.models = 0
         self.gridsize = 0
 
-    def generate_classifiers(self):
-
-        self.classifiers = {'RF': {
-            "type": RandomForestClassifier(),
-            "params": {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]}
-        },
-            'LR': {
-            "type": LogisticRegression(),
-            "params": {'penalty': ['l2'], 'C': [0.01]}
-        },
-            'NB': {
-            "type": GaussianNB(),
-            "params": {}
-        },
-            'SVM': {
-            "type": svm.SVC(probability=True, random_state=0, cache_size=10000),
-            "params": {'C': [1], 'kernel': ['linear']}
-        },
-            'GB': {
-            "type": GradientBoostingClassifier(),
-            "params": {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]}
-        },
-            'BAG': {
-            "type": BaggingClassifier(),
-            "params": {'n_estimators': [5], 'max_samples': [5], 'max_features': [3], 'bootstrap_features': [True]}
-        },
-            'DT': {
-            "type": DecisionTreeClassifier(),
-            "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
-        },
-            'BASELINE_DT': {
-            "type": DecisionTreeClassifier(),
-            "params": {'criterion': ['gini'], 'max_depth': [3]}
-        },
-            'KNN': {
-            "type": KNeighborsClassifier(),
-            "params": {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']}
-        }
-        }
+    def generate_classifiers(self, classifier_selection = True):
+        if classifier_selection:
+            self.classifiers = {'RF': {
+                "type": RandomForestClassifier(),
+                "params": {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]}
+            },
+                'LR': {
+                "type": LogisticRegression(),
+                "params": {'penalty': ['l2'], 'C': [0.01]}
+            },
+                'NB': {
+                "type": GaussianNB(),
+                "params": {}
+            },
+                'GB': {
+                "type": GradientBoostingClassifier(),
+                "params": {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]}
+            },
+                'BAG': {
+                "type": BaggingClassifier(),
+                "params": {'n_estimators': [5], 'max_samples': [5], 'max_features': [3], 'bootstrap_features': [True]}
+            },
+                'DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
+            },
+                'BASELINE_DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini'], 'max_depth': [3]}
+            },
+                'KNN': {
+                "type": KNeighborsClassifier(),
+                "params": {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']}
+            }
+            }
+        else: 
+            self.classifiers = {'RF': {
+                "type": RandomForestClassifier(),
+                "params": {'n_estimators': [10, 100], 'max_depth': [5, 50], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]}
+            },
+                'LR': {
+                "type": LogisticRegression(),
+                "params": {'penalty': ['l1', 'l2'], 'C': [0.001, 0.01, 0.1, 1, 10]}
+            },
+                'NB': {
+                "type": GaussianNB(),
+                "params": {}
+            },
+                'GB': {
+                "type": GradientBoostingClassifier(),
+                "params": {'n_estimators': [10, 100], 'learning_rate': [0.001, 0.01, 0.5], 'subsample': [0.1, 0.5, 1], 'max_depth': [5, 50]}
+            },
+                'BAG': {
+                "type": BaggingClassifier(),
+                "params": {'n_estimators': [10, 100], 'max_samples': [5, 10], 'max_features': [5, 10], 'bootstrap_features': [True]}
+            },
+                'DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
+            },
+                'BASELINE_DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini','entropy'], 'max_depth': [1,5,10,20,50]}
+            },
+                'KNN': {
+                "type": KNeighborsClassifier(),
+                "params": {'n_neighbors': [5, 10, 25], 'weights': ['distance','uniform'], 'algorithm': ['auto', 'kd_tree']}
+            }
+            }
 
         return
 
@@ -247,26 +278,15 @@ class Pipeline():
         # Find columns with missing values
         df = df.replace([np.inf, -np.inf], np.nan)
         isnull_cols = self.cols_with_nulls(df)
-        print('before', df[isnull_cols])
+        #print('before', df[isnull_cols])
 
         # Fill nulls with median
         for col in isnull_cols:
-            #if col == 'rent_burden':
-            #    col_median = df.rent_burden.median()
-            #    print('median', col_median)
-            #    df.rent_burden.fillna(col_median, inplace = True).fillna(col_median, inplace = True)
-            #    print('isna?', df.rent_burden.isna())
-            #else:
             col_median = df[col].median()
-            print(col_median)
-            df[col].fillna(0, inplace=True) #.fillna(col_median, inplace = True)
+            #print(col_median)
+            df[col] = df[col].fillna(df[col].median()) 
 
-        print('after', df[isnull_cols])
-
-        # Drop cols with all NA's
-        #before = df.columns
-        #df.dropna(axis = 1, how = "all", inplace = True)
-        #after = df.columns
+        #print('after', df[isnull_cols])
 
         #diff = [x for x in before if x not in after]
         #print(diff)
@@ -418,7 +438,7 @@ class Pipeline():
         viz_source.format = 'png'
         viz_source.render('tree_viz'+str(num), view=False)
 
-        return 'tree_viz'+str(num)+'.png'
+        return 'images/tree_viz'+str(num)+'.png'
 
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
@@ -470,7 +490,7 @@ class Pipeline():
                     y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
-    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run):
+    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, classifier_selection):
         self.run_number = 0
         results = []
         self.prediction_windows = len(prediction_windows)
@@ -494,20 +514,22 @@ class Pipeline():
                         # Build training and testing sets
                         X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
                             df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
-                        #before_fill = (X_train, X_test)
+                        
                         # Fill nulls here to avoid data leakage
-                        X_train = X_train.fillna(X_train.median()).fillna(X_train.median()).fillna(0)
-                        X_test = X_test.fillna(X_test.median()).fillna(X_train.median()).fillna(0)
-                        #after_fill = (X_train, X_test)
+                        X_train = self.fill_nulls(X_train) 
+                        X_test = self.fill_nulls(X_test) 
 
-                        #return before_fill, after_fill
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
-                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col)
-                        # Increment time
-                        train_end = train_end + relativedelta(months=+prediction_window)
+                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], 
+                                               predictor_col, classifier_selection)
+
                         results.extend(result)
-#
+
+                # Increment time
+                train_end = train_end + relativedelta(months=+prediction_window)
+
+        # Build results dataframe
         results_df = pd.DataFrame(results, columns=('training_dates', 'testing_dates', 'model_key', 'classifier',
                                                     'parameters', 'feature_sets', 'outcome', 'model_result', 'auc-roc',
                                                     'p_at_1', 'p_at_2', 'p_at_5', 'p_at_10', 'p_at_20', 'p_at_30','p_at_50',
@@ -516,7 +538,10 @@ class Pipeline():
 
         return results_df
 
-    def match_label_array(self, feature_set_labels, feature_values, match_type):
+    def match_label_array(self, feature_set_labels, feature_values, match_type, model_key):
+        run = self.run_number
+        outpath = 'results/'+model_key+str(run)+'.csv'
+
         labels = []
         for fset in feature_set_labels:
             labels.extend(self.feature_dict[fset])
@@ -526,11 +551,13 @@ class Pipeline():
         fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
         fi_names.sort_values(by=[match_type], ascending=False, inplace=True)
 
-        return fi_names
+        fi_names.to_csv(outpath)
 
-    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label):
+        return outpath
 
-        self.generate_classifiers()
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, classifier_selection):
+
+        self.generate_classifiers(classifier_selection)
         results = []
         self.models = len(models_to_run)
         for model_key in models_to_run:
@@ -558,28 +585,32 @@ class Pipeline():
                         fit = classifier.fit(X_train, y_train)
                         y_pred_probs = fit.predict_proba(X_test)[:, 1]
 
-                        # Printing graph section, pull into function
-                        if model_key == 'DT':
-                            graph = self.visualize_tree(fit, X_train, show=False)
-                            model_result = DT(graph)
-                        elif model_key == 'SVM':
-                            model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"))
-                        elif model_key == 'RF':
-                            model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
-                        elif model_key == 'LR':
-                            model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"), fit.intercept_)
-                        elif model_key == 'GB':
-                            model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
-                        elif model_key == 'BAG':
-                            model_result = BAG(fit.base_estimator_, fit.estimators_features_)
-                        else:
+                        if classifier_selection:
                             model_result = None
+                        else:
+                            # Printing graph section, pull into function
+                            if model_key == 'DT':
+                                graph = self.visualize_tree(fit, X_train, show=False)
+                                model_result = DT(graph)
+                            elif model_key == 'SVM':
+                                model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef", model_key))
+                            elif model_key == 'RF':
+                                model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
+                            elif model_key == 'LR':
+                                model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef", model_key), fit.intercept_,)
+                            elif model_key == 'GB':
+                                model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
+                            elif model_key == 'BAG':
+                                model_result = BAG(fit.base_estimator_, fit.estimators_features_)
+                            else:
+                                model_result = None
+
+                            # Save precicsion recall graph
+                            self.plot_precision_recall_n(
+                                y_test, y_pred_probs, 'images/'+model_key+str(self.run_number), 'save')
 
                         results.append(self.populate_outcome_table(
                             train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
-
-                        self.plot_precision_recall_n(
-                            y_test, y_pred_probs, model_key+str(self.run_number), 'save')
 
                         self.run_number = self.run_number + 1
                     except IndexError as e:
@@ -605,17 +636,20 @@ class Pipeline():
         return xtab, bdf, fdf
 
 def main():
+    # Boolean switch for classifer vs model selection run
+    classifier_selection = True
+
     pipeline = Pipeline()
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-#    max_chunks = 0
-    while chunk != []: #and max_chunks > 0:
-        #max_chunks = max_chunks - 1
+    max_chunks = 1
+    while chunk != [] and max_chunks > 0:
+        max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
         chunk = pipeline.load_chunk(chunksize=20000)
         data.extend(chunk)
-        #logger.info("{} chunks left to load.".format(max_chunks))
+        logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
@@ -628,7 +662,7 @@ def main():
 
     # Set time period
     start = parser.parse("2006-01-01")
-    end = parser.parse("2016-01-01")
+    end = parser.parse("2017-01-01")
     prediction_windows = [12]
 
     # Define feature sets
@@ -644,7 +678,7 @@ def main():
     'median_household_income_pct_change_5yr','median_property_value_pct_change_5yr','rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr','pct_af_am_pct_change_5yr','pct_hispanic_pct_change_5yr','pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
+    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #  'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
 
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr',
@@ -680,35 +714,32 @@ def main():
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr'] #'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'
 
     pipeline.feature_dict = {"demographic": demographic,
-                    #"demographic_5yr": demographic_5yr,
-                    "economic": economic, #good shape
-                    #"geographic": geographic, #good
-                    "eviction": eviction, #good
-                    "tract": tract, #good without avg hh size
-                    #"tract_eviction": tract_eviction, # good
+                    "economic": economic,
+                    "eviction": eviction,
+                    "tract": tract
                     }
 
+    # Generate all feature subsets
     all_features = pipeline.get_subsets()
 
-    excluded = ['top20_rate','state_code', 'geo_id', 'year', 'name', 'parent_location','evictions_inc_10pct_5yr', 'evictions_dec_10pct_5yr',
-    'evictions_inc_20pct_5yr', 'evictions_dec_20pct_5yr', 'top20_num', 'top20_num_01', 'top20_rate_01',
-    'top10_num', 'top10_rate', 'top10_num_01', 'avg_hh_size', 'top10_rate_01', 'testcol' 'state', 'county', 'tract', 'pct_renter_occupied_pct_change_1yr',
-    'evictions_pct_change_5yr', 'eviction_rate_pct_change_5yr','conversion_rate', 'evictions', 'eviction_rate'  ]
-
-    # check pct renter occupied pct change 1 year
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag"]}]
-    predictor_col_list = ['top20_rate', 'top20_num']
+    # Define models and predictors to run
     models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
-    the_dreaded = ['SVM']
+    predictor_col_list = ['top20_rate', 'top20_num']
+
+    # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
-        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
+        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run, classifier_selection)
     print('done standard')
 
-    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
+    # Run random and prior year baselines
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
+    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'], classifier_selection)
     print('done baseline')
-    results_df = results_df1.append(results_df2)
 
-    results_df.to_csv('test_results.csv')
+    # Generate final results dataframe and write to csv
+    results_df = results_df1.append(results_df2)
+    results_df.to_csv('test_run.csv')
+
     return results_df, pipeline
 
 if __name__ == "__main__":

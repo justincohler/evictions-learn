@@ -709,8 +709,8 @@ ADD_CONVERSION_LAGS = "ALTER TABLE evictions.evictions_tract conversion_rate;"
 UPDATE_CONVERSION_RATE = """
 update evictions_tract et
     set conversion_rate = l.conversion_rate
-    from (select year, geo_id, evictions, eviction_filings, 
-    case when eviction_filings !=0 and eviction_filings is not null then evictions/eviction_filings 
+    from (select year, geo_id, evictions, eviction_filings,
+    case when eviction_filings !=0 and eviction_filings is not null then evictions/eviction_filings
          when eviction_filings = 0 then 0
          else null
    end as conversion_rate
@@ -719,12 +719,12 @@ where et.geo_id = l.geo_id
 and et.year = l.year;"""
 
 
-CREATE_EV_TABLE = """CREATE TABLE ev_lag_{} as (SELECT geo_id, year, eviction_filings, evictions, eviction_rate, eviction_filing_rate, 
-                                            conversion_rate, eviction_filings_avg_3yr, evictions_avg_3yr, eviction_rate_avg_3yr, eviction_filing_rate_avg_3yr, 
-                                            conversion_rate_avg_3yr, eviction_filings_avg_5yr, evictions_avg_5yr, eviction_rate_avg_5yr, eviction_filing_rate_avg_5yr, 
-                                            conversion_rate_avg_5yr, eviction_filings_pct_change_1yr, evictions_pct_change_1yr, eviction_rate_pct_change_1yr, eviction_filing_rate_pct_change_1yr, 
-                                            conversion_rate_pct_change_1yr, eviction_filings_pct_change_3yr, evictions_pct_change_3yr, eviction_rate_pct_change_3yr, eviction_filing_rate_pct_change_3yr, 
-                                            conversion_rate_pct_change_3yr, eviction_filings_pct_change_5yr, evictions_pct_change_5yr, eviction_rate_pct_change_5yr, eviction_filing_rate_pct_change_5yr, 
+CREATE_EV_TABLE = """CREATE TABLE ev_lag_{} as (SELECT geo_id, year, eviction_filings, evictions, eviction_rate, eviction_filing_rate,
+                                            conversion_rate, eviction_filings_avg_3yr, evictions_avg_3yr, eviction_rate_avg_3yr, eviction_filing_rate_avg_3yr,
+                                            conversion_rate_avg_3yr, eviction_filings_avg_5yr, evictions_avg_5yr, eviction_rate_avg_5yr, eviction_filing_rate_avg_5yr,
+                                            conversion_rate_avg_5yr, eviction_filings_pct_change_1yr, evictions_pct_change_1yr, eviction_rate_pct_change_1yr, eviction_filing_rate_pct_change_1yr,
+                                            conversion_rate_pct_change_1yr, eviction_filings_pct_change_3yr, evictions_pct_change_3yr, eviction_rate_pct_change_3yr, eviction_filing_rate_pct_change_3yr,
+                                            conversion_rate_pct_change_3yr, eviction_filings_pct_change_5yr, evictions_pct_change_5yr, eviction_rate_pct_change_5yr, eviction_filing_rate_pct_change_5yr,
                                             conversion_rate_pct_change_5yr FROM {});"""
 
 ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup 
@@ -796,6 +796,7 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
 
 
 #Clean add column, float8
+
 ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup 
   ADD COLUMN eviction_filings_lag float4,
   ADD COLUMN evictions_lag float4,
@@ -881,9 +882,46 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
   
 
 
+ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
+  eviction_filings_lag,
+  evictions_lag,
+  eviction_rate_lag,
+  eviction_filing_rate_lag,
+  conversion_rate_lag,
+  eviction_filings_avg_3yr_lag,
+  evictions_avg_3yr_lag,
+  eviction_rate_avg_3yr_lag,
+  eviction_filing_rate_avg_3yr_lag,
+  conversion_rate_avg_3yr_lag,
+  eviction_filings_avg_5yr_lag,
+  evictions_avg_5yr_lag,
+  eviction_rate_avg_5yr_lag,
+  eviction_filing_rate_avg_5yr_lag,
+  conversion_rate_avg_5yr_lag,
+  eviction_filings_pct_change_1yr_lag,
+  evictions_pct_change_1yr_lag,
+  eviction_rate_pct_change_1yr_lag,
+  eviction_filing_rate_pct_change_1yr_lag,
+  conversion_rate_pct_change_1yr_lag,
+  eviction_filings_pct_change_3yr_lag,
+  evictions_pct_change_3yr_lag,
+  eviction_rate_pct_change_3yr_lag,
+  eviction_filing_rate_pct_change_3yr_lag,
+  conversion_rate_pct_change_3yr_lag,
+  eviction_filings_pct_change_5yr_lag,
+  evictions_pct_change_5yr_lag,
+  eviction_rate_pct_change_5yr_lag,
+  eviction_filing_rate_pct_change_5yr_lag,
+  conversion_rate_pct_change_5yr_lag,
+  eviction_filings_avg_3yr_lag_tr,
+  evictions_avg_3yr_lag_tr,
+  eviction_rate_avg_3yr_lag_tr,
+  eviction_filing_rate_avg_3yr_lag_tr,
+  conversion_rate_avg_3yr_lag_tr,
+
   population_avg_5yr_tr,
   poverty_rate_avg_5yr_tr,
-  median_gross_rent_avg_5yr_tr, 
+  median_gross_rent_avg_5yr_tr,
   median_household_income_avg_5yr_tr,
   median_property_value_avg_5yr_tr,
   rent_burden_avg_5yr_tr,
@@ -901,7 +939,7 @@ ADD_TRACT_COLS_BG = """ALTER TABLE blockgroup
   population_pct_change_5yr_tr,
   poverty_rate_pct_change_5yr_tr,
   pct_renter_occupied_pct_change_5yr_tr,
-  median_gross_rent_pct_change_5yr_tr, 
+  median_gross_rent_pct_change_5yr_tr,
   median_household_income_pct_change_5yr_tr,
   median_property_value_pct_change_5yr_tr,
   rent_burden_pct_change_5yr_tr,
@@ -1004,6 +1042,48 @@ avg_hh_size_pct_change_5yr_tr = t.avg_hh_size_pct_change_5yr
 
 FROM tr t 
 where blockgroup.tract = t.geo_id and blockgroup.year = t.year;
+UPDATE blockgroup b SET
+b.population_avg_5yr_tr = t.population_avg_5yr,
+b.poverty_rate_avg_5yr_tr = t.poverty_rate_avg_5yr,
+b.pct_renter_occupied_5yr_tr = t.pct_renter_occupied_5yr,
+b.median_gross_rent_avg_5yr_tr = t.median_gross_rent_avg_5yr_tr,
+b.median_household_income_avg_5yr_tr =t.median_household_income_avg_5yr_tr ,
+b.median_property_value_avg_5yr_tr = t.median_property_value_avg_5yr_tr,
+b.rent_burden_avg_5yr_tr = t.rent_burden_avg_5yr_tr,
+b.pct_white_avg_5yr_tr = t.pct_white_avg_5yr_tr,
+b.pct_af_am_avg_5yr_tr = t.pct_af_am_avg_5yr_tr,
+b.pct_hispanic_avg_5yr_tr = t.pct_hispanic_avg_5yr_tr,
+b.pct_am_ind_avg_5yr_tr = t.pct_am_ind_avg_5yr_tr,
+b.pct_asian_avg_5yr_tr = t.pct_asian_avg_5yr_tr,
+b.pct_nh_pi_avg_5yr_tr = t.pct_nh_pi_avg_5yr_tr,
+b.pct_multiple_avg_5yr_tr = t.pct_multiple_avg_5yr_tr,
+b.pct_other_avg_5yr_tr = t.pct_other_avg_5yr_tr,
+b.renter_occupied_households_avg_5yr_tr = t.renter_occupied_households_avg_5yr_tr,
+b.pct_renter_occupied_avg_5yr_tr = t.pct_renter_occupied_avg_5yr_tr,
+b.avg_hh_size_avg_5yr_tr = t.avg_hh_size_avg_5yr_tr,
+
+b.population_pct_change_5yr_tr = t.population_pct_change_5yr,
+b.poverty_rate_pct_change_5yr_tr = t.poverty_rate_pct_change_5yr,
+b.pct_renter_occupied_5yr_tr = t.pct_renter_occupied_5yr,
+b.median_gross_rent_pct_change_5yr_tr = t.median_gross_rent_pct_change_5yr_tr,
+b.median_household_income_pct_change_5yr_tr =t.median_household_income_pct_change_5yr_tr ,
+b.median_property_value_pct_change_5yr_tr = t.median_property_value_pct_change_5yr_tr,
+b.rent_burden_pct_change_5yr_tr = t.rent_burden_pct_change_5yr_tr,
+b.pct_white_pct_change_5yr_tr = t.pct_white_pct_change_5yr_tr,
+b.pct_af_am_pct_change_5yr_tr = t.pct_af_am_pct_change_5yr_tr,
+b.pct_hispanic_pct_change_5yr_tr = t.pct_hispanic_pct_change_5yr_tr,
+b.pct_am_ind_pct_change_5yr_tr = t.pct_am_ind_pct_change_5yr_tr,
+b.pct_asian_pct_change_5yr_tr = t.pct_asian_pct_change_5yr_tr,
+b.pct_nh_pi_pct_change_5yr_tr = t.pct_nh_pi_pct_change_5yr_tr,
+b.pct_multiple_pct_change_5yr_tr = t.pct_multiple_pct_change_5yr_tr,
+b.pct_other_pct_change_5yr_tr = t.pct_other_pct_change_5yr_tr,
+b.renter_occupied_households_pct_change_5yr_tr = t.renter_occupied_households_pct_change_5yr_tr,
+b.pct_renter_occupied_pct_change_5yr_tr = t.pct_renter_occupied_pct_change_5yr_tr,
+b.avg_hh_size_pct_change_5yr_tr = t.avg_hh_size_pct_change_5yr_tr
+
+FROM tr t
+where b.tract = t.geo_id and b.year = t.year;
+
 """
 
 
@@ -1103,7 +1183,7 @@ where blockgroup.tract = e.geo_id and blockgroup.year = e.year + 1;"""
 
 
 """
- 
+
 ### Tract HH_Size is the average of the bg hh sizes for each tract
 
 """
@@ -1116,10 +1196,17 @@ where t.tract = tr.geo_id and t.year = tr.year;"""
 
 
 UPDATE_PERMITS = """
+
 update evictions.blockgroup set 
 total_units = permits.total_units,
 total_bldg = permits.total_bldg,
 total_value = permits.total_value,
+
+evictions.blockgroup set
+total_units = permits.total_units
+total_bldg = permits.total_bldg
+total_value = permits.total_value
+
 total_bldg_pct_change_1yr = permits.total_bldg_pct_change_1yr,
 total_bldg_pct_change_3yr = permits.total_bldg_pct_change_3yr,
 total_bldg_pct_change_5yr = permits.total_bldg_pct_change_5yr,
@@ -1160,8 +1247,15 @@ where tmp.year = blockgroup.year and {}_pct_change_{}yr_lag{} = 999999;"""
     ML Incremental Cursor
 ============================================================================'''
 CREATE_BG_CURSOR = """declare bg_cursor CURSOR WITHOUT HOLD FOR
-	                     select * from blockgroup bg
-                            inner join outcome o on o.geo_id=bg.geo_id and o.year=bg.year;
+                         select * from blockgroup bg
+                        	inner join outcomes o on o.geo_id=bg.geo_id and o.year=bg.year
+                        	where bg.geo_id in
+                        		(select geos.geo_id from
+                        			(select distinct bg.geo_id
+                        				from blockgroup bg
+                        		     ) geos
+                        	     	order by random() limit 7500
+                                );
                     """
 
 DROP_FUNCTION_BG_CURSOR = "drop function if exists bg_get_chunk(refcursor);"
@@ -1170,7 +1264,14 @@ CREATE_FUNCTION_BG_CURSOR = """create function bg_get_chunk(refcursor) returns r
                             	begin
                             		open $1 for
                             			select * from blockgroup bg
-                            			inner join outcome o on o.geo_id=bg.geo_id and o.year=bg.year;
+											inner join outcomes o on o.geo_id=bg.geo_id and o.year=bg.year
+											where bg.geo_id in
+												(select geos.geo_id from
+													(select distinct bg.geo_id
+														from blockgroup bg
+												     ) geos
+											     	order by random() limit 7500
+										        );
                             		return $1;
                             	end;
                             	$$ language plpgsql;
