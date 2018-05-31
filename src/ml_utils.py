@@ -50,45 +50,75 @@ class Pipeline():
         self.models = 0
         self.gridsize = 0
 
-    def generate_classifiers(self):
-
-        self.classifiers = {'RF': {
-            "type": RandomForestClassifier(),
-            "params": {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]}
-        },
-            'LR': {
-            "type": LogisticRegression(),
-            "params": {'penalty': ['l2'], 'C': [0.01]}
-        },
-            'NB': {
-            "type": GaussianNB(),
-            "params": {}
-        },
-            'SVM': {
-            "type": svm.SVC(probability=True, random_state=0, cache_size=10000),
-            "params": {'C': [1], 'kernel': ['linear']}
-        },
-            'GB': {
-            "type": GradientBoostingClassifier(),
-            "params": {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]}
-        },
-            'BAG': {
-            "type": BaggingClassifier(),
-            "params": {'n_estimators': [5], 'max_samples': [5], 'max_features': [3], 'bootstrap_features': [True]}
-        },
-            'DT': {
-            "type": DecisionTreeClassifier(),
-            "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
-        },
-            'BASELINE_DT': {
-            "type": DecisionTreeClassifier(),
-            "params": {'criterion': ['gini'], 'max_depth': [3]}
-        },
-            'KNN': {
-            "type": KNeighborsClassifier(),
-            "params": {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']}
-        }
-        }
+    def generate_classifiers(self, classifier_selection = True):
+        if classifier_selection:
+            self.classifiers = {'RF': {
+                "type": RandomForestClassifier(),
+                "params": {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]}
+            },
+                'LR': {
+                "type": LogisticRegression(),
+                "params": {'penalty': ['l2'], 'C': [0.01]}
+            },
+                'NB': {
+                "type": GaussianNB(),
+                "params": {}
+            },
+                'GB': {
+                "type": GradientBoostingClassifier(),
+                "params": {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]}
+            },
+                'BAG': {
+                "type": BaggingClassifier(),
+                "params": {'n_estimators': [5], 'max_samples': [5], 'max_features': [3], 'bootstrap_features': [True]}
+            },
+                'DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
+            },
+                'BASELINE_DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini'], 'max_depth': [3]}
+            },
+                'KNN': {
+                "type": KNeighborsClassifier(),
+                "params": {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']}
+            }
+            }
+        else: 
+            self.classifiers = {'RF': {
+                "type": RandomForestClassifier(),
+                "params": {'n_estimators': [10, 100], 'max_depth': [5, 50], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]}
+            },
+                'LR': {
+                "type": LogisticRegression(),
+                "params": {'penalty': ['l1', 'l2'], 'C': [0.001, 0.01, 0.1, 1, 10]}
+            },
+                'NB': {
+                "type": GaussianNB(),
+                "params": {}
+            },
+                'GB': {
+                "type": GradientBoostingClassifier(),
+                "params": {'n_estimators': [10, 100], 'learning_rate': [0.001, 0.01, 0.5], 'subsample': [0.1, 0.5, 1], 'max_depth': [5, 50]}
+            },
+                'BAG': {
+                "type": BaggingClassifier(),
+                "params": {'n_estimators': [10, 100], 'max_samples': [5, 10], 'max_features': [5, 10], 'bootstrap_features': [True]}
+            },
+                'DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]}
+            },
+                'BASELINE_DT': {
+                "type": DecisionTreeClassifier(),
+                "params": {'criterion': ['gini','entropy'], 'max_depth': [1,5,10,20,50]}
+            },
+                'KNN': {
+                "type": KNeighborsClassifier(),
+                "params": {'n_neighbors': [5, 10, 25], 'weights': ['distance','uniform'], 'algorithm': ['auto', 'kd_tree']}
+            }
+            }
 
         return
 
@@ -253,7 +283,7 @@ class Pipeline():
         # Fill nulls with median
         for col in isnull_cols:
             col_median = df[col].median()
-            print(col_median)
+            #print(col_median)
             df[col] = df[col].fillna(df[col].median()) 
 
         #print('after', df[isnull_cols])
@@ -408,7 +438,7 @@ class Pipeline():
         viz_source.format = 'png'
         viz_source.render('tree_viz'+str(num), view=False)
 
-        return 'tree_viz'+str(num)+'.png'
+        return 'images/tree_viz'+str(num)+'.png'
 
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
@@ -460,7 +490,7 @@ class Pipeline():
                     y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
-    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run):
+    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, classifier_selection):
         self.run_number = 0
         results = []
         self.prediction_windows = len(prediction_windows)
@@ -491,7 +521,8 @@ class Pipeline():
 
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
-                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], predictor_col)
+                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], 
+                                               predictor_col, classifier_selection)
 
                         results.extend(result)
 
@@ -507,7 +538,10 @@ class Pipeline():
 
         return results_df
 
-    def match_label_array(self, feature_set_labels, feature_values, match_type):
+    def match_label_array(self, feature_set_labels, feature_values, match_type, model_key):
+        run = self.run_number
+        outpath = 'results/'+model_key+str(run)+'.csv'
+
         labels = []
         for fset in feature_set_labels:
             labels.extend(self.feature_dict[fset])
@@ -517,11 +551,13 @@ class Pipeline():
         fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
         fi_names.sort_values(by=[match_type], ascending=False, inplace=True)
 
-        return fi_names
+        fi_names.to_csv(outpath)
 
-    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label):
+        return outpath
 
-        self.generate_classifiers()
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, classifier_selection):
+
+        self.generate_classifiers(classifier_selection)
         results = []
         self.models = len(models_to_run)
         for model_key in models_to_run:
@@ -549,28 +585,32 @@ class Pipeline():
                         fit = classifier.fit(X_train, y_train)
                         y_pred_probs = fit.predict_proba(X_test)[:, 1]
 
-                        # Printing graph section, pull into function
-                        #if model_key == 'DT':
-                        #    graph = self.visualize_tree(fit, X_train, show=False)
-                        #    model_result = DT(graph)
-                        #elif model_key == 'SVM':
-                        #    model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"))
-                        #elif model_key == 'RF':
-                        #    model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
-                        #elif model_key == 'LR':
-                        #    model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef"), fit.intercept_)
-                        #elif model_key == 'GB':
-                        #    model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances"))
-                        #elif model_key == 'BAG':
-                        #    model_result = BAG(fit.base_estimator_, fit.estimators_features_)
-                        #else:
-                        #    model_result = None
+                        if classifier_selection:
+                            model_result = None
+                        else:
+                            # Printing graph section, pull into function
+                            if model_key == 'DT':
+                                graph = self.visualize_tree(fit, X_train, show=False)
+                                model_result = DT(graph)
+                            elif model_key == 'SVM':
+                                model_result = SVM(self.match_label_array(feature_set_labels, fit.coef_[0], "coef", model_key))
+                            elif model_key == 'RF':
+                                model_result = RF(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
+                            elif model_key == 'LR':
+                                model_result = LR(self.match_label_array(feature_set_labels, fit.coef_[0], "coef", model_key), fit.intercept_,)
+                            elif model_key == 'GB':
+                                model_result = GB(self.match_label_array(feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
+                            elif model_key == 'BAG':
+                                model_result = BAG(fit.base_estimator_, fit.estimators_features_)
+                            else:
+                                model_result = None
+
+                            # Save precicsion recall graph
+                            self.plot_precision_recall_n(
+                                y_test, y_pred_probs, 'images/'+model_key+str(self.run_number), 'save')
 
                         results.append(self.populate_outcome_table(
-                            train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, None, y_test, y_pred_probs))
-
-                        #self.plot_precision_recall_n(
-                        #    y_test, y_pred_probs, model_key+str(self.run_number), 'save')
+                            train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
 
                         self.run_number = self.run_number + 1
                     except IndexError as e:
@@ -596,17 +636,20 @@ class Pipeline():
         return xtab, bdf, fdf
 
 def main():
+    # Boolean switch for classifer vs model selection run
+    classifier_selection = True
+
     pipeline = Pipeline()
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-    #max_chunks = 1
-    while chunk != []:# and max_chunks > 0:
-        #max_chunks = max_chunks - 1
+    max_chunks = 1
+    while chunk != [] and max_chunks > 0:
+        max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
         chunk = pipeline.load_chunk(chunksize=20000)
         data.extend(chunk)
-        #logger.info("{} chunks left to load.".format(max_chunks))
+        logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
@@ -685,17 +728,17 @@ def main():
 
     # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
-        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
+        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run, classifier_selection)
     print('done standard')
 
     # Run random and prior year baselines
     prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
-    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
+    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'], classifier_selection)
     print('done baseline')
 
     # Generate final results dataframe and write to csv
     results_df = results_df1.append(results_df2)
-    results_df.to_csv('claire_run1.csv')
+    results_df.to_csv('test_run.csv')
 
     return results_df, pipeline
 
