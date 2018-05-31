@@ -4,7 +4,8 @@
 # Evictions-specific
 set_env.sh
 .DS_Store
-secrets.json
+secrets.jso
+*.sql
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
