@@ -31,6 +31,9 @@ import graphviz
 import warnings
 from model_result import BAG, DT, GB, LR, RF, SVM
 import itertools
+from aequitas.bias import Bias
+from aequitas.group import Group
+from aequitas.fairness import Fairness
 
 logger = logging.getLogger('evictionslog')
 
@@ -88,7 +91,7 @@ class Pipeline():
         else:
             self.classifiers = {'RF': {
                 "type": RandomForestClassifier(),
-                "params": {'n_estimators': [10, 100], 'max_depth': [5, 10, 20], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]}
+                "params": {'n_estimators': [5, 10], 'max_depth': [5, 10, 20], 'max_features': ['sqrt']}
             },
                 'LR': {
                 "type": LogisticRegression(),
@@ -112,7 +115,7 @@ class Pipeline():
             },
                 'BASELINE_DT': {
                 "type": DecisionTreeClassifier(),
-                "params": {'criterion': ['gini','entropy'], 'max_depth': [1,5,10,20,50]}
+                "params": {'criterion': ['gini','entropy'], 'max_depth': [3]}
             },
                 'KNN': {
                 "type": KNeighborsClassifier(),
@@ -591,7 +594,7 @@ class Pipeline():
                             model_result = None
                         else:
                             # Printing graph section, pull into function
-                            if model_key == 'DT':
+                            if model_key == 'DT' or model_key == 'BASELINE_DT':
                                 graph = self.visualize_tree(fit, X_train, show=False)
                                 model_result = DT(graph)
                             elif model_key == 'SVM':
@@ -639,7 +642,7 @@ class Pipeline():
 
 def main():
     # Boolean switch for classifer vs model selection run
-    classifier_selection = True
+    classifier_selection = False
 
     pipeline = Pipeline()
 
@@ -725,8 +728,8 @@ def main():
     all_features = pipeline.get_subsets()
 
     # Define models and predictors to run
-    models_to_run = ['GB']
-    predictor_col_list = ['top20_num']
+    models_to_run = ['RF']
+    predictor_col_list = ['e_num_inc_20pct']
 
     # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
@@ -740,7 +743,7 @@ def main():
 
     # Generate final results dataframe and write to csv
     results_df = results_df1#.append(results_df2)
-    results_df.to_csv('real_run_GB.csv')
+    results_df.to_csv('baseline_DT.csv')
 
     return results_df, pipeline
 
