@@ -85,7 +85,7 @@ class Pipeline():
                 "params": {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']}
             }
             }
-        else: 
+        else:
             self.classifiers = {'RF': {
                 "type": RandomForestClassifier(),
                 "params": {'n_estimators': [10, 100], 'max_depth': [5, 10, 20], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]}
@@ -100,7 +100,7 @@ class Pipeline():
             },
                 'GB': {
                 "type": GradientBoostingClassifier(),
-                "params": {'n_estimators': [10, 100], 'learning_rate': [0.001, 0.01, 0.5], 'subsample': [0.1, 0.5, 1], 'max_depth': [5, 50]}
+                "params": {'n_estimators': [5, 10], 'learning_rate': [0.001, 0.01, 0.5], 'subsample': [0.1, 0.5], 'max_depth': [5, 20]}
             },
                 'BAG': {
                 "type": BaggingClassifier(),
@@ -284,7 +284,7 @@ class Pipeline():
         for col in isnull_cols:
             col_median = df[col].median()
             #print(col_median)
-            df[col] = df[col].fillna(df[col].median()) 
+            df[col] = df[col].fillna(df[col].median())
 
         #print('after', df[isnull_cols])
 
@@ -416,8 +416,10 @@ class Pipeline():
 
     def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
         """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
-        train_df = df[(df['year'] >= train_start) & (df['year'] <= train_end)]
-        test_df = df[(df['year'] >= test_start) & (df['year'] <= test_end)]
+        #train_df = df[(df['year'] >= train_start) & (df['year'] <= train_end)]
+        #test_df = df[(df['year'] >= test_start) & (df['year'] <= test_end)]
+        train_df = df[(df['year'] >= train_start) & (df['year'] <= train_end) & (~df[predictor_col].isnull())]
+        test_df = df[(df['year'] >= test_start) & (df['year'] <= test_end) & (~df[predictor_col].isnull())]
 
         X_train = train_df[feature_cols]
         y_train = train_df[predictor_col]
@@ -514,14 +516,14 @@ class Pipeline():
                         # Build training and testing sets
                         X_train, y_train, X_test, y_test = self.temporal_train_test_sets(
                             df, train_start, train_end, test_start, test_end, feature_cols["features"], predictor_col)
-                        
+
                         # Fill nulls here to avoid data leakage
-                        X_train = self.fill_nulls(X_train) 
-                        X_test = self.fill_nulls(X_test) 
+                        X_train = self.fill_nulls(X_train)
+                        X_test = self.fill_nulls(X_test)
 
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
-                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"], 
+                                               (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"],
                                                predictor_col, classifier_selection)
 
                         results.extend(result)
@@ -579,7 +581,7 @@ class Pipeline():
                     total_runs = self.prediction_windows * self.temporal_lags * self.feature_combos * self.predictors  * self.models  * self.gridsize
                     total_runs = int(total_runs)
 
-                    logger.info("Running run # {}/{} with model {}, params {}".format(self.run_number, total_runs, model_key, params))
+                    logger.info("Running run # {}/{} with model {}, params {}, features {}, outcome {}".format(self.run_number, total_runs, model_key, params, feature_set_labels, outcome_label))
                     try:
                         classifier.set_params(**params)
                         fit = classifier.fit(X_train, y_train)
@@ -637,7 +639,7 @@ class Pipeline():
 
 def main():
     # Boolean switch for classifer vs model selection run
-    classifier_selection = False
+    classifier_selection = True
 
     pipeline = Pipeline()
 
@@ -647,7 +649,7 @@ def main():
     while chunk != []:# and max_chunks > 0:
         #max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
-        chunk = pipeline.load_chunk(chunksize=20000)
+        chunk = pipeline.load_chunk(chunksize=100000)
         data.extend(chunk)
         #logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
@@ -661,7 +663,7 @@ def main():
     pipeline.df['year'] = pd.to_datetime(pipeline.df['year'].apply(str), format='%Y')
 
     # Set time period
-    start = parser.parse("2006-01-01")
+    start = parser.parse("2006- 01-01")
     end = parser.parse("2017-01-01")
     prediction_windows = [12]
 
@@ -678,8 +680,7 @@ def main():
     'median_household_income_pct_change_5yr','median_property_value_pct_change_5yr','rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr','pct_af_am_pct_change_5yr','pct_hispanic_pct_change_5yr','pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr', 'avg_hh_size_avg_5yr', 
-    'avg_hh_size_pct_change_5yr']
+    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr']
 
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr',
@@ -712,8 +713,7 @@ def main():
     'eviction_filing_rate_pct_change_1yr_lag_tr','conversion_rate_pct_change_1yr_lag_tr','eviction_filings_pct_change_3yr_lag_tr',
     'evictions_pct_change_3yr_lag_tr','eviction_rate_pct_change_3yr_lag_tr','eviction_filing_rate_pct_change_3yr_lag_tr',
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
-    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr',
-    'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'] 
+    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
 
     pipeline.feature_dict = {"demographic": demographic,
                     "economic": economic,
@@ -725,8 +725,8 @@ def main():
     all_features = pipeline.get_subsets()
 
     # Define models and predictors to run
-    models_to_run = ['RF','BASELINE_DT']
-    predictor_col_list = ['top20_num', 'e_num_inc_20pct']
+    models_to_run = ['GB']
+    predictor_col_list = ['top20_num']
 
     # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
@@ -734,13 +734,13 @@ def main():
     print('done standard')
 
     # Run random and prior year baselines
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_num_lag", "e_num_inc_20pct_lag"]}]
-    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'], classifier_selection)
-    print('done baseline')
+    #prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_num_lag", "e_num_inc_20pct_lag"]}]
+    #results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'], classifier_selection)
+    #print('done baseline')
 
     # Generate final results dataframe and write to csv
-    results_df = results_df1.append(results_df2)
-    results_df.to_csv('test_run.csv')
+    results_df = results_df1#.append(results_df2)
+    results_df.to_csv('real_run_GB.csv')
 
     return results_df, pipeline
 
