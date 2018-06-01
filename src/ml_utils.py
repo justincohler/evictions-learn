@@ -88,7 +88,7 @@ class Pipeline():
         else: 
             self.classifiers = {'RF': {
                 "type": RandomForestClassifier(),
-                "params": {'n_estimators': [10, 100], 'max_depth': [5, 50], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]}
+                "params": {'n_estimators': [10, 100], 'max_depth': [5, 10, 20], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]}
             },
                 'LR': {
                 "type": LogisticRegression(),
@@ -637,7 +637,7 @@ class Pipeline():
 
 def main():
     # Boolean switch for classifer vs model selection run
-    classifier_selection = True
+    classifier_selection = False
 
     pipeline = Pipeline()
 
@@ -678,7 +678,8 @@ def main():
     'median_household_income_pct_change_5yr','median_property_value_pct_change_5yr','rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr','pct_af_am_pct_change_5yr','pct_hispanic_pct_change_5yr','pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #  'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
+    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr', 'avg_hh_size_avg_5yr', 
+    'avg_hh_size_pct_change_5yr']
 
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr',
@@ -711,7 +712,8 @@ def main():
     'eviction_filing_rate_pct_change_1yr_lag_tr','conversion_rate_pct_change_1yr_lag_tr','eviction_filings_pct_change_3yr_lag_tr',
     'evictions_pct_change_3yr_lag_tr','eviction_rate_pct_change_3yr_lag_tr','eviction_filing_rate_pct_change_3yr_lag_tr',
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
-    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr'] #'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'
+    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr',
+    'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'] 
 
     pipeline.feature_dict = {"demographic": demographic,
                     "economic": economic,
@@ -723,8 +725,8 @@ def main():
     all_features = pipeline.get_subsets()
 
     # Define models and predictors to run
-    models_to_run = ['RF', 'DT', 'LR', 'BAG', 'GB', 'KNN', 'NB', 'BASELINE_DT']
-    predictor_col_list = ['top20_rate', 'top20_num']
+    models_to_run = ['RF', 'DT',  'BAG', 'BASELINE_DT', 'LR', 'GB', 'KNN', 'NB']
+    predictor_col_list = ['top20_rate', 'top20_num', 'top20_rate_01', 'top20_num_01', 'e_num_inc_20pct']
 
     # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
@@ -732,7 +734,7 @@ def main():
     print('done standard')
 
     # Run random and prior year baselines
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag","top20_rate_01", "top20_num_01", "e_num_inc_20pct"]}]
     results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'], classifier_selection)
     print('done baseline')
 
