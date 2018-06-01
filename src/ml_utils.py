@@ -678,7 +678,8 @@ def main():
     'median_household_income_pct_change_5yr','median_property_value_pct_change_5yr','rent_burden_pct_change_5yr',
     'pct_white_pct_change_5yr','pct_af_am_pct_change_5yr','pct_hispanic_pct_change_5yr','pct_am_ind_pct_change_5yr',
     'pct_asian_pct_change_5yr','pct_nh_pi_pct_change_5yr','pct_multiple_pct_change_5yr','pct_other_pct_change_5yr',
-    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr'] #  'avg_hh_size_avg_5yr', ,'avg_hh_size_pct_change_5yr'
+    'renter_occupied_households_pct_change_5yr','pct_renter_occupied_pct_change_5yr', 'avg_hh_size_avg_5yr', 
+    'avg_hh_size_pct_change_5yr']
 
     economic = ['total_bldg', 'total_units', 'total_value', 'total_bldg_avg_3yr', 'total_units_avg_3yr', 'total_value_avg_3yr',
     'total_bldg_avg_5yr', 'total_units_avg_5yr', 'total_value_avg_5yr', 'total_bldg_pct_change_1yr',
@@ -711,7 +712,8 @@ def main():
     'eviction_filing_rate_pct_change_1yr_lag_tr','conversion_rate_pct_change_1yr_lag_tr','eviction_filings_pct_change_3yr_lag_tr',
     'evictions_pct_change_3yr_lag_tr','eviction_rate_pct_change_3yr_lag_tr','eviction_filing_rate_pct_change_3yr_lag_tr',
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
-    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr'] #'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'
+    'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr',
+    'avg_hh_size_avg_5yr_tr','avg_hh_size_pct_change_5yr_tr'] 
 
     pipeline.feature_dict = {"demographic": demographic,
                     "economic": economic,
