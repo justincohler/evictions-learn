@@ -726,7 +726,7 @@ def main():
 
     # Define models and predictors to run
     models_to_run = ['RF', 'DT',  'BAG', 'BASELINE_DT', 'LR', 'GB', 'KNN', 'NB']
-    predictor_col_list = ['top20_rate', 'top20_num', 'top20_rate_01', 'top20_num_01', 'e_num_inc_20pct']
+    predictor_col_list = ['top20_num', 'e_num_inc_20pct']
 
     # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
@@ -734,7 +734,7 @@ def main():
     print('done standard')
 
     # Run random and prior year baselines
-    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_rate_lag", "top20_num_lag","top20_rate_01", "top20_num_01", "e_num_inc_20pct"]}]
+    prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_num_lag", "e_num_inc_20pct"]}]
     results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'], classifier_selection)
     print('done baseline')
 
