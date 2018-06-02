@@ -79,10 +79,9 @@ class Pipeline():
         l = self.db.cur.fetchmany(chunksize)
         return l
 
-    def discretize_cols(data_frame, col_list, labels=False, num_bins=4):
-        for col in col_list:
-            new_var= "{}_bins".format(col)
-            data_frame[new_var] = pd.cut(data_frame[col], bins=num_bins, labels=labels, right=True, include_lowest=True, retbins = False)
+    def discretize_cols(self, data_frame, var, labels=False, num_bins=4):
+        new_var= "{}_bins".format(var)
+        data_frame[new_var], _ = pd.cut(data_frame[var], bins=num_bins, labels=['low', 'med-low', 'med-high', 'high'], right=True, include_lowest=True, retbins = True)
         return data_frame
 
     def cols_with_nulls(self, df):
@@ -277,7 +276,7 @@ class Pipeline():
                     y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
-    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run):
+    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, disc_cols, bias_cols):
         self.run_number = 0
         results = []
         self.prediction_windows = len(prediction_windows)
@@ -309,7 +308,7 @@ class Pipeline():
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
                                                (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"],
-                                               predictor_col)
+                                               predictor_col, disc_cols, bias_cols)
 
                         results.extend(result)
 
@@ -342,7 +341,7 @@ class Pipeline():
 
         return outpath
 
-    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label):
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, disc_cols, bias_cols):
 
         self.generate_classifiers()
         results = []
@@ -382,6 +381,8 @@ class Pipeline():
                         self.plot_precision_recall_n(
                             y_test, y_pred_probs, 'images/'+model_key+str(self.run_number), 'save')
 
+                        self.analyze_bias_and_fairness(X_test, y_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key)
+
                         results.append(self.populate_outcome_table(
                             train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
 
@@ -392,6 +393,56 @@ class Pipeline():
             logger.debug("{} finished.".format(model_key))
 
         return results
+
+    def analyze_bias_and_fairness(self, X_test, y_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key):
+        run = self.run_number
+        bias_df = X_test.copy()
+        for var in disc_cols:
+            print(var)
+            self.discretize_cols(bias_df, var)
+
+        bias_df = bias_df[bias_cols]
+        for col in bias_df.columns:
+            bias_df[col] = bias_df[col].astype(str)
+
+
+        bias_df['label_value'] = y_test
+        bias_df['label_value'] = bias_df['label_value'].astype(str)
+        bias_df['score'] = y_pred_probs
+
+        g = Group()
+        xtab, _ = g.get_crosstabs(bias_df, score_thresholds={'rank_pct': [0.5]})
+
+        b = Bias()
+        bdf = b.get_disparity_predefined_groups(xtab, {'pct_renter_occupied_bins':'low',
+                                         'pct_white_bins':'low',
+                                         'pct_af_am_bins': 'high',
+                                         'pct_hispanic_bins' : 'high',
+                                         'pct_am_ind_bins' : 'high',
+                                         'pct_asian_bins' : 'high',
+                                         'pct_nh_pi_bins' : 'high',
+                                         'pct_multiple_bins' : 'high',
+                                         'pct_other_bins': 'high',
+                                         'renter_occupied_households_bins':'high',
+                                         'median_household_income_bins':'low',
+                                         'median_property_value_bins': 'low',
+                                         'urban': '1'})
+
+        f = Fairness()
+        fdf = f.get_group_value_fairness(bdf)
+
+        gaf = f.get_group_attribute_fairness(fdf)
+
+
+        outpath_xtab = 'results/'+model_key+str(run)+'_xtab.csv'
+        outpath_bdf = 'results/'+model_key+str(run)+'_bdf.csv'
+        outpath_fdf = 'results/'+model_key+str(run)+'_fdf.csv'
+        outpath_gaf = 'results/'+model_key+str(run)+'_gaf.csv'
+
+        xtab.to_csv(outpath_xtab)
+        bdf.to_csv(outpath_bdf)
+        fdf.to_csv(outpath_fdf)
+        gaf.to_csv(outpath_gaf)
 
 
 def main():
@@ -408,6 +459,7 @@ def main():
         chunk = pipeline.load_chunk(chunksize=200000)
         data.extend(chunk)
         #logger.info("{} chunks left to load.".format(max_chunks))
+    logger.info("Finished loading chunks")
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
@@ -426,7 +478,7 @@ def main():
     # Define feature sets
     demographic = ['population', 'poverty_rate',
     'pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'avg_hh_size',
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'avg_hh_size',
     'rent_burden','median_gross_rent', 'median_household_income', 'median_property_value',
     'population_avg_5yr','poverty_rate_avg_5yr','median_gross_rent_avg_5yr',
     'median_household_income_avg_5yr','median_property_value_avg_5yr','rent_burden_avg_5yr','pct_white_avg_5yr',
@@ -471,7 +523,7 @@ def main():
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
 
-    disc_columns = ['pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
+    disc_cols = ['pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
     'pct_multiple', 'pct_other', 'renter_occupied_households', 'median_household_income', 'median_property_value']
 
     bias_cols = ['pct_renter_occupied_bins', 'pct_white_bins', 'pct_af_am_bins', 'pct_hispanic_bins', 'pct_am_ind_bins', 'pct_asian_bins', 'pct_nh_pi_bins',
@@ -479,14 +531,16 @@ def main():
 
 
 
-    pipeline.feature_dict = {"demographic": demographic,
-                    "economic": economic,
-                    "eviction": eviction,
-                    "tract": tract
-                    }
+    #pipeline.feature_dict = {"demographic": demographic,
+    #                    "economic": economic,
+    #                "eviction": eviction,
+    #                "tract": tract
+    #                }
+    af = demographic + economic + eviction + tract
 
+    pipeline.feature_dict = {"all": af}
     # Generate all feature subsets
-    all_features = pipeline.get_subsets()
+    all_features = [{"feature_set_labels": ["all"], "features" : af}]
 
     # Define models and predictors to run
     models_to_run = ['RF', 'GB']
@@ -494,12 +548,12 @@ def main():
 
     # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
-        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run)
+        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run, disc_cols, bias_cols)
     print('done standard')
 
     # Run random and prior year baselines
     prior_features = [{"feature_set_labels": "prior_year", "features": ["top20_num_lag", "e_num_inc_20pct_lag"]}]
-    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'])
+    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, ['BASELINE_RAND', 'BASELINE_PRIOR'], disc_cols, bias_cols)
     print('done baseline')
 
     # Generate final results dataframe and write to csv
