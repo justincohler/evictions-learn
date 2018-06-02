@@ -54,11 +54,11 @@ class Pipeline():
         self.gridsize = 0
 
     def generate_classifiers(self):
-        self.classifiers = {'RF1': {
+        self.classifiers = {'RF': {
             "type": RandomForestClassifier(),
-            "params": {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]}
+            "params": {'n_estimators': [10], 'max_depth': [5, 10], 'max_features': ['sqrt']}
         },
-        'GB1': {
+        'GB': {
             "type": GradientBoostingClassifier(),
             "params": {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]}
         }
@@ -396,16 +396,18 @@ class Pipeline():
 
 def main():
     pipeline = Pipeline()
-
-    chunk = pipeline.load_chunk(chunksize=5000)
+    logger.info("Loading chunk 1....")
+    chunk = pipeline.load_chunk(chunksize=20000)
     data = chunk
-    max_chunks = 1
-    while chunk != [] and max_chunks > 0:
-        max_chunks = max_chunks - 1
-        logger.info("Loading chunk....")
-        chunk = pipeline.load_chunk(chunksize=100000)
+    #max_chunks = 1
+    chunk_ct = 2
+    while chunk != []: #and max_chunks > 0:
+        #max_chunks = max_chunks - 1
+        logger.info("Loading chunk {}....".format(chunk_ct))
+        chunk_ct = chunk_ct + 1
+        chunk = pipeline.load_chunk(chunksize=200000)
         data.extend(chunk)
-        logger.info("{} chunks left to load.".format(max_chunks))
+        #logger.info("{} chunks left to load.".format(max_chunks))
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
@@ -487,7 +489,7 @@ def main():
     all_features = pipeline.get_subsets()
 
     # Define models and predictors to run
-    models_to_run = ['RF1', 'GB1']
+    models_to_run = ['RF', 'GB']
     predictor_col_list = ['top20_num', 'e_num_inc_20pct']
 
     # Run models over all temporal splits, model parameters, feature sets
