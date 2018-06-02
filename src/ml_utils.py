@@ -185,6 +185,12 @@ class Pipeline():
         """
         return pd.cut(df[column], bins, labels=labels)
 
+    def discretize_cols(data_frame, col_list, labels=False, num_bins=4):
+        for col in col_list:
+            new_var= "{}_bins".format(col)
+            data_frame[new_var] = pd.cut(data_frame[col], bins=num_bins, labels=labels, right=True, include_lowest=True, retbins = False)
+        return data_frame
+
     def find_high_corr(self, corr_matrix, threshold, predictor):
         """Find all variables that are highly correlated with the predictor and thus
         likely candidates to exclude.
@@ -626,8 +632,22 @@ class Pipeline():
         return results
 
 
-    def analyze_bias_and_fairness(self, df):
-        df = preprocess_input_df(df, required_cols='top20_rate')
+    def analyze_bias_and_fairness(self, X_test, y_pred_probs, disc_cols, bias_cols, outcome_label):
+        #df = preprocess_input_df(df, required_cols='top20_rate')
+
+        disc_cols = bias_cols[:-1]
+        df = discretize_cols(df, disc_cols, ['low', 'med-low', 'med-high', 'high'])
+
+        bias_df = df[bias_cols]
+        bias_df.dtypes
+        for col in bias_df.columns:
+            bias_df[col] = bias_df[col].astype(str)
+
+        full_df = bias_df.merge(y_pred_probs, left_index = True, right_index = True)
+
+        full_df.rename(index = str {outcome_label : 'label_value'}, inplace = True)
+
+        full_df['label_value'] = full_df['label_value'].astype(str)
 
         g = Group()
         xtab, _ = g.get_crosstabs(df)
@@ -717,6 +737,14 @@ def main():
     'evictions_pct_change_3yr_lag_tr','eviction_rate_pct_change_3yr_lag_tr','eviction_filing_rate_pct_change_3yr_lag_tr',
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
+
+    disc_columns = ['pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
+    'pct_multiple', 'pct_other', 'renter_occupied_households', 'median_household_income', 'median_property_value']
+
+    bias_cols = ['pct_renter_occupied_bins', 'pct_white_bins', 'pct_af_am_bins', 'pct_hispanic_bins', 'pct_am_ind_bins', 'pct_asian_bins', 'pct_nh_pi_bins',
+    'pct_multiple_bins', 'pct_other_bins', 'renter_occupied_households_bins', 'median_household_income_bins', 'median_property_value_bins', 'urban']
+
+
 
     pipeline.feature_dict = {"demographic": demographic,
                     "economic": economic,
