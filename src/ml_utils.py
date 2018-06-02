@@ -561,6 +561,8 @@ class Pipeline():
         run = self.run_number
         outpath = 'results/'+model_key+str(run)+'.csv'
 
+        print(feature_set_labels)
+
         labels = []
         for fset in feature_set_labels:
             labels.extend(self.feature_dict[fset])
@@ -605,6 +607,7 @@ class Pipeline():
                         fit = classifier.fit(X_train, y_train)
                         y_pred_probs = fit.predict_proba(X_test)[:, 1]
 
+                        '''
                         if classifier_selection:
                             model_result = None
                         else:
@@ -628,8 +631,9 @@ class Pipeline():
                             # Save precicsion recall graph
                             self.plot_precision_recall_n(
                                 y_test, y_pred_probs, 'images/'+model_key+str(self.run_number), 'save')
+                        '''
 
-                        self.analyze_bias_and_fairness(X_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key)
+                        self.analyze_bias_and_fairness(X_test, y_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key)
 
 
                         results.append(self.populate_outcome_table(
@@ -644,11 +648,10 @@ class Pipeline():
         return results
 
 
-    def analyze_bias_and_fairness(self, X_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key):
+    def analyze_bias_and_fairness(self, X_test, y_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key):
         #df = preprocess_input_df(df, required_cols='top20_rate')
 
         run = self.run_number
-        print(X_test.columns)
         for var in disc_cols:
             print(var)
             self.discretize_cols(X_test, var)
@@ -657,14 +660,30 @@ class Pipeline():
         for col in bias_df.columns:
             bias_df[col] = bias_df[col].astype(str)
 
-        full_df = bias_df.merge(y_pred_probs, left_index = True, right_index = True)
 
-        full_df.rename(index = str, columns={outcome_label : 'label_value'}, inplace = True)
+        bias_df['label_value'] = y_test
+        bias_df['label_value'] = bias_df['label_value'].astype(str)
+        bias_df['score'] = y_pred_probs
+        #y_true_df = pd.DataFrame(y_test, columns = ['label_value']) 
+        #y_pred_df = pd.DataFrame(y_pred_probs, columns = ['score'])
 
-        full_df['label_value'] = full_df['label_value'].astype(str)
+        #part_df = bias_df.merge(y_true_df, left_index = True, right_index = True)
+
+        #print(part_df.head())
+
+        #full_df = part_df.merge(y_pred_df, left_index = True, right_index = True)
+
+        print(bias_df.head())
+
+        #full_df.rename(index = str, columns={outcome_label : 'label_value'}, inplace = True)
+
+        #full_df['label_value'] = full_df['0']
+        #full_df.drop(['0'])
+
+        #full_df['label_value'] = full_df['label_value'].astype(str)
 
         g = Group()
-        xtab, _ = g.get_crosstabs(full_df)
+        xtab, _ = g.get_crosstabs(bias_df, score_thresholds={'rank_pct': [0.5]})
 
         b = Bias()
         bdf = b.get_disparity_predefined_groups(xtab, {'pct_renter_occupied_bins':'low',
@@ -684,13 +703,18 @@ class Pipeline():
         f = Fairness()
         fdf = f.get_group_value_fairness(bdf)
 
+        gaf = f.get_group_attribute_fairness(fdf)
+
+
         outpath_xtab = 'results/'+model_key+str(run)+'_xtab.csv'
         outpath_bdf = 'results/'+model_key+str(run)+'_bdf.csv'
         outpath_fdf = 'results/'+model_key+str(run)+'_fdf.csv'
+        outpath_gaf = 'results/'+model_key+str(run)+'_gaf.csv'
 
         xtab.to_csv(outpath_xtab) 
         bdf.to_csv(outpath_bdf) 
         fdf.to_csv(outpath_fdf)
+        gaf.to_csv(outpath_gaf)
 
 def main():
     # Boolean switch for classifer vs model selection run
@@ -785,7 +809,11 @@ def main():
                     }
 
     # Generate all feature subsets
-    all_features = pipeline.get_subsets()
+    #all_features = pipeline.get_subsets()
+
+    af = demographic + economic + eviction + tract
+
+    all_features = [{"feature_set_labels": ["all"], "features" : af}]
 
     # Define models and predictors to run
     models_to_run = ['RF']
