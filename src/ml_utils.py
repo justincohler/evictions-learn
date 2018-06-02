@@ -185,10 +185,17 @@ class Pipeline():
         """
         return pd.cut(df[column], bins, labels=labels)
 
-    def discretize_cols(data_frame, col_list, labels=False, num_bins=4):
-        for col in col_list:
-            new_var= "{}_bins".format(col)
-            data_frame[new_var] = pd.cut(data_frame[col], bins=num_bins, labels=labels, right=True, include_lowest=True, retbins = False)
+    #def discretize_cols(self, data_frame, col_list, labels=False, num_bins=4):
+    #    print(data_frame.shape)
+    #    data_frame = pd.DataFrame(data_frame)
+    #    for col in col_list:
+    #        new_var= "{}_bins".format(col)
+    #        data_frame[new_var], _ = pd.cut(data_frame[col], bins=num_bins, labels=labels, right=True, include_lowest=True, retbins = True)
+    #    return data_frame
+
+    def discretize_cols(self, data_frame, var, num_bins=4, labels=False):
+        new_var= "{}_bins".format(var)
+        data_frame[new_var], _ = pd.cut(data_frame[var], bins=num_bins, labels=['low', 'med-low', 'med-high', 'high'], right=True, include_lowest=True, retbins = True)
         return data_frame
 
     def find_high_corr(self, corr_matrix, threshold, predictor):
@@ -501,7 +508,8 @@ class Pipeline():
                     y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
-    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, classifier_selection):
+    def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run, classifier_selection, 
+                    disc_cols, bias_cols):
         self.run_number = 0
         results = []
         self.prediction_windows = len(prediction_windows)
@@ -533,7 +541,7 @@ class Pipeline():
                         # Build classifiers
                         result = self.classify(models_to_run, X_train, X_test, y_train, y_test,
                                                (train_start, train_end), (test_start, test_end), feature_cols["feature_set_labels"],
-                                               predictor_col, classifier_selection)
+                                               predictor_col, classifier_selection, disc_cols, bias_cols)
 
                         results.extend(result)
 
@@ -566,7 +574,8 @@ class Pipeline():
 
         return outpath
 
-    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, classifier_selection):
+    def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label, classifier_selection, 
+                 disc_cols, bias_cols):
 
         self.generate_classifiers(classifier_selection)
         results = []
@@ -620,6 +629,9 @@ class Pipeline():
                             self.plot_precision_recall_n(
                                 y_test, y_pred_probs, 'images/'+model_key+str(self.run_number), 'save')
 
+                        self.analyze_bias_and_fairness(X_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key)
+
+
                         results.append(self.populate_outcome_table(
                             train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
 
@@ -632,33 +644,53 @@ class Pipeline():
         return results
 
 
-    def analyze_bias_and_fairness(self, X_test, y_pred_probs, disc_cols, bias_cols, outcome_label):
+    def analyze_bias_and_fairness(self, X_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key):
         #df = preprocess_input_df(df, required_cols='top20_rate')
 
-        disc_cols = bias_cols[:-1]
-        df = discretize_cols(df, disc_cols, ['low', 'med-low', 'med-high', 'high'])
+        run = self.run_number
+        print(X_test.columns)
+        for var in disc_cols:
+            print(var)
+            self.discretize_cols(X_test, var)
 
-        bias_df = df[bias_cols]
-        bias_df.dtypes
+        bias_df = X_test[bias_cols]
         for col in bias_df.columns:
             bias_df[col] = bias_df[col].astype(str)
 
         full_df = bias_df.merge(y_pred_probs, left_index = True, right_index = True)
 
-        full_df.rename(index = str {outcome_label : 'label_value'}, inplace = True)
+        full_df.rename(index = str, columns={outcome_label : 'label_value'}, inplace = True)
 
         full_df['label_value'] = full_df['label_value'].astype(str)
 
         g = Group()
-        xtab, _ = g.get_crosstabs(df)
+        xtab, _ = g.get_crosstabs(full_df)
 
         b = Bias()
-        bdf = b.get_disparity_predefined_groups(xtab, {'race':'Caucasian', 'sex':'Male', 'age_cat':'25 - 45'})
+        bdf = b.get_disparity_predefined_groups(xtab, {'pct_renter_occupied_bins':'low',
+                                         'pct_white_bins':'low',
+                                         'pct_af_am_bins': 'high',
+                                         'pct_hispanic_bins' : 'high',
+                                         'pct_am_ind_bins' : 'high',
+                                         'pct_asian_bins' : 'high',
+                                         'pct_nh_pi_bins' : 'high',
+                                         'pct_multiple_bins' : 'high',
+                                         'pct_other_bins': 'high',
+                                         'renter_occupied_households_bins':'high', 
+                                         'median_household_income_bins':'low',
+                                         'median_property_value_bins': 'low',
+                                         'urban': '1'})
 
         f = Fairness()
         fdf = f.get_group_value_fairness(bdf)
 
-        return xtab, bdf, fdf
+        outpath_xtab = 'results/'+model_key+str(run)+'_xtab.csv'
+        outpath_bdf = 'results/'+model_key+str(run)+'_bdf.csv'
+        outpath_fdf = 'results/'+model_key+str(run)+'_fdf.csv'
+
+        xtab.to_csv(outpath_xtab) 
+        bdf.to_csv(outpath_bdf) 
+        fdf.to_csv(outpath_fdf)
 
 def main():
     # Boolean switch for classifer vs model selection run
@@ -668,9 +700,9 @@ def main():
 
     chunk = pipeline.load_chunk(chunksize=5000)
     data = chunk
-    #max_chunks = 1
-    while chunk != []:# and max_chunks > 0:
-        #max_chunks = max_chunks - 1
+    max_chunks = 0
+    while chunk != [] and max_chunks > 0:
+        max_chunks = max_chunks - 1
         logger.info("Loading chunk....")
         chunk = pipeline.load_chunk(chunksize=100000)
         data.extend(chunk)
@@ -693,7 +725,7 @@ def main():
     # Define feature sets
     demographic = ['population', 'poverty_rate',
     'pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
-    'pct_multiple', 'pct_other', 'renter_occupied_households', 'pct_renter_occupied', 'avg_hh_size',
+    'pct_multiple', 'pct_other', 'renter_occupied_households','avg_hh_size',
     'rent_burden','median_gross_rent', 'median_household_income', 'median_property_value',
     'population_avg_5yr','poverty_rate_avg_5yr','median_gross_rent_avg_5yr',
     'median_household_income_avg_5yr','median_property_value_avg_5yr','rent_burden_avg_5yr','pct_white_avg_5yr',
@@ -738,7 +770,7 @@ def main():
     'conversion_rate_pct_change_3yr_lag_tr','eviction_filings_pct_change_5yr_lag_tr','evictions_pct_change_5yr_lag_tr',
     'eviction_rate_pct_change_5yr_lag_tr','eviction_filing_rate_pct_change_5yr_lag_tr','conversion_rate_pct_change_5yr_lag_tr']
 
-    disc_columns = ['pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
+    disc_cols = ['pct_renter_occupied', 'pct_white', 'pct_af_am', 'pct_hispanic', 'pct_am_ind', 'pct_asian', 'pct_nh_pi',
     'pct_multiple', 'pct_other', 'renter_occupied_households', 'median_household_income', 'median_property_value']
 
     bias_cols = ['pct_renter_occupied_bins', 'pct_white_bins', 'pct_af_am_bins', 'pct_hispanic_bins', 'pct_am_ind_bins', 'pct_asian_bins', 'pct_nh_pi_bins',
@@ -761,7 +793,7 @@ def main():
 
     # Run models over all temporal splits, model parameters, feature sets
     results_df1 = pipeline.run_temporal(
-        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run, classifier_selection)
+        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run, classifier_selection, disc_cols, bias_cols)
     print('done standard')
 
     # Run random and prior year baselines
