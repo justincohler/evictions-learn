@@ -1,6 +1,4 @@
-from db_init_local import DBInit
-
-init = DBInit()
+from db_init import DBInit
 
 """
 Removes instances of 999999 from data inserted in percentage change calculations to avoid skew. Replaces
@@ -9,6 +7,10 @@ Removes instances of 999999 from data inserted in percentage change calculations
 Note that no -999999 instances were present in our data, so we did not need to replcae these values.
 
 """
+
+init = DBInit()
+
+
 cols = ["population",
 		"poverty_rate",
 	    "median_gross_rent",

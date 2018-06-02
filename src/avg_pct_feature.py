@@ -1,4 +1,15 @@
-from db_init_local import DBInit
+from db_init import DBInit
+
+"""
+Creates 1, 3, and 5 year percentage change and average features for evictions features 
+for the blockgroup and tract-level features.
+
+Creates 1, 3, and 5 year percentage change and average features for permits features.
+
+Creates 5 year percentage change and average features for demographic features
+for the blockgroup and tract-level features.
+
+"""
 
 init = DBInit()
 
@@ -33,6 +44,7 @@ permits = [
 "total_units",
 "total_value"]
 
+# Generate evictions features for blockgroup and tract tables
 for table in ["blockgroup", "tr"]:
     lags = [1, 3, 5]
     for lag in lags:
@@ -51,7 +63,7 @@ for table in ["blockgroup", "tr"]:
             else:
                 print("Added {} year pct change to {} for feature {}".format(lag, table, col))
 
-
+# Generate demographic features for blockgroup and tract tables
 for table in ["blockgroup", "tr"]:
     lags = [5]
     for lag in lags:
@@ -70,7 +82,7 @@ for table in ["blockgroup", "tr"]:
             else:
                 print("Added {} year pct change to {} for feature {}".format(lag, table, col))
 
-
+# Generate permits features
 for table in ["permits"]:
     lags = [1, 3, 5]
     for lag in lags:
