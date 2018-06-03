@@ -283,6 +283,29 @@ class DBInit():
         self.db.write([db_statements.UPDATE_COLS_LAG_BG])
         self.db.write(["drop table ev_lag_blockgroup;"])
 
+    def rem_9_ev(self, lag, col, tr):
+        """Remove 999999 outlier values from evictions pct change columns, replace with max for given year"""
+        logger.info("removing 999999 from lagged {} for {} yr pct change where tract is {}".format(col, lag, tr))
+        try:
+            self.db.write([db_statements.REM_999999_ev.format(col, lag, tr, col, lag, tr, col, lag, tr, col, lag, tr)])
+        except Exception as e:
+            logger.error(e)
+            return False
+        logger.info("removed 999999 from lagged {} for {} yr pct change".format(col, lag))
+        return True
+
+    def rem_9(self, lag, col, tr):
+        """Remove 999999 outlier values from pct change columns, replace with max for given year"""
+        logger.info("removing 999999 from {} for {} yr pct change where tract is {}".format(col, lag, tr))
+        try:
+            self.db.write([db_statements.REM_999999.format(col, lag, tr, col, lag, tr, col, lag, tr, col, lag, tr)])
+        except Exception as e:
+            logger.error(e)
+            return False
+        logger.info("removed 999999 from {} for {} yr pct change".format(col, lag))
+        return True
+
+
 evcols = [
     "eviction_filings",
     "evictions",
@@ -368,5 +391,34 @@ if __name__=="__main__":
      
     initializer.ev_lag_tr()
     initializer.ev_lag_bg()
+
+    # replace instances in demographic features, which has 5 year data
+    lag = 5
+    for col in cols:
+        for tr in [True, False]:
+            res = init.rem_9(lag, col, tr)
+            if not res:
+                break
+               
+    # replace instances in evictions features, which has 1, 3, and 5-year data
+    lags = [1, 3, 5]
+    for col in evcols:
+        for lag in lags:
+            for tr in [True, False]:
+                init.rem_9_ev(lag, col, tr)
+                if not res:
+                    break
+    
+    #replace instances in permit features, which has 1, 3, and 5-year data        
+    lags = [1, 3, 5]
+    for col in permits:
+        for lag in lags:
+            init.rem_9_ev(lag, col, tr)
+            if not res:
+                break
+            
+
+
+
     
 
