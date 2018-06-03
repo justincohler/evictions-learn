@@ -140,16 +140,20 @@ class Pipeline():
         """
         data = chunk = self.db.cur.fetchmany(chunksize)
         if not max_chunks:
+            chunks = 1
             while chunk != []:
+                logger.info("Loading chunk {}...".format(chunks))
+                chunks = chunks + 1
                 chunk = self.db.cur.fetchmany(chunksize)
                 data.extend(chunk)
         else:
             while chunk != [] and max_chunks > 0:
                 max_chunks = max_chunks - 1
-                logger.info("Loading chunk....")
+                logger.info("Loading chunk...")
                 chunk = self.db.cur.fetchmany(chunksize)
                 data.extend(chunk)
                 logger.info("{} chunks left to load.".format(max_chunks))
+        logger.info("Finished loading data.")
         return data
 
     ##### Processing Fumctions #####
@@ -573,7 +577,7 @@ class Pipeline():
 ##### Main Runner #####
 def main():
     pipeline = Pipeline()
-    data = pipeline.load_data(chunksize=10000, max_chunks=1)
+    data = pipeline.load_data(chunksize=100000, max_chunks=None)
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
