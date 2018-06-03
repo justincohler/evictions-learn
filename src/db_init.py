@@ -21,7 +21,7 @@ class DBInit():
         """Clear and initialize the evictions table(s)."""
 
         logger.info("Dropping table {}...".format(level))
-        self.db.write([db_statements.DROP_TABLE_EV_LAB format(level)])
+        self.db.write([db_statements.DROP_TABLE_EV_LAB.format(level)])
         logger.info("Creating table {}...".format(level))
         self.db.write([db_statements.CREATE_TABLE_EV_LAB.format(level)])
         logger.info("Copying table...")
@@ -30,26 +30,26 @@ class DBInit():
         logger.info("Records committed.")
         logger.info("Creating indexes...")
         self.db.write([db_statements.IDX_STATE_YEAR.format(level, level),
-            db_statements.IDX_YEAR.format(level, level),
-            db_statements.IDX_STATE.format(level, level),
-            db_statements.IDX_EVICTIONS.format(level, level),
-            db_statements.IDX_STATE_YEAR.format(level, level),
-            db_statements.IDX_GEOID.format(level, level),
-            db_statements.IDX_GEOID_YEAR.format(level, level),
-            ])
+                       db_statements.IDX_YEAR.format(level, level),
+                       db_statements.IDX_STATE.format(level, level),
+                       db_statements.IDX_EVICTIONS.format(level, level),
+                       db_statements.IDX_STATE_YEAR.format(level, level),
+                       db_statements.IDX_GEOID.format(level, level),
+                       db_statements.IDX_GEOID_YEAR.format(level, level),
+                       ])
         logger.info("Indexes created.")
         logger.info("Adding sub-geography columns...")
         self.db.write([db_statements.CREATE_VAR_STATE.format(level),
-            db_statements.CREATE_VAR_COUNTY.format(level),
-            db_statements.UPDATE_VAR_STATE.format(level),
-            db_statements.UPDATE_VAR_COUNTY.format(level)
-            ])
+                       db_statements.CREATE_VAR_COUNTY.format(level),
+                       db_statements.UPDATE_VAR_STATE.format(level),
+                       db_statements.UPDATE_VAR_COUNTY.format(level)
+                       ])
         if level == "blockgroup":
             self.db.write([db_statements.CREATE_VAR_TRACT,
-                db_statements.UPDATE_VAR_TRACT])
+                           db_statements.UPDATE_VAR_TRACT])
         logger.info("Sub-geography columns added...")
         logger.info("Dropping records outside SA/ENC Divisions...")
-        self.db.write([db_statements.DROP_STATE.format(level)]) 
+        self.db.write([db_statements.DROP_STATE.format(level)])
         logger.info("{} table completed.".format(level))
 
     def geo_init(self):
@@ -77,10 +77,12 @@ class DBInit():
     def create_n_year_average(self, source_table, source_col, target_table, lag):
         """Create n-year (lag) average for given attribute, source table, and target table"""
 
-        logger.info("Adding {} year average to {} for feature {}".format(lag, target_table, source_col))
+        logger.info("Adding {} year average to {} for feature {}".format(
+            lag, target_table, source_col))
         target_col = '{}_avg_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
-        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT4")
+        ADD_COLUMN = db_statements.ADD_COLUMN.format(
+            target_table, target_col, "FLOAT4")
         INSERT_N_YEAR_AVG = db_statements.INSERT_N_YEAR_AVG.format(
             target_table, target_col, source_col, source_table, source_table, lag)
 
@@ -96,16 +98,19 @@ class DBInit():
             logger.error(e)
             return False
 
-        logger.info("Added {} year average to {} for feature {}".format(lag, target_table, source_col))
+        logger.info("Added {} year average to {} for feature {}".format(
+            lag, target_table, source_col))
         return True
 
     def create_n_year_pct_change(self, source_table, source_col, target_table, lag):
         """Create n-year (lag) percentage change for given attribute, source table, and target table"""
 
-        logger.info("Adding {} year pct change to {} for feature {}".format(lag, target_table, source_col))
+        logger.info("Adding {} year pct change to {} for feature {}".format(
+            lag, target_table, source_col))
         target_col = '{}_pct_change_{}yr'.format(source_col, lag)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
-        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, "FLOAT")
+        ADD_COLUMN = db_statements.ADD_COLUMN.format(
+            target_table, target_col, "FLOAT")
         INSERT_N_YEAR_PCT_CHANGE = db_statements.INSERT_N_YEAR_PCT_CHANGE \
             .format(target_table, target_col,
                     source_col, source_col,
@@ -127,7 +132,8 @@ class DBInit():
             logger.error(e)
             return False
 
-        logger.info("Added {} year pct change to {} for feature {}".format(lag, target_table, source_col))
+        logger.info("Added {} year pct change to {} for feature {}".format(
+            lag, target_table, source_col))
         return True
 
     def create_geo_features_table(self):
@@ -184,7 +190,7 @@ class DBInit():
 
     def create_outcome_table(self, start_year, end_year):
         """Create outcomes table with different outcomes measures"""
-        
+
         DROP_TABLE_OUTCOME = db_statements.DROP_TABLE_OUTCOME
         CREATE_TABLE_OUTCOME = db_statements.CREATE_TABLE_OUTCOME
 
@@ -205,10 +211,10 @@ class DBInit():
 
     def update_outcome_change_cat(self, col_name, col_type, existing_col, zero_to_one=True):
         """Update outcomes table to add category change variables"""
-     
+
         DROP_COLUMN = db.statements.DROP_COLUMN.format('outcome', col_name)
         ADD_COLUMN = db_statements.ADD_COLUMN.format(
-            'outcome', col_name, col_type)  
+            'outcome', col_name, col_type)
 
         if zero_to_one:
             OUTCOME_CAT_CHANGE = db_statements.OUTCOME_CAT_CHANGE_0_1.format(
@@ -231,7 +237,8 @@ class DBInit():
         """discretize a given column into a given number of buckets"""
         target_col = '{}_{}tiles'.format(source_col, num_buckets)
         DROP_COLUMN = db_statements.DROP_COLUMN.format(target_table, target_col)
-        ADD_COLUMN = db_statements.ADD_COLUMN.format(target_table, target_col, col_type)
+        ADD_COLUMN = db_statements.ADD_COLUMN.format(
+            target_table, target_col, col_type)
         INSERT_NTILE_DISCRETIZATION = db_statements.INSERT_NTILE_DISCRETIZATION.format(
             target_table, target_col, num_buckets, source_col, target_col)
 
@@ -250,7 +257,8 @@ class DBInit():
 
     def permit_import(self):
         """Create permits table and import permit data from csv"""
-        self.db.write([db_statements.DROP_TABLE_PERMITS, db_statements.CREATE_TABLE_PERMITS])
+        self.db.write([db_statements.DROP_TABLE_PERMITS,
+                       db_statements.CREATE_TABLE_PERMITS])
         self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/permits.csv',
                      db_statements.COPY_CSV_PERMITS)
 
@@ -258,16 +266,19 @@ class DBInit():
 
     def hhsize_import(self):
         """Create household size table and import household size data from csv"""
-        self.db.write([db_statements.DROP_TABLE_HHSIZE, db_statements.CREATE_TABLE_HHSIZE])
-        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/census/hs_final.csv', db_statements.COPY_CSV_HHSIZE)
-        self.db.write([db_statements.CREATE_VAR_HHSIZE, db_statements.UPDATE_VAR_HHSIZE, db_statements.DROP_TABLE_HHSIZE])
+        self.db.write([db_statements.DROP_TABLE_HHSIZE,
+                       db_statements.CREATE_TABLE_HHSIZE])
+        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/census/hs_final.csv',
+                     db_statements.COPY_CSV_HHSIZE)
+        self.db.write([db_statements.CREATE_VAR_HHSIZE,
+                       db_statements.UPDATE_VAR_HHSIZE, db_statements.DROP_TABLE_HHSIZE])
         return True
 
     def ev_lag_tr(self):
         """Create lagged outcome features (one year lag) for tract table"""
         self.db.write(["drop table if exists ev_lag_tr;"])
         self.db.write([db_statements.CREATE_EV_TABLE.format("tr", "tr")
-        ])
+                       ])
         self.db.write(["create index lag_gy on ev_lag_tr (geo_id, year);"])
         self.db.write(["create index lag_y on ev_lag_tr (year);"])
         self.db.write([db_statements.UPDATE_COLS_LAG_TR])
@@ -277,32 +288,39 @@ class DBInit():
         """Create lagged outcome features (one year lag) for blockgroup table"""
         self.db.write(["drop table if exists ev_lag_blockgroup;"])
         self.db.write([db_statements.CREATE_EV_TABLE.format("blockgroup", "blockgroup")
-        ])
-        self.db.write(["create index lag_gy_bg on ev_lag_blockgroup (geo_id, year);"])
+                       ])
+        self.db.write(
+            ["create index lag_gy_bg on ev_lag_blockgroup (geo_id, year);"])
         self.db.write(["create index lag_y_bg on ev_lag_blockgroup (year);"])
         self.db.write([db_statements.UPDATE_COLS_LAG_BG])
         self.db.write(["drop table ev_lag_blockgroup;"])
 
     def rem_9_ev(self, lag, col, tr):
         """Remove 999999 outlier values from evictions pct change columns, replace with max for given year"""
-        logger.info("removing 999999 from lagged {} for {} yr pct change where tract is {}".format(col, lag, tr))
+        logger.info(
+            "removing 999999 from lagged {} for {} yr pct change where tract is {}".format(col, lag, tr))
         try:
-            self.db.write([db_statements.REM_999999_ev.format(col, lag, tr, col, lag, tr, col, lag, tr, col, lag, tr)])
+            self.db.write([db_statements.REM_999999_ev.format(
+                col, lag, tr, col, lag, tr, col, lag, tr, col, lag, tr)])
         except Exception as e:
             logger.error(e)
             return False
-        logger.info("removed 999999 from lagged {} for {} yr pct change".format(col, lag))
+        logger.info(
+            "removed 999999 from lagged {} for {} yr pct change".format(col, lag))
         return True
 
     def rem_9(self, lag, col, tr):
         """Remove 999999 outlier values from pct change columns, replace with max for given year"""
-        logger.info("removing 999999 from {} for {} yr pct change where tract is {}".format(col, lag, tr))
+        logger.info(
+            "removing 999999 from {} for {} yr pct change where tract is {}".format(col, lag, tr))
         try:
-            self.db.write([db_statements.REM_999999.format(col, lag, tr, col, lag, tr, col, lag, tr, col, lag, tr)])
+            self.db.write([db_statements.REM_999999.format(
+                col, lag, tr, col, lag, tr, col, lag, tr, col, lag, tr)])
         except Exception as e:
             logger.error(e)
             return False
-        logger.info("removed 999999 from {} for {} yr pct change".format(col, lag))
+        logger.info(
+            "removed 999999 from {} for {} yr pct change".format(col, lag))
         return True
 
 
@@ -333,11 +351,11 @@ cols = [
     "avg_hh_size"]
 
 permits = [
-"total_bldg",
-"total_units",
-"total_value"]     
+    "total_bldg",
+    "total_units",
+    "total_value"]
 
-if __name__=="__main__":
+if __name__ == "__main__":
     initializer = DBInit()
 
     for level in ["blockgroup", "tr"]:
@@ -345,25 +363,26 @@ if __name__=="__main__":
     initializer.geo_init()
 
     for geo in ["blck_grp", "state"]:
-    	initializer.census_shp(geo)
-    	
+        initializer.census_shp(geo)
+
     initializer.permit_import()
     initializer.hhsize_import()
     initializer.create_geo_features_table()
     initializer.create_outcome_table()
     initializer.update_outcome_change_cat()
-    
+
     # Generate lagged eviction avg/pct change features for blockgroup and tract tables
     for table in ["blockgroup", "tr"]:
-    lags = [1, 3, 5]
-    for lag in lags:
-        for col in evcols:
-            res = initializer.create_n_year_average(col, table, lag)
-            if not res:
-                break
-            res = initializer.create_n_year_pct_change(table, col, table, lag)
-            if not res:
-                break
+        lags = [1, 3, 5]
+        for lag in lags:
+            for col in evcols:
+                res = initializer.create_n_year_average(col, table, lag)
+                if not res:
+                    break
+                res = initializer.create_n_year_pct_change(
+                    table, col, table, lag)
+                if not res:
+                    break
 
     # Generate demographic avg/pct change features for blockgroup and tract tables
     for table in ["blockgroup", "tr"]:
@@ -373,7 +392,8 @@ if __name__=="__main__":
                 res = initializer.create_n_year_average(col, table, lag)
                 if not res:
                     break
-                res = initializer.create_n_year_pct_change(table, col, table, lag)
+                res = initializer.create_n_year_pct_change(
+                    table, col, table, lag)
                 if not res:
                     break
 
@@ -385,10 +405,11 @@ if __name__=="__main__":
                 res = initializer.create_n_year_average(col, table, lag)
                 if not res:
                     break
-                res = initializer.create_n_year_pct_change(table, col, table, lag)
+                res = initializer.create_n_year_pct_change(
+                    table, col, table, lag)
                 if not res:
                     break
-     
+
     initializer.ev_lag_tr()
     initializer.ev_lag_bg()
 
@@ -399,7 +420,7 @@ if __name__=="__main__":
             res = init.rem_9(lag, col, tr)
             if not res:
                 break
-               
+
     # replace instances in evictions features, which has 1, 3, and 5-year data
     lags = [1, 3, 5]
     for col in evcols:
@@ -408,17 +429,11 @@ if __name__=="__main__":
                 init.rem_9_ev(lag, col, tr)
                 if not res:
                     break
-    
-    #replace instances in permit features, which has 1, 3, and 5-year data        
+
+    # replace instances in permit features, which has 1, 3, and 5-year data
     lags = [1, 3, 5]
     for col in permits:
         for lag in lags:
             init.rem_9_ev(lag, col, tr)
             if not res:
                 break
-            
-
-
-
-    
-

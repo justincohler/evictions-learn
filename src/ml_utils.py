@@ -97,8 +97,8 @@ class Pipeline():
             'BASELINE_DT': {
             "type": DecisionTreeClassifier(),
             GRID_1: {'criterion': ['gini'], 'max_depth': [3]},
-            GRID_2: {'criterion': ['gini', 'entropy'], 'max_depth': [3]},
-            GRID_3: {}
+            GRID_2: {'criterion': ['gini'], 'max_depth': [3]},
+            GRID_3: {'criterion': ['gini'], 'max_depth': [3]}
         },
             'KNN': {
             "type": KNeighborsClassifier(),
@@ -309,7 +309,7 @@ class Pipeline():
 
     def generate_feature_importance(self, feature_set_labels, feature_values, match_type, model_key):
         """Generate model-specific feature importance, write out to csv and return file location"""
-        outpath = 'results/' + model_key + str(self.run_number) + '.csv'
+        outpath = 'results/csv/' + model_key + str(self.run_number) + '.csv'
 
         logger.debug(feature_set_labels)
 
@@ -339,7 +339,7 @@ class Pipeline():
         bias_df['label_value'] = bias_df['label_value'].astype(str)
         bias_df['score'] = y_pred_probs
 
-        outpath_analysis = 'results/' + model_key + \
+        outpath_analysis = 'results/csv/' + model_key + \
             str(self.run_number) + '_feature_analysis.csv'
         analysis_df = X_test.copy()
         analysis_df['label_value'] = y_test
@@ -347,7 +347,7 @@ class Pipeline():
         analysis_df['score'] = y_pred_probs
         analysis_df.to_csv(outpath_analysis)
 
-        outpath_bias = 'results/' + model_key + \
+        outpath_bias = 'results/csv/' + model_key + \
             str(self.run_number) + '_bias.csv'
         bias_df.to_csv(outpath_bias)
 
@@ -447,17 +447,15 @@ class Pipeline():
 
     ##### Primary Control Structure Functions #####
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run,
-                     bias_features, grid=GRID_1):
-    """Temporal control structure. Builds incremental train/test splits based on prediction windo, trains models
-    and generates final output dataframe."""
+                     bias_features, grid=GRID_1, latest=False):
+        """Temporal control structure. Builds incremental train/test splits based on prediction windo, trains models
+        and generates final output dataframe."""
         self.run_number = 0
         results = []
         self.prediction_windows = len(prediction_windows)
         # Time incrementation
         for prediction_window in prediction_windows:
             train_start = start
-            print("Latest")
-            print(latest)
             if not latest:
                 train_end = train_start + \
                     relativedelta(months=+prediction_window) - \
@@ -554,7 +552,7 @@ class Pipeline():
                                 model_key, fit, X_train, feature_set_labels)
 
                             self.plot_precision_recall_n(
-                                y_test, y_pred_probs, 'images/'+model_key+str(self.run_number), 'save')
+                                y_test, y_pred_probs, 'results/images/'+model_key+str(self.run_number), 'save')
 
                         if len(feature_set_labels) == 4:
                             self.analyze_bias_and_fairness(
@@ -615,8 +613,6 @@ def main():
     for phase in [phase3]:
         logger.info("Running {}...".format(phase['name']))
         # Run models over all temporal splits, model parameters, feature
-        print(phase['name'])
-        print(phase['grid'])
         results_df1 = pipeline.run_temporal(
             pipeline.df, start, end, prediction_windows, all_features,
             predictors, phase['models'], bias_features, grid=phase['grid'], latest=phase['latest_split'])
