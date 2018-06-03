@@ -9,7 +9,7 @@
 # Maryland  (24) North Carolina (37) South Carolina (45) Virginia (51) West Virginia  (54)
 
 
-Drop_State = "delete from {} where {} not in ('18', '17', '26', '39', '55', '10', '11', '12', '13', '24', '37', '45', '51', '54');"
+DROP_STATE = "delete from {} where state not in ('18', '17', '26', '39', '55', '10', '11', '12', '13', '24', '37', '45', '51', '54');"
 
 
 '''============================================================================
@@ -33,12 +33,11 @@ ALTER_SPATIAL_REF_SYS = "ALTER TABLE spatial_ref_sys OWNER TO {};"
 '''============================================================================
     BLOCKGROUP TABLE
 ============================================================================='''
-DROP_TABLE_BLOCKGROUP = "DROP TABLE IF EXISTS blockgroup;"
+DROP_TABLE_EV_LAB = "DROP TABLE IF EXISTS {};"
 
-CREATE_TABLE_BLOCKGROUP = """CREATE TABLE blockgroup
+CREATE_TABLE_EV_LAB = """CREATE TABLE {}
 (
     _id SERIAL PRIMARY KEY,
-    state CHAR(2),
     geo_id CHAR(12),
     year SMALLINT,
     name VARCHAR(10),
@@ -64,61 +63,28 @@ CREATE_TABLE_BLOCKGROUP = """CREATE TABLE blockgroup
     eviction_rate float4,
     eviction_filing_rate float4,
     imputed BOOLEAN,
-    subbed BOOLEAN
-);"""
-
-CREATE_TABLE_EVICTIONS = """CREATE TABLE tr
-(
-    geo_id CHAR(12),
-    year SMALLINT,
-    name VARCHAR(50),
-    parent_location VARCHAR(100),
-    population FLOAT4,
-    poverty_rate FLOAT4,
-    pct_renter_occupied FLOAT4,
-    median_gross_rent FLOAT4,
-    median_household_income FLOAT4,
-    median_property_value FLOAT4,
-    rent_burden FLOAT4,
-    pct_white FLOAT4,
-    pct_af_am FLOAT4,
-    pct_hispanic FLOAT4,
-    pct_am_ind FLOAT4,
-    pct_asian FLOAT4,
-    pct_nh_pi FLOAT4,
-    pct_multiple FLOAT4,
-    pct_other FLOAT4,
-    renter_occupied_households FLOAT4,
-    eviction_filings FLOAT4,
-    evictions FLOAT4,
-    eviction_rate FLOAT4,
-    eviction_filing_rate FLOAT4,
-    imputed BOOLEAN,
     subbed BOOLEAN,
-    low_flag BOOLEAN
+    low-flag BOOLEAN
 );"""
 
-IDX_STATE_YEAR = "CREATE INDEX idx_state_year ON blockgroup (state, year);"
-IDX_YEAR = "CREATE INDEX idx_year ON blockgroup (year);"
-IDX_STATE = "CREATE INDEX idx_state ON blockgroup (state);"
-IDX_EVICTIONS = "CREATE INDEX idx_evictions ON blockgroup (evictions);"
-IDX_GEOID = "CREATE INDEX idx_geoid on blockgroup (geo_id);"
-IDX_GEOID_YEAR = "CREATE INDEX idx_geoid on blockgroup (geo_id, year);"
-IDX_STATE_TR = "create index idx_state_tr on evictions_tract (state);"
-IDX_STATE_CT = "create index idx_state_ct on evictions_county (state);"
-IDX_STATE_GEO = "create index idx_state_geo on geographic (state);"
+IDX_STATE_YEAR = "CREATE INDEX idx_state_year{} ON {} (state, year);"
+IDX_YEAR = "CREATE INDEX idx_year{} ON {} (year);"
+IDX_STATE = "CREATE INDEX idx_state{} ON {} (state);"
+IDX_EVICTIONS = "CREATE INDEX idx_evictions{} ON {} (evictions);"
+IDX_GEOID = "CREATE INDEX idx_geoid{} on {} (geo_id);"
+IDX_GEOID_YEAR = "CREATE INDEX idx_geoid{} on {} (geo_id, year);"
+
 
 COPY_CSV_EVICTIONS = """COPY {}
     FROM stdin WITH CSV HEADER DELIMITER as ','
 """
-RENAME_VAR_STATE = "ALTER TABLE evictions.blockgroup RENAME COLUMN state TO state_code;"
-CREATE_VAR_STATE = "ALTER TABLE evictions.blockgroup state CHAR(2);"
+CREATE_VAR_STATE = "ALTER TABLE evictions.{} state CHAR(2);"
 CREATE_VAR_TRACT = "ALTER TABLE evictions.blockgroup tract CHAR(11);"
-CREATE_VAR_COUNTY = "ALTER TABLE evictions.blockgroup county CHAR(5);"
+CREATE_VAR_COUNTY = "ALTER TABLE evictions.{} county CHAR(5);"
 
-UPDATE_VAR_STATE = "UPDATE evictions.blockgroup set state = substring(geo_id from 1 for 2);"
+UPDATE_VAR_STATE = "UPDATE evictions.{} set state = substring(geo_id from 1 for 2);"
 UPDATE_VAR_TRACT = "UPDATE evictions.blockgroup set tract = substring(geo_id from 1 for 11);"
-UPDATE_VAR_COUNTY = "UPDATE evictions.blockgroup set county = substring(geo_id from 1 for 5);"
+UPDATE_VAR_COUNTY = "UPDATE evictions.{} set county = substring(geo_id from 1 for 5);"
 
 '''==========================================================================
 SHAPEFILE LOAD 
@@ -560,7 +526,6 @@ ADD_ECON_COLS = """
   div_enc int;"""
 
 
-
 UPDATE_DEM_TR_COLS_BG = """
 UPDATE blockgroup SET
 population_tr = t.population,
@@ -710,15 +675,7 @@ FROM ev_lag_tr e
 where blockgroup.tract = e.geo_id and blockgroup.year = e.year + 1;"""
 
 
-
-
-
-"""
-
-### Tract HH_Size is the average of the bg hh sizes for each tract
-
-"""
-
+#Tract HH_Size is the average of the bg hh sizes for each tract
 ADD_AVG_HH_SIZE_TR = "ALTER TABLE evictions.tr ADD COLUMN avg_hh_size float4;"
 
 UPDATE_AVG_HH_SIZE_TR = """
