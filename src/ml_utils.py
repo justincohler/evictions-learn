@@ -102,6 +102,7 @@ class Pipeline():
 
     ##### Loading Functions #####
     def load_county_data(self, county):
+        """Load data from Cook County for local testing."""
         "17031 is cook county"
         l = []
         with self.db.conn.cursor() as cur:
@@ -144,14 +145,24 @@ class Pipeline():
         return data
 
     ##### Processing Fumctions #####
-    def discretize_cols(self, data_frame, feature, num_bins=4, labels=False):
-        series, _ = pd.cut(data_frame[feature], bins=num_bins, labels=[
+    def discretize_cols(self, dataframe, feature, num_bins=4, labels=False):
+        """Discretize features of interest
+        Inputs:
+            - dataframe (pandas dataframe)
+            - feature (string): label of column to discretize
+            - num_bins (int): number of bins to discretize into
+            - labels
+
+        Returns a pandas dataframe
+        """
+        series, _ = pd.cut(dataframe[feature], bins=num_bins, labels=[
             'low', 'med-low', 'med-high', 'high'], right=True, include_lowest=True, retbins=True)
-        data_frame[feature] = series
-        return data_frame
+        dataframe[feature] = series
+        return dataframe
 
     def cols_with_nulls(self, df):
         '''
+        Finds list of all columns in a dataframe with null values
         '''
         isnull = df.isnull().any()
         isnull_cols = list(isnull[isnull == True].index)
@@ -179,13 +190,8 @@ class Pipeline():
 
         return df
 
-
-    def proba_wrap(self, model, x_data, predict=False, threshold=0.5):
-        """Return a probability predictor for a given threshold."""
-        # TODO - implement
-        return model.predict_proba(x_data)
-
     def get_subsets(self):
+        """Returns all possible subsets of defined feature sets"""
         subsets = []
         for i in range(1, len(self.feature_sets.keys()) + 1):
 
@@ -202,17 +208,20 @@ class Pipeline():
         return subsets
 
     def joint_sort_descending(self, l1, l2):
+        """Jointly sort two numpy arrays."""
         # l1 and l2 have to be numpy arrays
         idx = np.argsort(l1)[::-1]
         return l1[idx], l2[idx]
 
     def generate_binary_at_k(self, y_scores, k):
+        """Turn probabilistic outcomes to binary variable based on threshold k."""
         cutoff_index = int(len(y_scores) * (k / 100.0))
         test_predictions_binary = [
             1 if x < cutoff_index else 0 for x in range(len(y_scores))]
         return test_predictions_binary
 
     def precision_at_k(self, y_true, y_scores, k):
+        """Calculate precision of predictions at a threshold k."""
         y_scores, y_true = self.joint_sort_descending(
             np.array(y_scores), np.array(y_true))
         preds_at_k = self.generate_binary_at_k(y_scores, k)
@@ -220,6 +229,7 @@ class Pipeline():
         return precision
 
     def recall_at_k(self, y_true, y_scores, k):
+        """Calculate recall of predictions at a threshold k."""
         y_scores_sorted, y_true_sorted = self.joint_sort_descending(
             np.array(y_scores), np.array(y_true))
         preds_at_k = self.generate_binary_at_k(y_scores_sorted, k)
@@ -227,6 +237,7 @@ class Pipeline():
         return recall
 
     def f1_at_k(self, y_true, y_scores, k):
+        """Calculate F1 score of predictions at a threshold k."""
         y_scores, y_true = joint_sort_descending(
             np.array(y_scores), np.array(y_true))
         preds_at_k = generate_binary_at_k(y_scores, k)
@@ -237,6 +248,7 @@ class Pipeline():
 
     ##### Writeout/Visualization Functions #####
     def plot_precision_recall_n(self, y_true, y_prob, model_name, output_type):
+        """Plot and output a precision recall graph for a given model run"""
         y_score = y_prob
         precision_curve, recall_curve, pr_thresholds = precision_recall_curve(
             y_true, y_score)
@@ -275,6 +287,7 @@ class Pipeline():
 
 
     def visualize_tree(self, fit, X_train, show=True):
+        """Use graphviz package to render a tree and return the file location"""
         num = self.run_number
 
         viz = tree.export_graphviz(fit, out_file=None, feature_names=X_train.columns,
@@ -287,7 +300,8 @@ class Pipeline():
 
         return 'images/tree_viz' + str(num) + '.png'
 
-    def match_label_array(self, feature_set_labels, feature_values, match_type, model_key):
+    def generate_feature_importance(self, feature_set_labels, feature_values, match_type, model_key):
+        """Generate model-specific feature importance, write out to csv and return file location"""
         outpath = 'results/' + model_key + str(self.run_number) + '.csv'
 
         logger.debug(feature_set_labels)
@@ -306,7 +320,7 @@ class Pipeline():
         return outpath
 
     def analyze_bias_and_fairness(self, X_test, y_test, y_pred_probs, bias_features, outcome_label, model_key):
-
+        """Analyze bias of resulting predictions"""
         bias_df = X_test[bias_features]
 
         for feature in bias_df.columns:
@@ -324,6 +338,7 @@ class Pipeline():
 
     ##### Generate Output Dataframe #####
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
+        """Generate tuple of desired model results to include final results dataframe"""
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
 
@@ -374,20 +389,21 @@ class Pipeline():
                 )
 
     def get_model_result(self, model_key, fit, X_train, feature_set_labels):
+        """Based on model type, generate augmented model result outputs as needed"""
         if model_key == 'DT' or model_key == 'BASELINE_DT':
             graph = self.visualize_tree(fit, X_train, show=False)
             model_result = DT(graph)
         elif model_key == 'SVM':
-            model_result = SVM(self.match_label_array(
+            model_result = SVM(self.generate_feature_importance(
                 feature_set_labels, fit.coef_[0], "coef", model_key))
         elif model_key == 'RF':
-            model_result = RF(self.match_label_array(
+            model_result = RF(self.generate_feature_importance(
                 feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
         elif model_key == 'LR':
-            model_result = LR(self.match_label_array(
+            model_result = LR(self.generate_feature_importance(
                 feature_set_labels, fit.coef_[0], "coef", model_key), fit.intercept_,)
         elif model_key == 'GB':
-            model_result = GB(self.match_label_array(
+            model_result = GB(self.generate_feature_importance(
                 feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
         elif model_key == 'BAG':
             model_result = BAG(fit.base_estimator_, fit.estimators_features_)
@@ -400,11 +416,13 @@ class Pipeline():
     ##### Temporal Train/Test Split Generation #####
     def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
         """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
+        # Make train and test dfs based on time of interest, exclude null values in the predictor column
         train_df = df[(df['year'] >= train_start) & (
             df['year'] <= train_end) & (~df[predictor_col].isnull())]
         test_df = df[(df['year'] >= test_start) & (
             df['year'] <= test_end) & (~df[predictor_col].isnull())]
 
+        # Make train and test dataframes based on column inputs
         X_train = train_df[feature_cols]
         y_train = train_df[predictor_col]
 
@@ -416,9 +434,12 @@ class Pipeline():
     ##### Primary Control Structure Functions #####
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run,
                      bias_features, grid=GRID_1):
+    """Temporal control structure. Builds incremental train/test splits based on prediction windo, trains models 
+    and generates final output dataframe."""
         self.run_number = 0
         results = []
         self.prediction_windows = len(prediction_windows)
+        # Time incrementation
         for prediction_window in prediction_windows:
             train_start = start
             train_end = train_start + \
@@ -453,6 +474,7 @@ class Pipeline():
                                                                           test_end), feature_cols["feature_set_labels"],
                                                predictor_col, bias_features, grid)
 
+                        # Add new result to existing results list
                         results.extend(result)
 
                 # Increment time
@@ -471,10 +493,11 @@ class Pipeline():
 
     def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label,
                  bias_features, grid):
-
+        """With given train and test splits, feature sets, and outcome, train all models of interest over all parameter combinations"""
         results = []
         self.models = len(models_to_run)
         for model_key in models_to_run:
+            # Baseline contingencies
             if model_key == 'BASELINE_RAND':
                 pct_negative = len(y_train[y_train == 0]) / len(y_train)
                 y_pred_probs = np.random.rand(len(y_test))
@@ -486,6 +509,7 @@ class Pipeline():
                 X_test = X_test[outcome_label + '_lag']
                 results.append(self.populate_outcome_table(
                     train_dates, test_dates, model_key, model_key, {}, feature_set_labels, outcome_label, None, y_test, X_test))
+            # Main classification loop
             else:
                 classifier = self. classifiers[model_key]["type"]
                 grid = ParameterGrid(
