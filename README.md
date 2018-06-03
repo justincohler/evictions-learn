@@ -30,14 +30,14 @@ Our repository is structured with the following directories:
 * Run `pytest -s` to run the test suite. If the tests pass, then you're successfully connected to the database!
 
 ## Feature Generation
-* Run the Census_Data_Cleaning ipython notebook in the data directory to clean the raw census data for import
-* Run db_init.py to populate the database with the raw data and generate features
+* Run the `Census_Data_Cleaning` ipython notebook in the data directory to clean the raw census data for import
+* Run `db_init.py` to populate the database with the raw data and generate features
 * NOTE: the raw data files should be in the 'src/data/raw' directory on your local machine
 
 ## Analysis
-* Run ml_utils.py to perform our three phases of analysis and outputs a .csv file with the results from each phase
+* Run `ml_utils.py` to perform our three phases of analysis and outputs a .csv file with the results from each phase
 * Note: for phase 3, the script also produces feature importance .csv files, precision recall graph .png files, and decision     tree .png files. You will need to create 'src/results/csv' and 'src/results/images' directories on your local machine to       capture this output.
-* Run the Phase I Analysis, Phase II Analysis, and Phase III Analysis ipython notebooks to replicate the model evaluation and feature importance analysis conducted by the authors at each stage
+* Run the `Phase I Analysis`, `Phase II Analysis`, and `Phase III Analysis` ipython notebooks to replicate the model evaluation and feature importance analysis conducted by the authors at each stage
 
 ## Bias Assessment
 * To assess our models for bias in Phase III, the authors used the Data Science for Social Good Aequitas Bias Assessment and Audit Toolkig   (http://aequitas.dssg.io/). To replicate this analysis, visit the url, click "get started" and upload the bias csv files output to the 'src/results/csv' repository. 
