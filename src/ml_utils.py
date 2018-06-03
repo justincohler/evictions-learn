@@ -36,6 +36,7 @@ import itertools
 logger = logging.getLogger('evictionslog')
 GRID_1 = "small grid"
 GRID_2 = "large grid"
+GRID_3 = "final grid"
 
 
 class Pipeline():
@@ -56,48 +57,55 @@ class Pipeline():
             "type": RandomForestClassifier(),
             GRID_1: {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]},
             GRID_2: {'n_estimators': [5, 10], 'max_depth': [
-                5, 10, 20], 'max_features': ['sqrt']}
+                5, 10, 20], 'max_features': ['sqrt']},
+            GRID_3: {'n_estimators': [100], 'max_depth': [10, 20], 'max_features': [
+                'sqrt', 'log2'], 'min_samples_split': [2, 10]}
         },
             'LR': {
             "type": LogisticRegression(),
             GRID_1: {'penalty': ['l2'], 'C': [0.01]},
-            GRID_2: {'penalty': ['l1', 'l2'], 'C': [0.001, 0.01, 0.1, 1, 10]}
-
+            GRID_2: {'penalty': ['l1', 'l2'], 'C': [0.001, 0.01, 0.1, 1, 10]},
+            GRID_3: {}
         },
             'NB': {
             "type": GaussianNB(),
             GRID_1: {},
             GRID_2: {},
+            GRID_3: {}
         },
             'GB': {
             "type": GradientBoostingClassifier(),
             GRID_1: {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]},
             GRID_2: {'n_estimators': [5, 10], 'learning_rate': [
-                0.001, 0.01, 0.5], 'subsample': [0.1, 0.5], 'max_depth': [5, 20]}
+                0.001, 0.01, 0.5], 'subsample': [0.1, 0.5], 'max_depth': [5, 20]},
+            GRID_3: {}
         },
             'BAG': {
             "type": BaggingClassifier(),
             GRID_1: {'n_estimators': [5], 'max_samples': [5], 'max_features': [3], 'bootstrap_features': [True]},
             GRID_2: {'n_estimators': [10, 100], 'max_samples': [
-                5, 10], 'max_features': [5, 10], 'bootstrap_features': [True]}
+                5, 10], 'max_features': [5, 10], 'bootstrap_features': [True]},
+            GRID_3: {}
         },
             'DT': {
             "type": DecisionTreeClassifier(),
             GRID_1: {'criterion': ['gini'], 'max_depth': [20], 'min_samples_split': [10]},
             GRID_2: {'criterion': ['gini'], 'max_depth': [
-                20], 'min_samples_split': [10]}
+                20], 'min_samples_split': [10]},
+            GRID_3: {}
         },
             'BASELINE_DT': {
             "type": DecisionTreeClassifier(),
             GRID_1: {'criterion': ['gini'], 'max_depth': [3]},
-            GRID_2: {'criterion': ['gini', 'entropy'], 'max_depth': [3]}
+            GRID_2: {'criterion': ['gini', 'entropy'], 'max_depth': [3]},
+            GRID_3: {}
         },
             'KNN': {
             "type": KNeighborsClassifier(),
             GRID_1: {'n_neighbors': [10], 'weights': ['distance'], 'algorithm': ['kd_tree']},
             GRID_2: {'n_neighbors': [5, 10, 25], 'weights': [
-                'distance', 'uniform'], 'algorithm': ['auto', 'kd_tree']}
-
+                'distance', 'uniform'], 'algorithm': ['auto', 'kd_tree']},
+            GRID_3: {}
         }}
 
     ##### Loading Functions #####
@@ -178,7 +186,6 @@ class Pipeline():
             df[col] = df[col].fillna(df[col].median())
 
         return df
-
 
     def proba_wrap(self, model, x_data, predict=False, threshold=0.5):
         """Return a probability predictor for a given threshold."""
@@ -273,7 +280,6 @@ class Pipeline():
             plt.show()
             plt.close()
 
-
     def visualize_tree(self, fit, X_train, show=True):
         num = self.run_number
 
@@ -283,9 +289,9 @@ class Pipeline():
 
         viz_source = graphviz.Source(viz)
         viz_source.format = 'png'
-        viz_source.render('tree_viz' + str(num), view=False)
+        viz_source.render('results/images/tree_viz' + str(num), view=False)
 
-        return 'images/tree_viz' + str(num) + '.png'
+        return 'results/images/tree_viz' + str(num) + '.png'
 
     def match_label_array(self, feature_set_labels, feature_values, match_type, model_key):
         outpath = 'results/' + model_key + str(self.run_number) + '.csv'
@@ -317,6 +323,14 @@ class Pipeline():
         bias_df['label_value'] = y_test
         bias_df['label_value'] = bias_df['label_value'].astype(str)
         bias_df['score'] = y_pred_probs
+
+        outpath_analysis = 'results/' + model_key + \
+            str(self.run_number) + '_feature_analysis.csv'
+        analysis_df = X_test.copy()
+        analysis_df['label_value'] = y_test
+        analysis_df['label_value'] = analysis_df['label_value'].astype(str)
+        analysis_df['score'] = y_pred_probs
+        analysis_df.to_csv(outpath_analysis)
 
         outpath_bias = 'results/' + model_key + \
             str(self.run_number) + '_bias.csv'
@@ -396,7 +410,6 @@ class Pipeline():
 
         return model_result
 
-
     ##### Temporal Train/Test Split Generation #####
     def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
         """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
@@ -415,15 +428,23 @@ class Pipeline():
 
     ##### Primary Control Structure Functions #####
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run,
-                     bias_features, grid=GRID_1):
+                     bias_features, grid=GRID_1, latest=False):
         self.run_number = 0
         results = []
         self.prediction_windows = len(prediction_windows)
         for prediction_window in prediction_windows:
             train_start = start
-            train_end = train_start + \
-                relativedelta(months=+prediction_window) - \
-                relativedelta(days=+1)
+            print("Latest")
+            print(latest)
+            if not latest:
+                train_end = train_start + \
+                    relativedelta(months=+prediction_window) - \
+                    relativedelta(days=+1)
+            else:
+                train_end = end - \
+                    relativedelta(months=+prediction_window) - \
+                    relativedelta(days=+1)
+
             self.temporal_lags = ((end.year - train_end.year)
                                   * 12 + end.month - end.month) / prediction_window
             while train_end + relativedelta(months=+prediction_window) <= end:
@@ -468,7 +489,6 @@ class Pipeline():
 
         return results_df
 
-
     def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label,
                  bias_features, grid):
 
@@ -488,10 +508,10 @@ class Pipeline():
                     train_dates, test_dates, model_key, model_key, {}, feature_set_labels, outcome_label, None, y_test, X_test))
             else:
                 classifier = self. classifiers[model_key]["type"]
-                grid = ParameterGrid(
-                    self.classifiers[model_key][GRID_1])
-                self.gridsize = len(grid)
-                for params in grid:
+                param_grid = ParameterGrid(
+                    self.classifiers[model_key][grid])
+                self.gridsize = len(param_grid)
+                for params in param_grid:
                     total_runs = self.prediction_windows * self.temporal_lags * \
                         self.feature_combos * self.predictors * self.models * self.gridsize
                     total_runs = int(total_runs)
@@ -530,7 +550,7 @@ class Pipeline():
 ##### Main Runner #####
 def main():
     pipeline = Pipeline()
-    data = pipeline.load_data(chunksize=5000, max_chunks=1)
+    data = pipeline.load_data(chunksize=10000, max_chunks=1)
     columns = [desc[0] for desc in pipeline.db.cur.description]
     pipeline.df = pd.DataFrame(data, columns=columns)
 
@@ -542,42 +562,51 @@ def main():
         pipeline.df['year'].apply(str), format='%Y')
 
     # Set window of analysis
-    start = parser.parse("2006- 01-01")
+    start = parser.parse("2006-01-01")
     end = parser.parse("2017-01-01")
     prediction_windows = [12]
 
     # Load dictionary of feature subsets
     with open("feature_sets.json") as f:
         pipeline.feature_sets = json.load(f)
+    # Generate combinations of feature subsets
+    all_features = pipeline.get_subsets()
 
     bias_features = []
     with open("bias_sets.json") as f:
         bias_sets = json.load(f)
         bias_features = bias_sets["bias_features"]
 
-    # Generate combinations of feature subsets
-    all_features = pipeline.get_subsets()
-
     # Define models and predictors to run
-    models_to_run = ['RF']
-    predictor_col_list = ['e_num_inc_20pct']
+    predictors = ['top20_num', 'e_num_inc_20pct']
+    phase1 = {"name": "phase1", "models": [
+        'RF', 'LR', 'NB', 'GB', 'BAG', 'KNN', 'DT', 'BASELINE_DT'], "grid": GRID_1, "latest_split": False}
+    phase2 = {"name": "phase2", "models": [
+        'RF', 'GB', 'BASELINE_DT'], "grid": GRID_2, "latest_split": False}
+    phase3 = {"name": "phase3", "models": [
+        'RF', 'BASELINE_DT'], "grid": GRID_3, "latest_split": True}
 
-    # Run models over all temporal splits, model parameters, feature subsets
-    results_df1 = pipeline.run_temporal(
-        pipeline.df, start, end, prediction_windows, all_features, predictor_col_list, models_to_run, bias_features, grid=GRID_1)
-    logger.info('Finished non-baseline modeling.')
+    # Run through 3-phase approach to increase feature and model selectivity
+    for phase in [phase3]:
+        logger.info("Running {}...".format(phase['name']))
+        # Run models over all temporal splits, model parameters, feature
+        print(phase['name'])
+        print(phase['grid'])
+        results_df1 = pipeline.run_temporal(
+            pipeline.df, start, end, prediction_windows, all_features,
+            predictors, phase['models'], bias_features, grid=phase['grid'], latest=phase['latest_split'])
+        logger.info('Finished non-baseline modeling.')
 
-    # Run random and prior year baselines
-    prior_features = [{"feature_set_labels": "prior_year",
-                       "features": ["top20_num_lag", "e_num_inc_20pct_lag"]}]
-    results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictor_col_list, [
-                                        'BASELINE_RAND', 'BASELINE_PRIOR'], bias_features, grid=GRID_1)
-    logger.info('Finished baseline modeling.')
+        # Run random and prior year baselines
+        prior_features = [{"feature_set_labels": "prior_year",
+                           "features": ["top20_num_lag", "e_num_inc_20pct_lag"]}]
+        results_df2 = pipeline.run_temporal(pipeline.df, start, end, prediction_windows, prior_features, predictors, [
+                                            'BASELINE_RAND', 'BASELINE_PRIOR'], bias_features, grid=phase['grid'], latest=phase['latest_split'])
+        logger.info('Finished baseline modeling.')
 
-    # Generate final results dataframe and write to csv
-    results_df = results_df1.append(results_df2)
-
-    return results_df, pipeline
+        # Generate final results dataframe and write to csv
+        results_df = results_df1.append(results_df2)
+        results_df.to_csv("results/{}_results.csv".format(phase['name']))
 
 
 if __name__ == "__main__":
