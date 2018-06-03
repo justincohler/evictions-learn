@@ -17,53 +17,43 @@ class DBInit():
     def __init__(self):
         self.db = DBClient()
 
-    def evictions_init(self):
+    def evictions_init(self, level):
         """Clear and initialize the evictions table(s)."""
 
-        #tables = {"states": "state", "counties": "county", "tracts": "tract"}
-        geo_levels = ["blockgroup", "tr"]
-
-        for level in geo_levels:
-            logger.info("Dropping table {}...".format(level))
-            self.db.write([db_statements.DROP_TABLE_EV_LAB format(level)])
-            logger.info("Creating table {}...".format(level))
-            self.db.write([db_statements.CREATE_TABLE_EV_LAB.format(level)])
-            logger.info("Copying table...")
-            self.db.copy('data/raw/eviction_lab/{}.csv'.format(level),
-                         db_statements.COPY_CSV_EVICTIONS.format(level))
-            logger.info("Records committed.")
-            logger.info("Creating indexes...")
-            self.db.write([db_statements.IDX_STATE_YEAR.format(level, level),
-                db_statements.IDX_YEAR.format(level, level),
-                db_statements.IDX_STATE.format(level, level),
-                db_statements.IDX_EVICTIONS.format(level, level),
-                db_statements.IDX_STATE_YEAR.format(level, level),
-                db_statements.IDX_GEOID.format(level, level),
-                db_statements.IDX_GEOID_YEAR.format(level, level),
-                ])
-            logger.info("Indexes created.")
-            logger.info("Dropping records outside SA/ENC Divisions...")
-            self.db.write([db_statements.DROP_STATE.format(level, level)]) 
-            
-
-
-
-        for csv_name, table in tables.items():
-            logger.info("Dropping table {}...".format(table))
-            print(db_statements.DROP_TABLE.format(table))
-            self.db.write([db_statements.DROP_TABLE.format("evictions_"+table)])
-
-            logger.info("Creating table...")
-            self.db.write([db_statements.CREATE_TABLE_EVICTIONS.format(table)])
-            logger.info("Table committed.")
-
-            logger.info("Copying CSV data to evictions db...")
-            self.db.copy('C:/{}.csv'.format(csv_name),
-                         db_statements.COPY_CSV_EVICTIONS.format("evictions_"+table))
-            logger.info("Records committed.")
+        logger.info("Dropping table {}...".format(level))
+        self.db.write([db_statements.DROP_TABLE_EV_LAB format(level)])
+        logger.info("Creating table {}...".format(level))
+        self.db.write([db_statements.CREATE_TABLE_EV_LAB.format(level)])
+        logger.info("Copying table...")
+        self.db.copy('data/raw/eviction_lab/{}.csv'.format(level),
+                     db_statements.COPY_CSV_EVICTIONS.format(level))
+        logger.info("Records committed.")
+        logger.info("Creating indexes...")
+        self.db.write([db_statements.IDX_STATE_YEAR.format(level, level),
+            db_statements.IDX_YEAR.format(level, level),
+            db_statements.IDX_STATE.format(level, level),
+            db_statements.IDX_EVICTIONS.format(level, level),
+            db_statements.IDX_STATE_YEAR.format(level, level),
+            db_statements.IDX_GEOID.format(level, level),
+            db_statements.IDX_GEOID_YEAR.format(level, level),
+            ])
+        logger.info("Indexes created.")
+        logger.info("Adding sub-geography columns...")
+        self.db.write([db_statements.CREATE_VAR_STATE.format(level),
+            db_statements.CREATE_VAR_COUNTY.format(level),
+            db_statements.UPDATE_VAR_STATE.format(level),
+            db_statements.UPDATE_VAR_COUNTY.format(level)
+            ])
+        if level == "blockgroup":
+            self.db.write([db_statements.CREATE_VAR_TRACT,
+                db_statements.UPDATE_VAR_TRACT])
+        logger.info("Sub-geography columns added...")
+        logger.info("Dropping records outside SA/ENC Divisions...")
+        self.db.write([db_statements.DROP_STATE.format(level)]) 
+        logger.info("{} table completed.".format(level))
 
     def geo_init(self):
-        """Clear and initialize the geospatial table(s)."""
+        """Clear and initialize Postgis."""
 
         self.db.write([
             db_statements.CREATE_EXT_POSTGIS,
@@ -72,14 +62,7 @@ class DBInit():
             db_statements.CREATE_EXT_POSTGIS_TOP,
             db_statements.DROP_F_EXEC,
             db_statements.CREATE_F_EXEC,
-            db_statements.ALTER_SPATIAL_REF_SYS.format(self.db.DB_USER),
-            db_statements.RENAME_VAR_STATE,
-            db_statements.CREATE_VAR_STATE,
-            db_statements.CREATE_VAR_COUNTY,
-            db_statements.CREATE_VAR_TRACT,
-            db_statements.UPDATE_VAR_STATE,
-            db_statements.UPDATE_VAR_COUNTY,
-            db_statements.UPDATE_VAR_TRACT
+            db_statements.ALTER_SPATIAL_REF_SYS.format(self.db.DB_USER)
         ])
 
     def census_shp(self, geography):
@@ -300,10 +283,6 @@ class DBInit():
         self.db.write([db_statements.UPDATE_COLS_LAG_BG])
         self.db.write(["drop table ev_lag_blockgroup;"])
 
-            
-
-     init = DBInit()
-
 evcols = [
     "eviction_filings",
     "evictions",
@@ -337,7 +316,9 @@ permits = [
 
 if __name__=="__main__":
     initializer = DBInit()
-    initializer.evictions_init()
+
+    for level in ["blockgroup", "tr"]:
+        initializer.evictions_init()
     initializer.geo_init()
 
     for geo in ["blck_grp", "state"]:
@@ -354,10 +335,10 @@ if __name__=="__main__":
     lags = [1, 3, 5]
     for lag in lags:
         for col in evcols:
-            res = init.create_n_year_average(col, table, lag)
+            res = initializer.create_n_year_average(col, table, lag)
             if not res:
                 break
-            res = init.create_n_year_pct_change(table, col, table, lag)
+            res = initializer.create_n_year_pct_change(table, col, table, lag)
             if not res:
                 break
 
@@ -366,10 +347,10 @@ if __name__=="__main__":
         lags = [5]
         for lag in lags:
             for col in cols:
-                res = init.create_n_year_average(col, table, lag)
+                res = initializer.create_n_year_average(col, table, lag)
                 if not res:
                     break
-                res = init.create_n_year_pct_change(table, col, table, lag)
+                res = initializer.create_n_year_pct_change(table, col, table, lag)
                 if not res:
                     break
 
@@ -378,14 +359,14 @@ if __name__=="__main__":
         lags = [1, 3, 5]
         for lag in lags:
             for col in permits:
-                res = init.create_n_year_average(col, table, lag)
+                res = initializer.create_n_year_average(col, table, lag)
                 if not res:
                     break
-                res = init.create_n_year_pct_change(table, col, table, lag)
+                res = initializer.create_n_year_pct_change(table, col, table, lag)
                 if not res:
                     break
      
-        initializer.ev_lag_tr()
-        initializer.ev_lag_bg()
+    initializer.ev_lag_tr()
+    initializer.ev_lag_bg()
     
 
