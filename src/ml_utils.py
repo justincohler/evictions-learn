@@ -100,6 +100,7 @@ class Pipeline():
 
         }}
 
+    ##### Loading Functions #####
     def load_county_data(self, county):
         "17031 is cook county"
         l = []
@@ -142,114 +143,12 @@ class Pipeline():
                 logger.info("{} chunks left to load.".format(max_chunks))
         return data
 
-    def categorical_to_dummy(self, df, column):
-        """Convert a categorical/discrete variable into a dummy variable.
-
-        Inputs:
-                - df (DataFrame): Dataset of interest
-                - column (str): variable to dummify
-
-        Returns:
-                - updated DataFrame
-        """
-        return pd.get_dummies(df, columns=[column])
-
-    def continuous_to_categorical(self, df, column, bins=10, labels=False):
-        """Convert a continuous variable into a categorical variable.
-
-        Inputs:
-        - df (DataFrame): Dataset of interest
-        - column (str): variable to categorize
-        - bins (int): Number of bins to separate data into
-        - labels (bool): Indications whether data should be shown as a range or
-        numerical value
-
-        Returns:
-                - updated DataFrame
-
-        """
-        return pd.cut(df[column], bins, labels=labels)
-
+    ##### Processing Fumctions #####
     def discretize_cols(self, data_frame, feature, num_bins=4, labels=False):
         series, _ = pd.cut(data_frame[feature], bins=num_bins, labels=[
             'low', 'med-low', 'med-high', 'high'], right=True, include_lowest=True, retbins=True)
         data_frame[feature] = series
         return data_frame
-
-    def find_high_corr(self, corr_matrix, threshold, predictor):
-        """Find all variables that are highly correlated with the predictor and thus
-        likely candidates to exclude.
-
-        Inputs
-                - corr_matrix (DataFrame): Result of the "check_correlations" function
-                - threshold (int): Value between 0 and 1
-                - predictor (str): Predictor variable
-
-        Returns:
-                - list of variables highly correlated with the predictor
-        """
-        return corr_matrix[corr_matrix[predictor] > threshold].index
-
-    def dist_plot(self, df):
-        """Plot a histogram of each variable to show the distribution.
-
-        Input:
-            df (DataFrame)
-        Returns:
-            grid of histogram plots for each variable in dataframe
-
-        """
-        plt.rcParams['figure.figsize'] = 16, 12
-        df.hist()
-        plt.show()
-
-    def discretize(self, df, field, bins=None, labels=None):
-        """Return a discretized Series of the given field.
-
-        Inputs:
-                - df (DataFrame): Data to discretize
-                - field (str): Field name to discretize
-                - bins (int): (Optional) number of bins to split
-                - labels (list): (Optional) bin labels (must match # of bins if supplied)
-
-        Returns:
-                - A pandas series (to be named by the calling function)
-
-        """
-        if not bins and not labels:
-            series = pd.qcut(data[field], q=4)
-        elif not labels and bins != None:
-            series = pd.qcut(data[field], q=bins)
-        elif not bins and labels != None:
-            series = pd.qcut(data[field], q=len(labels), labels=labels)
-        elif bins != len(labels):
-            raise IndexError("Bin size and label length must be equal.")
-        else:
-            series = pd.qcut(data[field], q=bins, labels=labels)
-
-        return series
-
-    def plot_by_class(self, df, y):
-        """Produce plots for each variable in the dataframe showing distribution by
-        each value of the dependent variable
-
-        Inputs:
-            - df (pandas dataframe)
-            - y (str): name of dependent variable for analysis
-
-        Returns:
-            - layered histogram plots for each variable in the dataframe
-
-        """
-        plt.rcParams['figure.figsize'] = 5, 4
-        grp = df.groupby(y)
-        var = df.columns
-
-        for v in var:
-            getattr(grp, v).hist(alpha=0.4)
-            plt.title(v)
-            plt.legend([0, 1])
-            plt.show()
 
     def cols_with_nulls(self, df):
         '''
@@ -280,25 +179,6 @@ class Pipeline():
 
         return df
 
-    def fill_missing(self, df, type="mean"):
-        """
-        Fill all missing values with the mean value of the given column.
-
-        Inputs:
-                - df (DataFrame)
-                - type (enum): {"mean", "median"} (Default "mean")
-
-        Returns:
-                - df (DataFrame) with missing values imputed
-
-        """
-        if type == "mean":
-            return df.fillna(df.mean())
-        elif type == "median":
-            return df.fillna(df.median())
-        else:
-            raise TypeError(
-                "Type parameter must be one of {'mean', 'median'}.")
 
     def proba_wrap(self, model, x_data, predict=False, threshold=0.5):
         """Return a probability predictor for a given threshold."""
@@ -321,18 +201,6 @@ class Pipeline():
                     {"feature_set_labels": combolabels, "features": combo})
         return subsets
 
-    def generate_outcome_table(self):
-        """Return a dataframe with the formatted columns required to present model outcomes.
-
-        Based on Rayid Ghani's magicloops repository: https://github.com/rayidghani/magicloops.
-
-        Inputs:
-                - None
-        Returns:
-                - df (DataFrame) empty wit columns for each run's outcomes.
-        """
-        return pd.DataFrame(columns=('model_type', 'clf', 'parameters', 'auc-roc', 'p_at_5', 'p_at_10', 'p_at_20'))
-
     def joint_sort_descending(self, l1, l2):
         # l1 and l2 have to be numpy arrays
         idx = np.argsort(l1)[::-1]
@@ -348,8 +216,6 @@ class Pipeline():
         y_scores, y_true = self.joint_sort_descending(
             np.array(y_scores), np.array(y_true))
         preds_at_k = self.generate_binary_at_k(y_scores, k)
-        # precision, _, _, _ = metrics.precision_recall_fscore_support(y_true, preds_at_k)
-        # precision = precision[1]  # only interested in precision for label 1
         precision = precision_score(y_true, preds_at_k)
         return precision
 
@@ -369,6 +235,7 @@ class Pipeline():
 
         return f1
 
+    ##### Writeout/Visualization Functions #####
     def plot_precision_recall_n(self, y_true, y_prob, model_name, output_type):
         y_score = y_prob
         precision_curve, recall_curve, pr_thresholds = precision_recall_curve(
@@ -406,22 +273,6 @@ class Pipeline():
             plt.show()
             plt.close()
 
-    def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
-        """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
-        # train_df = df[(df['year'] >= train_start) & (df['year'] <= train_end)]
-        # test_df = df[(df['year'] >= test_start) & (df['year'] <= test_end)]
-        train_df = df[(df['year'] >= train_start) & (
-            df['year'] <= train_end) & (~df[predictor_col].isnull())]
-        test_df = df[(df['year'] >= test_start) & (
-            df['year'] <= test_end) & (~df[predictor_col].isnull())]
-
-        X_train = train_df[feature_cols]
-        y_train = train_df[predictor_col]
-
-        X_test = test_df[feature_cols]
-        y_test = test_df[predictor_col]
-
-        return X_train, y_train, X_test, y_test
 
     def visualize_tree(self, fit, X_train, show=True):
         num = self.run_number
@@ -436,6 +287,42 @@ class Pipeline():
 
         return 'images/tree_viz' + str(num) + '.png'
 
+    def match_label_array(self, feature_set_labels, feature_values, match_type, model_key):
+        outpath = 'results/' + model_key + str(self.run_number) + '.csv'
+
+        logger.debug(feature_set_labels)
+
+        labels = []
+        for fset in feature_set_labels:
+            labels.extend(self.feature_sets[fset])
+
+        fi = feature_values
+
+        fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
+        fi_names.sort_values(by=[match_type], ascending=False, inplace=True)
+
+        fi_names.to_csv(outpath)
+
+        return outpath
+
+    def analyze_bias_and_fairness(self, X_test, y_test, y_pred_probs, bias_features, outcome_label, model_key):
+
+        bias_df = X_test[bias_features]
+
+        for feature in bias_df.columns:
+            logger.debug(feature)
+            self.discretize_cols(bias_df, feature)
+            bias_df[feature] = bias_df[feature].astype(str)
+
+        bias_df['label_value'] = y_test
+        bias_df['label_value'] = bias_df['label_value'].astype(str)
+        bias_df['score'] = y_pred_probs
+
+        outpath_bias = 'results/' + model_key + \
+            str(self.run_number) + '_bias.csv'
+        bias_df.to_csv(outpath_bias)
+
+    ##### Generate Output Dataframe #####
     def populate_outcome_table(self, train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome, model_result, y_test, y_pred_probs):
         y_pred_probs_sorted, y_test_sorted = zip(
             *sorted(zip(y_pred_probs, y_test), reverse=True))
@@ -486,6 +373,47 @@ class Pipeline():
                     y_test_sorted, y_pred_probs_sorted, 50.0)
                 )
 
+    def get_model_result(self, model_key, fit, X_train, feature_set_labels):
+        if model_key == 'DT' or model_key == 'BASELINE_DT':
+            graph = self.visualize_tree(fit, X_train, show=False)
+            model_result = DT(graph)
+        elif model_key == 'SVM':
+            model_result = SVM(self.match_label_array(
+                feature_set_labels, fit.coef_[0], "coef", model_key))
+        elif model_key == 'RF':
+            model_result = RF(self.match_label_array(
+                feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
+        elif model_key == 'LR':
+            model_result = LR(self.match_label_array(
+                feature_set_labels, fit.coef_[0], "coef", model_key), fit.intercept_,)
+        elif model_key == 'GB':
+            model_result = GB(self.match_label_array(
+                feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
+        elif model_key == 'BAG':
+            model_result = BAG(fit.base_estimator_, fit.estimators_features_)
+        else:
+            model_result = None
+
+        return model_result
+
+
+    ##### Temporal Train/Test Split Generation #####
+    def temporal_train_test_sets(self, df, train_start, train_end, test_start, test_end, feature_cols, predictor_col):
+        """Return X and y train/test dataframes based on the appropriate timeframes, features, and predictors."""
+        train_df = df[(df['year'] >= train_start) & (
+            df['year'] <= train_end) & (~df[predictor_col].isnull())]
+        test_df = df[(df['year'] >= test_start) & (
+            df['year'] <= test_end) & (~df[predictor_col].isnull())]
+
+        X_train = train_df[feature_cols]
+        y_train = train_df[predictor_col]
+
+        X_test = test_df[feature_cols]
+        y_test = test_df[predictor_col]
+
+        return X_train, y_train, X_test, y_test
+
+    ##### Primary Control Structure Functions #####
     def run_temporal(self, df, start, end, prediction_windows, feature_set_list, predictor_col_list, models_to_run,
                      bias_features, grid=GRID_1):
         self.run_number = 0
@@ -540,46 +468,6 @@ class Pipeline():
 
         return results_df
 
-    def match_label_array(self, feature_set_labels, feature_values, match_type, model_key):
-        outpath = 'results/' + model_key + str(self.run_number) + '.csv'
-
-        logger.debug(feature_set_labels)
-
-        labels = []
-        for fset in feature_set_labels:
-            labels.extend(self.feature_sets[fset])
-
-        fi = feature_values
-
-        fi_names = pd.DataFrame({match_type: fi, 'feature': labels})
-        fi_names.sort_values(by=[match_type], ascending=False, inplace=True)
-
-        fi_names.to_csv(outpath)
-
-        return outpath
-
-    def get_model_result(self, model_key, fit, X_train, feature_set_labels):
-        if model_key == 'DT' or model_key == 'BASELINE_DT':
-            graph = self.visualize_tree(fit, X_train, show=False)
-            model_result = DT(graph)
-        elif model_key == 'SVM':
-            model_result = SVM(self.match_label_array(
-                feature_set_labels, fit.coef_[0], "coef", model_key))
-        elif model_key == 'RF':
-            model_result = RF(self.match_label_array(
-                feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
-        elif model_key == 'LR':
-            model_result = LR(self.match_label_array(
-                feature_set_labels, fit.coef_[0], "coef", model_key), fit.intercept_,)
-        elif model_key == 'GB':
-            model_result = GB(self.match_label_array(
-                feature_set_labels, fit.feature_importances_, "feature_importances", model_key))
-        elif model_key == 'BAG':
-            model_result = BAG(fit.base_estimator_, fit.estimators_features_)
-        else:
-            model_result = None
-
-        return model_result
 
     def classify(self, models_to_run, X_train, X_test, y_train, y_test, train_dates, test_dates, feature_set_labels, outcome_label,
                  bias_features, grid):
@@ -638,24 +526,8 @@ class Pipeline():
 
         return results
 
-    def analyze_bias_and_fairness(self, X_test, y_test, y_pred_probs, bias_features, outcome_label, model_key):
 
-        bias_df = X_test[bias_features]
-
-        for feature in bias_df.columns:
-            logger.debug(feature)
-            self.discretize_cols(bias_df, feature)
-            bias_df[feature] = bias_df[feature].astype(str)
-
-        bias_df['label_value'] = y_test
-        bias_df['label_value'] = bias_df['label_value'].astype(str)
-        bias_df['score'] = y_pred_probs
-
-        outpath_bias = 'results/' + model_key + \
-            str(self.run_number) + '_bias.csv'
-        bias_df.to_csv(outpath_bias)
-
-
+##### Main Runner #####
 def main():
     pipeline = Pipeline()
     data = pipeline.load_data(chunksize=5000, max_chunks=1)
