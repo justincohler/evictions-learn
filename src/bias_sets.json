@@ -1,0 +1,4 @@
+{
+  "bias_features": ["pct_renter_occupied", "pct_white", "pct_af_am", "pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi",
+  "pct_multiple", "pct_other", "renter_occupied_households", "median_household_income", "median_property_value"]
+}
