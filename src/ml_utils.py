@@ -31,9 +31,6 @@ import graphviz
 import warnings
 from model_result import BAG, DT, GB, LR, RF, SVM
 import itertools
-from aequitas.bias import Bias
-from aequitas.group import Group
-from aequitas.fairness import Fairness
 
 logger = logging.getLogger('evictionslog')
 
@@ -649,8 +646,7 @@ class Pipeline():
 
 
     def analyze_bias_and_fairness(self, X_test, y_test, y_pred_probs, disc_cols, bias_cols, outcome_label, model_key):
-        #df = preprocess_input_df(df, required_cols='top20_rate')
-
+        
         run = self.run_number
         for var in disc_cols:
             print(var)
@@ -664,57 +660,11 @@ class Pipeline():
         bias_df['label_value'] = y_test
         bias_df['label_value'] = bias_df['label_value'].astype(str)
         bias_df['score'] = y_pred_probs
-        #y_true_df = pd.DataFrame(y_test, columns = ['label_value']) 
-        #y_pred_df = pd.DataFrame(y_pred_probs, columns = ['score'])
+        
 
-        #part_df = bias_df.merge(y_true_df, left_index = True, right_index = True)
-
-        #print(part_df.head())
-
-        #full_df = part_df.merge(y_pred_df, left_index = True, right_index = True)
-
-        print(bias_df.head())
-
-        #full_df.rename(index = str, columns={outcome_label : 'label_value'}, inplace = True)
-
-        #full_df['label_value'] = full_df['0']
-        #full_df.drop(['0'])
-
-        #full_df['label_value'] = full_df['label_value'].astype(str)
-
-        g = Group()
-        xtab, _ = g.get_crosstabs(bias_df, score_thresholds={'rank_pct': [0.5]})
-
-        b = Bias()
-        bdf = b.get_disparity_predefined_groups(xtab, {'pct_renter_occupied_bins':'low',
-                                         'pct_white_bins':'low',
-                                         'pct_af_am_bins': 'high',
-                                         'pct_hispanic_bins' : 'high',
-                                         'pct_am_ind_bins' : 'high',
-                                         'pct_asian_bins' : 'high',
-                                         'pct_nh_pi_bins' : 'high',
-                                         'pct_multiple_bins' : 'high',
-                                         'pct_other_bins': 'high',
-                                         'renter_occupied_households_bins':'high', 
-                                         'median_household_income_bins':'low',
-                                         'median_property_value_bins': 'low',
-                                         'urban': '1'})
-
-        f = Fairness()
-        fdf = f.get_group_value_fairness(bdf)
-
-        gaf = f.get_group_attribute_fairness(fdf)
-
-
-        outpath_xtab = 'results/'+model_key+str(run)+'_xtab.csv'
-        outpath_bdf = 'results/'+model_key+str(run)+'_bdf.csv'
-        outpath_fdf = 'results/'+model_key+str(run)+'_fdf.csv'
-        outpath_gaf = 'results/'+model_key+str(run)+'_gaf.csv'
-
-        xtab.to_csv(outpath_xtab) 
-        bdf.to_csv(outpath_bdf) 
-        fdf.to_csv(outpath_fdf)
-        gaf.to_csv(outpath_gaf)
+        outpath_bias = 'results/'+model_key+str(run)+'_bias.csv'
+        bias_df.to_csv(outpath_bias)
+        
 
 def main():
     # Boolean switch for classifer vs model selection run
