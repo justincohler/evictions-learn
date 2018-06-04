@@ -6,6 +6,7 @@ set_env.sh
 .DS_Store
 secrets.jso
 *.sql
+raw/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

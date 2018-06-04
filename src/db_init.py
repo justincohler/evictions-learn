@@ -25,7 +25,7 @@ class DBInit():
         logger.info("Creating table {}...".format(level))
         self.db.write([db_statements.CREATE_TABLE_EV_LAB.format(level)])
         logger.info("Copying table...")
-        self.db.copy('data/raw/eviction_lab/{}.csv'.format(level),
+        self.db.copy('data/raw/{}.csv'.format(level),
                      db_statements.COPY_CSV_EVICTIONS.format(level))
         logger.info("Records committed.")
         logger.info("Creating indexes...")
@@ -145,12 +145,11 @@ class DBInit():
 
         logger.info("Create urban table")
 
-        df = pd.read_csv(
-            '/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010.csv', header=0)
+        df = pd.read_csv('data/raw/Urban_County_2010.csv', header=0)
         df = df[['UA', 'STATE', 'COUNTY', 'GEOID']]
-        df.to_csv('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv', index=False)
+        df.to_csv('data/raw/Urban_County_2010_sub.csv', index=False)
 
-        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/Urban_County_2010_sub.csv',
+        self.db.copy('data/raw/Urban_County_2010_sub.csv',
                      db_statements.COPY_CSV_URBAN)
 
         logger.info("Creating geo table...")
@@ -257,21 +256,19 @@ class DBInit():
 
     def permit_import(self):
         """Create permits table and import permit data from csv"""
-        self.db.write([db_statements.DROP_TABLE_PERMITS,
-                       db_statements.CREATE_TABLE_PERMITS])
-        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/permits.csv',
+
+        self.db.write([db_statements.DROP_TABLE_PERMITS, db_statements.CREATE_TABLE_PERMITS])
+        self.db.copy('data/raw/permits.csv',
                      db_statements.COPY_CSV_PERMITS)
 
         return True
 
     def hhsize_import(self):
         """Create household size table and import household size data from csv"""
-        self.db.write([db_statements.DROP_TABLE_HHSIZE,
-                       db_statements.CREATE_TABLE_HHSIZE])
-        self.db.copy('/Users/alenastern/Documents/Spring2018/Machine_Learning/evictions-learn/src/data/census/hs_final.csv',
-                     db_statements.COPY_CSV_HHSIZE)
-        self.db.write([db_statements.CREATE_VAR_HHSIZE,
-                       db_statements.UPDATE_VAR_HHSIZE, db_statements.DROP_TABLE_HHSIZE])
+
+        self.db.write([db_statements.DROP_TABLE_HHSIZE, db_statements.CREATE_TABLE_HHSIZE])
+        self.db.copy('data/raw/hs_final.csv', db_statements.COPY_CSV_HHSIZE)
+        self.db.write([db_statements.CREATE_VAR_HHSIZE, db_statements.UPDATE_VAR_HHSIZE, db_statements.DROP_TABLE_HHSIZE])
         return True
 
     def ev_lag_tr(self):
