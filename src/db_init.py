@@ -293,7 +293,9 @@ class DBInit():
         self.db.write(["drop table ev_lag_blockgroup;"])
 
     def rem_9_ev(self, lag, col, tr):
-        """Remove 999999 outlier values from evictions pct change columns, replace with max for given year"""
+        """Remove 999999 outlier values from evictions pct change columns, replace with max for given year. These values were created
+           for cases in which a feature value moved from 0 to a non-zero value (an infinite percent change). We replace these
+           values with the maximum percent change for the given feature in that year."""
         logger.info(
             "removing 999999 from lagged {} for {} yr pct change where tract is {}".format(col, lag, tr))
         try:
@@ -307,7 +309,9 @@ class DBInit():
         return True
 
     def rem_9(self, lag, col, tr):
-        """Remove 999999 outlier values from pct change columns, replace with max for given year"""
+        """Remove 999999 outlier values from pct change columns, replace with max for given year. These values were created
+           for cases in which a feature value moved from 0 to a non-zero value (an infinite percent change). We replace these
+           values with the maximum percent change for the given feature in that year."""
         logger.info(
             "removing 999999 from {} for {} yr pct change where tract is {}".format(col, lag, tr))
         try:
