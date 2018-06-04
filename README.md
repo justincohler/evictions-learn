@@ -48,6 +48,7 @@ We assume the use of Python 3.5+ for this project.
 * Change directories into the `src` directory (`cd src`)
 * Run Phases 1, 2, and 3 of analysis described in the project description document via `python ml_utils.py`
   * This will execute three different modeling phases on different combinations of classifiers, parameters, features, and output labels
+  * By default, the database cursor is set to only pull data from Cook County, IL to enable more speedy testing of the code.
 
 ## Feature Generation
 * Run the `Census_Data_Cleaning` ipython notebook in the data directory to clean the raw census data for import
