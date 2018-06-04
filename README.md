@@ -6,14 +6,15 @@ CAPP-30254 Final Project Repository
 ## About
 This research was conducted by Claire Herdeman, Alena Stern, and Justin Cohler for the Machine Learning and Public Policy course in the Masters of Science in Computational Analysis and Public Policy program at the University of Chicago. This research uses data from The Eviction Lab at Princeton University, a project directed by Matthew Desmond and designed by Ashley Gromis, Lavar Edmonds, James Hendrickson, Katie Krywokulski, Lillian Leung, and Adam Porton. The Eviction Lab is funded by the JPB, Gates, and Ford Foundations as well as the Chan Zuckerberg Initiative. More information is found at evictionlab.org. The authors owe a debt of gratitude to The Eviction Lab for providing the inspiration and data for this project.
 
-[Project Proposal](https://docs.google.com/document/d/1Vsq1RUL8fU5U8FO2KtszmsdIYEhmlUN5twY_q0k-RvQ/edit?usp=sharing)
+[Project Description](https://docs.google.com/document/d/1wIZT4kMvh2C8HhxqJRulCZtW5Ue8fLc13QvMpt0O0Ek/edit?usp=sharing)
 
 ## Repository Structure
 Our repository is structured with the following directories:
  * `src/`: contains code for this project, the key files are as follows:
-   * `db_client.py`: contains database client utilities (including connecting, writing, copying, reading, and disconnecting from      the database)
+   * `db_client.py`: contains database client utilities (including connecting, writing, copying, reading, and disconnecting from the database)
    * `db_init.py`: populates the database from raw data sources, generates features, and formats data for analysis
    * `ml_utils.py`: contains machine learning utilities and functions to run analysis
+   * `results/`: contains the csv outputs of the overview of models, feature importances for each run, precision-recall graphs, and tree visualizations
  * `data_resources/`: contains data README file and detailed methodology report from The Eviction Lab
  * `resources/`: contains non-python resources used for classification and model execution
  * `tests/`: contains tests
@@ -30,7 +31,7 @@ To connect to the database
   * `DB_PORT`
   * `DB_USER`
   * `DB_PASSWORD`
-* Conversely, in `resources/`, create a file called `secrets.json` with the following format:
+* Alternatively, in `resources/`, create a file called `secrets.json` with the following format:
 
   ```
   {
@@ -41,10 +42,12 @@ To connect to the database
   }
   ```
 
-### Installation
-* Run `pip install -r requirements.txt` in the top level of the repository.
-* Run `python setup.py install`.
-* Run `pytest -s` to run the test suite. If the tests pass, then you're successfully connected to the database!
+### Running
+We assume the use of Python 3.5+ for this project.
+* Run `pip install -r requirements.txt` in the top level of the repository
+* Change directories into the `src` directory (`cd src`)
+* Run Phases 1, 2, and 3 of analysis described in the project description document via `python ml_utils.py`
+  * This will execute three different modeling phases on different combinations of classifiers, parameters, features, and output labels
 
 ## Feature Generation
 * Run the `Census_Data_Cleaning` ipython notebook in the data directory to clean the raw census data for import
