@@ -1,0 +1,17 @@
+digraph Tree {
+node [shape=box, style="filled, rounded", color="black", fontname=helvetica] ;
+edge [fontname=helvetica] ;
+0 [label="total_bldg_avg_5yr <= 1090.4\ngini = 0.32\nsamples = 39930\nvalue = [31940, 7990]\nclass = High Risk", fillcolor="#e58139bf"] ;
+1 [label="gini = 0.32\nsamples = 3993\nvalue = [3194, 799]\nclass = High Risk", fillcolor="#e58139bf"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="total_units_avg_5yr <= 4230.2\ngini = 0.32\nsamples = 35937\nvalue = [28746, 7191]\nclass = High Risk", fillcolor="#e58139bf"] ;
+0 -> 2 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+3 [label="gini = 0.32\nsamples = 3993\nvalue = [3194, 799]\nclass = High Risk", fillcolor="#e58139bf"] ;
+2 -> 3 ;
+4 [label="total_bldg_avg_5yr <= 1485.2\ngini = 0.32\nsamples = 31944\nvalue = [25552, 6392]\nclass = High Risk", fillcolor="#e58139bf"] ;
+2 -> 4 ;
+5 [label="gini = 0.32\nsamples = 3993\nvalue = [3194, 799]\nclass = High Risk", fillcolor="#e58139bf"] ;
+4 -> 5 ;
+6 [label="gini = 0.32\nsamples = 27951\nvalue = [22358, 5593]\nclass = High Risk", fillcolor="#e58139bf"] ;
+4 -> 6 ;
+}
