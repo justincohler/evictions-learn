@@ -200,8 +200,8 @@ PRIMARY KEY (geo_id, year)
 );"""
 
 INSERT_OUTCOMES = """WITH tmp AS (SELECT geo_id, year,
-                            ntile(5) over(ORDER BY evictions DESC *b2.population)/sum(b2.population) as num_quint,
-                            ntile(5) over(ORDER BY eviction_rate DESC *b2.population)/sum(b2.population) as rate_quint
+                            ntile(5) over(ORDER BY evictions DESC) as num_quint,
+                            ntile(5) over(ORDER BY eviction_rate DESC) as rate_quint
                         FROM blockgroup
                         WHERE year = {}
                         AND evictions IS NOT NULL
@@ -725,22 +725,7 @@ where tmp.year = blockgroup.year and {}_pct_change_{}yr_lag{} = 999999;"""
 CREATE_BG_CURSOR = """declare bg_cursor CURSOR WITHOUT HOLD FOR
                          select * from blockgroup bg
                         	inner join outcomes o on o.geo_id=bg.geo_id and o.year=bg.year
-                        	where bg.geo_id in
-                        		(select geos.geo_id from
-                        			(select distinct bg.geo_id
-                        				from blockgroup bg
-                        		     ) geos
-                        	     	order by random() limit 7500
-                                );
-                    """
-
-DROP_FUNCTION_BG_CURSOR = "drop function if exists bg_get_chunk(refcursor);"
-
-CREATE_FUNCTION_BG_CURSOR = """create function bg_get_chunk(refcursor) returns refcursor as $$
-                            	begin
-                            		open $1 for
-                            			select * from blockgroup bg
-											inner join outcomes o on o.geo_id=bg.geo_id and o.year=bg.year
+     lsar
 											where bg.geo_id in
 												(select geos.geo_id from
 													(select distinct bg.geo_id
