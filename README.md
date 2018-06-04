@@ -57,6 +57,7 @@ We assume the use of Python 3.5+ for this project.
 
 ## Analysis
 * Run `ml_utils.py` to perform our three phases of analysis and outputs a .csv file with the results from each phase
+  * Because Linear SVC produces a different output than the other classifers, we chose to run this classifier separately in `ml_utils_svc.py`
 * Note: for phase 3, the script also produces feature importance .csv files, precision recall graph .png files, and decision tree .png files. You will need to create `src/results/csv` and `src/results/images` directories on your local machine to       capture this output.
 * Run the `Phase I Analysis`, `Phase II Analysis`, and `Phase III Analysis` ipython notebooks to replicate the model evaluation and feature importance analysis conducted by the authors at each stage
 
