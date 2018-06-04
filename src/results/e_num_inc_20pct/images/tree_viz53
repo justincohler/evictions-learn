@@ -1,0 +1,33 @@
+digraph Tree {
+node [shape=box, style="filled, rounded", color="black", fontname=helvetica] ;
+edge [fontname=helvetica] ;
+0 [label="eviction_rate_pct_change_1yr_lag <= -27.528\ngini = 0.454\nsamples = 17971\nvalue = [11722, 6249]\nclass = High Risk", fillcolor="#e5813977"] ;
+1 [label="eviction_filing_rate_pct_change_3yr_lag <= -54.145\ngini = 0.495\nsamples = 5242\nvalue = [2355, 2887]\nclass = Low Risk", fillcolor="#399de52f"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="evictions_avg_5yr_lag <= 1.1\ngini = 0.449\nsamples = 1937\nvalue = [659, 1278]\nclass = Low Risk", fillcolor="#399de57c"] ;
+1 -> 2 ;
+3 [label="gini = 0.476\nsamples = 271\nvalue = [165, 106]\nclass = High Risk", fillcolor="#e581395b"] ;
+2 -> 3 ;
+4 [label="gini = 0.417\nsamples = 1666\nvalue = [494, 1172]\nclass = Low Risk", fillcolor="#399de594"] ;
+2 -> 4 ;
+5 [label="eviction_filings_avg_5yr_lag <= 2.9\ngini = 0.5\nsamples = 3305\nvalue = [1696, 1609]\nclass = High Risk", fillcolor="#e581390d"] ;
+1 -> 5 ;
+6 [label="gini = 0.479\nsamples = 1124\nvalue = [678, 446]\nclass = High Risk", fillcolor="#e5813957"] ;
+5 -> 6 ;
+7 [label="gini = 0.498\nsamples = 2181\nvalue = [1018, 1163]\nclass = Low Risk", fillcolor="#399de520"] ;
+5 -> 7 ;
+8 [label="evictions_pct_change_3yr_lag <= -15.076\ngini = 0.389\nsamples = 12729\nvalue = [9367, 3362]\nclass = High Risk", fillcolor="#e58139a3"] ;
+0 -> 8 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+9 [label="conversion_rate_pct_change_5yr_lag <= -47.766\ngini = 0.482\nsamples = 2881\nvalue = [1714, 1167]\nclass = High Risk", fillcolor="#e5813951"] ;
+8 -> 9 ;
+10 [label="gini = 0.499\nsamples = 571\nvalue = [270, 301]\nclass = Low Risk", fillcolor="#399de51a"] ;
+9 -> 10 ;
+11 [label="gini = 0.469\nsamples = 2310\nvalue = [1444, 866]\nclass = High Risk", fillcolor="#e5813966"] ;
+9 -> 11 ;
+12 [label="conversion_rate_lag <= 0.398\ngini = 0.346\nsamples = 9848\nvalue = [7653, 2195]\nclass = High Risk", fillcolor="#e58139b6"] ;
+8 -> 12 ;
+13 [label="gini = 0.422\nsamples = 3320\nvalue = [2314, 1006]\nclass = High Risk", fillcolor="#e5813990"] ;
+12 -> 13 ;
+14 [label="gini = 0.298\nsamples = 6528\nvalue = [5339, 1189]\nclass = High Risk", fillcolor="#e58139c6"] ;
+12 -> 14 ;
+}
