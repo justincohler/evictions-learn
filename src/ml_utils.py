@@ -5,19 +5,22 @@ import numpy as np
 import pandas as pd
 import json
 from dateutil import parser
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
+from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
+#import matplotlib
+#matplotlib.use('agg')
+#import matplotlib.pyplot as plt
+#import seaborn as sns
 import sklearn.tree as tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import preprocessing, svm, metrics, tree, decomposition, svm
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression, Perceptron, SGDClassifier, OrthogonalMatchingPursuit, RandomizedLogisticRegression
-from sklearn.neighbors.nearest_centroid import NearestCentroid
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, BaggingClassifier #ExtraTreesClassifier, AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression #, Perceptron, SGDClassifier, OrthogonalMatchingPursuit, RandomizedLogisticRegression
+from sklearn.svm import LinearSVC
+#from sklearn.neighbors.nearest_centroid import NearestCentroid
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
-from sklearn.tree import DecisionTreeClassifier
+#from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import *
 from sklearn.preprocessing import StandardScaler
@@ -27,7 +30,7 @@ plt.rcParams.update({'figure.max_open_warning': 0})
 from scipy import optimize
 from db_init import DBClient
 import logging
-from validation import *
+#from validation import *
 import graphviz
 import warnings
 from model_result import BAG, DT, GB, LR, RF, SVM
@@ -56,10 +59,10 @@ class Pipeline():
         self.classifiers = {'RF': {
             "type": RandomForestClassifier(),
             GRID_1: {'n_estimators': [10], 'max_depth': [5], 'max_features': ['sqrt'], 'min_samples_split': [10]},
-            GRID_2: {'n_estimators': [5, 10], 'max_depth': [
-                5, 10, 20], 'max_features': ['sqrt']},
+            GRID_2: {'n_estimators': [10, 100], 'max_depth': [
+                5, 10, 20], 'max_features': ['sqrt', 'log2'], 'min_samples_split': [2, 10]},
             GRID_3: {'n_estimators': [100], 'max_depth': [10, 20], 'max_features': [
-                'sqrt', 'log2'], 'min_samples_split': [2, 10]}
+                'sqrt'], 'min_samples_split': [10]}
         },
             'LR': {
             "type": LogisticRegression(),
@@ -77,7 +80,7 @@ class Pipeline():
             "type": GradientBoostingClassifier(),
             GRID_1: {'n_estimators': [5], 'learning_rate': [0.5], 'subsample': [0.5], 'max_depth': [5]},
             GRID_2: {'n_estimators': [5, 10], 'learning_rate': [
-                0.001, 0.01, 0.5], 'subsample': [0.1, 0.5], 'max_depth': [5, 20]},
+                0.1, 0.5], 'subsample': [0.1, 0.5], 'max_depth': [10]},
             GRID_3: {}
         },
             'BAG': {
@@ -106,29 +109,16 @@ class Pipeline():
             GRID_2: {'n_neighbors': [5, 10, 25], 'weights': [
                 'distance', 'uniform'], 'algorithm': ['auto', 'kd_tree']},
             GRID_3: {}
-        }}
+        },
+            'SVC': {
+            "type": LinearSVC(),
+            GRID_1: {"penalty": ['l2'], "loss":["hinge"], "C":[1.0]},
+            GRID_2: {},
+            GRID_3: {}
+            }
+        }
 
     ##### Loading Functions #####
-    def load_county_data(self, county):
-        """Load data from Cook County for local testing."""
-        "17031 is cook county"
-        l = []
-        with self.db.conn.cursor() as cur:
-            cur.execute(
-                "select * from blockgroup bg join outcome o on bg.geo_id=o.geo_id and bg.year=o.year where bg.county = '17031';")
-            l = cur.fetchall()
-
-        return pd.DataFrame(l, columns=[
-            "_id", "state_code", "geo_id", "year", "name",
-            "parent_location", "population", "poverty_rate", "pct_renter_occupied", "median_gross_rent",
-            "median_household_income", "median_property_value", "rent_burden", "pct_white", "pct_af_am",
-            "pct_hispanic", "pct_am_ind", "pct_asian", "pct_nh_pi", "pct_multiple",
-            "pct_other", "renter_occupied_households", "eviction_filings", "evictions", "eviction_rate",
-            "eviction_filing_rate", "imputed", "stubbed", "state", "county",
-            "tract", "population_pct_change_5yr", "geo_id (repeated)", "year (repeated)", "top20_num",
-            "top20_rate", "top20_num_01"
-        ])
-
     def load_data(self, chunksize=1000, max_chunks=None):
         """Return a list of data from the project db cursor.
 
@@ -250,9 +240,9 @@ class Pipeline():
 
     def f1_at_k(self, y_true, y_scores, k):
         """Calculate F1 score of predictions at a threshold k."""
-        y_scores, y_true = joint_sort_descending(
+        y_scores, y_true = self.joint_sort_descending(
             np.array(y_scores), np.array(y_true))
-        preds_at_k = generate_binary_at_k(y_scores, k)
+        preds_at_k = self.generate_binary_at_k(y_scores, k)
 
         f1 = f1_score(y_true, preds_at_k)
 
@@ -548,19 +538,24 @@ class Pipeline():
                     try:
                         classifier.set_params(**params)
                         fit = classifier.fit(X_train, y_train)
-                        y_pred_probs = fit.predict_proba(X_test)[:, 1]
+                        # Normalize Linear SVC scores to [0, 1] to match other model formulations as needed
+                        if model_key != 'SVC':
+                            y_pred_probs = fit.predict_proba(X_test)[:, 1]
+                        else:
+                            y_score = fit.decision_function(X_test)
+                            y_pred_probs = (y_score - y_score.min())/(y_score.max() - y_score.min())
 
                         model_result = None
-                        if grid != GRID_1:
+                        if grid == GRID_3:
                             model_result = self.get_model_result(
                                 model_key, fit, X_train, feature_set_labels)
 
                             self.plot_precision_recall_n(
                                 y_test, y_pred_probs, 'results/images/'+model_key+str(self.run_number), 'save')
 
-                        if len(feature_set_labels) == 4:
-                            self.analyze_bias_and_fairness(
-                                X_test, y_test, y_pred_probs, bias_features, outcome_label, model_key)
+                            if len(feature_set_labels) == 4:
+                                self.analyze_bias_and_fairness(
+                                    X_test, y_test, y_pred_probs, bias_features, outcome_label, model_key)
 
                         results.append(self.populate_outcome_table(
                             train_dates, test_dates, model_key, classifier, params, feature_set_labels, outcome_label, model_result, y_test, y_pred_probs))
@@ -607,14 +602,14 @@ def main():
     # Define models and predictors to run
     predictors = ['top20_num', 'e_num_inc_20pct']
     phase1 = {"name": "phase1", "models": [
-        'RF', 'LR', 'NB', 'GB', 'BAG', 'KNN', 'DT', 'BASELINE_DT'], "grid": GRID_1, "latest_split": False}
+        'RF', 'LR', 'NB', 'GB', 'BAG', 'KNN', 'DT', 'SVC', 'BASELINE_DT'], "grid": GRID_1, "latest_split": False}
     phase2 = {"name": "phase2", "models": [
         'RF', 'GB', 'BASELINE_DT'], "grid": GRID_2, "latest_split": False}
     phase3 = {"name": "phase3", "models": [
         'RF', 'BASELINE_DT'], "grid": GRID_3, "latest_split": True}
 
     # Run through 3-phase approach to increase feature and model selectivity
-    for phase in [phase3]:
+    for phase in [phase1, phase2, phase3]:
         logger.info("Running {}...".format(phase['name']))
         # Run models over all temporal splits, model parameters, feature
         results_df1 = pipeline.run_temporal(
