@@ -7,30 +7,28 @@ import json
 from dateutil import parser
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-#import matplotlib
-#matplotlib.use('agg')
-#import matplotlib.pyplot as plt
-#import seaborn as sns
+
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+plt.rcParams.update({'figure.max_open_warning': 0})
+
 import sklearn.tree as tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import preprocessing, svm, metrics, tree, decomposition, svm
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, BaggingClassifier #ExtraTreesClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression #, Perceptron, SGDClassifier, OrthogonalMatchingPursuit, RandomizedLogisticRegression
-from sklearn.svm import LinearSVC
-#from sklearn.neighbors.nearest_centroid import NearestCentroid
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, BaggingClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
-#from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import *
 from sklearn.preprocessing import StandardScaler
 import random
-import matplotlib.pyplot as plt
-plt.rcParams.update({'figure.max_open_warning': 0})
+
 from scipy import optimize
 from db_init import DBClient
 import logging
-#from validation import *
+
 import graphviz
 import warnings
 from model_result import BAG, DT, GB, LR, RF, SVM
@@ -109,13 +107,7 @@ class Pipeline():
             GRID_2: {'n_neighbors': [5, 10, 25], 'weights': [
                 'distance', 'uniform'], 'algorithm': ['auto', 'kd_tree']},
             GRID_3: {}
-        },
-            'SVC': {
-            "type": LinearSVC(),
-            GRID_1: {"penalty": ['l2'], "loss":["hinge"], "C":[1.0]},
-            GRID_2: {},
-            GRID_3: {}
-            }
+        }
         }
 
     ##### Loading Functions #####
@@ -538,12 +530,7 @@ class Pipeline():
                     try:
                         classifier.set_params(**params)
                         fit = classifier.fit(X_train, y_train)
-                        # Normalize Linear SVC scores to [0, 1] to match other model formulations as needed
-                        if model_key != 'SVC':
-                            y_pred_probs = fit.predict_proba(X_test)[:, 1]
-                        else:
-                            y_score = fit.decision_function(X_test)
-                            y_pred_probs = (y_score - y_score.min())/(y_score.max() - y_score.min())
+                        y_pred_probs = fit.predict_proba(X_test)[:, 1]
 
                         model_result = None
                         if grid == GRID_3:
@@ -602,7 +589,7 @@ def main():
     # Define models and predictors to run
     predictors = ['top20_num', 'e_num_inc_20pct']
     phase1 = {"name": "phase1", "models": [
-        'RF', 'LR', 'NB', 'GB', 'BAG', 'KNN', 'DT', 'SVC', 'BASELINE_DT'], "grid": GRID_1, "latest_split": False}
+        'RF', 'LR', 'NB', 'GB', 'BAG', 'KNN', 'DT', 'BASELINE_DT'], "grid": GRID_1, "latest_split": False}
     phase2 = {"name": "phase2", "models": [
         'RF', 'GB', 'BASELINE_DT'], "grid": GRID_2, "latest_split": False}
     phase3 = {"name": "phase3", "models": [
