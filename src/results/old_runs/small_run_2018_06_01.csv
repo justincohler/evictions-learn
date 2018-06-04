@@ -1,0 +1,49 @@
+,training_dates,testing_dates,model_key,classifier,parameters,feature_sets,outcome,model_result,auc-roc,p_at_1,p_at_2,p_at_5,p_at_10,p_at_20,p_at_30,p_at_50,r_at_1,r_at_2,r_at_5,r_at_10,r_at_20,r_at_30,r_at_50,f1_at_1,f1_at_2,f1_at_5,f1_at_10,f1_at_20,f1_at_30,f1_at_50
+0,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",RF,"RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=10, max_features='sqrt', max_leaf_nodes=None,
+            min_impurity_decrease=0.0, min_impurity_split=None,
+            min_samples_leaf=1, min_samples_split=2,
+            min_weight_fraction_leaf=0.0, n_estimators=10, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)","{'max_depth': 5, 'max_features': 'sqrt', 'n_estimators': 10}",['all'],top20_num,RF: feature_importances: results/RF0.csv,0.9531138356178905,0.9701492537313433,0.9777777777777777,0.9615384615384616,0.9334319526627219,0.7847633136094675,0.6306706114398422,0.41052942916296953,0.04609929078014184,0.09361702127659574,0.23049645390070922,0.4475177304964539,0.7524822695035461,0.9070921985815603,0.9843971631205674,0.08801624915368993,0.170873786407767,0.3718535469107552,0.6049856184084371,0.7682838522809559,0.7440372309482257,0.5794197453558756
+1,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",RF,"RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=10, max_features='sqrt', max_leaf_nodes=None,
+            min_impurity_decrease=0.0, min_impurity_split=None,
+            min_samples_leaf=1, min_samples_split=2,
+            min_weight_fraction_leaf=0.0, n_estimators=10, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)","{'max_depth': 10, 'max_features': 'sqrt', 'n_estimators': 10}",['all'],top20_num,RF: feature_importances: results/RF1.csv,0.9549701046337817,1.0,0.9925925925925926,0.9733727810650887,0.9349112426035503,0.7847633136094675,0.631163708086785,0.41171251109139306,0.0475177304964539,0.0950354609929078,0.23333333333333334,0.4482269503546099,0.7524822695035461,0.9078014184397163,0.9872340425531915,0.09072444143534192,0.17346278317152106,0.37643020594965676,0.6059443911792904,0.7682838522809559,0.7446189645142524,0.5810895428929242
+2,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",GB,"GradientBoostingClassifier(criterion='friedman_mse', init=None,
+              learning_rate=0.5, loss='deviance', max_depth=5,
+              max_features=None, max_leaf_nodes=None,
+              min_impurity_decrease=0.0, min_impurity_split=None,
+              min_samples_leaf=1, min_samples_split=2,
+              min_weight_fraction_leaf=0.0, n_estimators=5, presort='auto',
+              random_state=None, subsample=0.5, verbose=0,
+              warm_start=False)","{'learning_rate': 0.5, 'max_depth': 5, 'n_estimators': 5, 'subsample': 0.5}",['all'],top20_num,RF: feature_importances: results/GB2.csv,0.9552882729595352,0.9850746268656716,0.9259259259259259,0.9704142011834319,0.9393491124260355,0.7921597633136095,0.628698224852071,0.41200828157349895,0.04680851063829787,0.08865248226950355,0.2326241134751773,0.450354609929078,0.7595744680851064,0.9042553191489362,0.9879432624113476,0.08937034529451592,0.16181229773462785,0.37528604118993136,0.6088207094918504,0.775524981897176,0.7417102966841187,0.5815069922771865
+3,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",RF,"RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=10, max_features='sqrt', max_leaf_nodes=None,
+            min_impurity_decrease=0.0, min_impurity_split=None,
+            min_samples_leaf=1, min_samples_split=2,
+            min_weight_fraction_leaf=0.0, n_estimators=10, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)","{'max_depth': 5, 'max_features': 'sqrt', 'n_estimators': 10}",['all'],e_num_inc_20pct,RF: feature_importances: results/RF3.csv,0.7102341865475603,0.803030303030303,0.7443609022556391,0.7409638554216867,0.6586466165413534,0.5902255639097744,0.5511022044088176,0.4824165915238954,0.022825150732127476,0.04263565891472868,0.10594315245478036,0.18863049095607234,0.3380706287683032,0.4737295434969854,0.6912144702842378,0.04438860971524288,0.08065173116089613,0.18538055764883196,0.2932708403080013,0.42990142387732744,0.5094951366373321,0.5682421667551779
+4,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",RF,"RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=10, max_features='sqrt', max_leaf_nodes=None,
+            min_impurity_decrease=0.0, min_impurity_split=None,
+            min_samples_leaf=1, min_samples_split=2,
+            min_weight_fraction_leaf=0.0, n_estimators=10, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)","{'max_depth': 10, 'max_features': 'sqrt', 'n_estimators': 10}",['all'],e_num_inc_20pct,RF: feature_importances: results/RF4.csv,0.7187662294023286,0.8333333333333334,0.7518796992481203,0.713855421686747,0.6706766917293233,0.6037593984962406,0.5601202404809619,0.4935377216711752,0.023686477174849268,0.04306632213608958,0.1020671834625323,0.1920757967269595,0.3458225667527993,0.48148148148148145,0.7071490094745909,0.04606365159128978,0.0814663951120163,0.17859834212509418,0.29862738533645794,0.43975903614457834,0.5178323297823066,0.5813418304124625
+5,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",GB,"GradientBoostingClassifier(criterion='friedman_mse', init=None,
+              learning_rate=0.5, loss='deviance', max_depth=5,
+              max_features=None, max_leaf_nodes=None,
+              min_impurity_decrease=0.0, min_impurity_split=None,
+              min_samples_leaf=1, min_samples_split=2,
+              min_weight_fraction_leaf=0.0, n_estimators=5, presort='auto',
+              random_state=None, subsample=0.5, verbose=0,
+              warm_start=False)","{'learning_rate': 0.5, 'max_depth': 5, 'n_estimators': 5, 'subsample': 0.5}",['all'],e_num_inc_20pct,RF: feature_importances: results/GB5.csv,0.7275606268834061,0.8181818181818182,0.8120300751879699,0.7439759036144579,0.6827067669172933,0.6233082706766917,0.5696392785571143,0.5001502855425308,0.023255813953488372,0.046511627906976744,0.10637381567614125,0.19552110249784668,0.3570198105081826,0.4896640826873385,0.7166236003445305,0.045226130653266326,0.08798370672097759,0.18613413715146948,0.3039839303649146,0.4539978094194962,0.5266327003242242,0.589130819614091
+0,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",BASELINE_RAND,BASELINE_RAND,{},prior_year,top20_num,,0.49545765353178767,0.014925373134328358,0.007407407407407408,0.0029585798816568047,0.0014792899408284023,0.21227810650887574,0.21252465483234714,0.417036379769299,0.0007092198581560284,0.0007092198581560284,0.0007092198581560284,0.0007092198581560284,0.20354609929078013,0.3056737588652482,1.0,0.0013540961408259988,0.0012944983818770229,0.0011441647597254005,0.0009587727708533078,0.20782041998551776,0.25072716695753344,0.588603631809643
+1,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",BASELINE_PRIOR,BASELINE_PRIOR,{},prior_year,top20_num,,0.8434536303787807,1.0,1.0,1.0,0.5458579881656804,0.768491124260355,0.5182445759368837,0.417036379769299,0.0475177304964539,0.09574468085106383,0.2397163120567376,0.26170212765957446,0.7368794326241135,0.7453900709219858,1.0,0.09072444143534192,0.17475728155339806,0.3867276887871854,0.3537871524448705,0.7523533671252717,0.6114019778941245,0.588603631809643
+2,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",BASELINE_RAND,BASELINE_RAND,{},prior_year,e_num_inc_20pct,,0.507748359065759,0.015151515151515152,0.007518796992481203,0.0030120481927710845,0.0015037593984962407,0.11954887218045113,0.2940881763527054,0.5488428013225127,0.0004306632213608958,0.0004306632213608958,0.0004306632213608958,0.0004306632213608958,0.06847545219638243,0.25279931093884583,0.7863910422049957,0.0008375209380234506,0.0008146639511201629,0.0007535795026375283,0.0006695681285570807,0.08707557502738227,0.27188513200555814,0.6464861037351743
+3,"(datetime.datetime(2006, 1, 1, 0, 0), datetime.datetime(2015, 12, 31, 0, 0))","(datetime.datetime(2016, 1, 1, 0, 0), datetime.datetime(2016, 12, 31, 0, 0))",BASELINE_PRIOR,BASELINE_PRIOR,{},prior_year,e_num_inc_20pct,,0.4110432906010436,0.015151515151515152,0.007518796992481203,0.0030120481927710845,0.0015037593984962407,0.13082706766917293,0.25250501002004005,0.48542230237451156,0.0004306632213608958,0.0004306632213608958,0.0004306632213608958,0.0004306632213608958,0.07493540051679587,0.21705426356589147,0.6955211024978467,0.0008375209380234506,0.0008146639511201629,0.0007535795026375283,0.0006695681285570807,0.09529025191675794,0.2334414080592867,0.5717826163922818
