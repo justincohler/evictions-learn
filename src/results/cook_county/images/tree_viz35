@@ -1,0 +1,21 @@
+digraph Tree {
+node [shape=box, style="filled, rounded", color="black", fontname=helvetica] ;
+edge [fontname=helvetica] ;
+0 [label="total_bldg <= 5181.0\ngini = 0.474\nsamples = 39930\nvalue = [24534, 15396]\nclass = High Risk", fillcolor="#e581395f"] ;
+1 [label="total_value_avg_5yr <= 961652480.0\ngini = 0.458\nsamples = 35937\nvalue = [23154, 12783]\nclass = High Risk", fillcolor="#e5813972"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="total_value_avg_5yr <= 820087040.0\ngini = 0.42\nsamples = 11979\nvalue = [8378, 3601]\nclass = High Risk", fillcolor="#e5813991"] ;
+1 -> 2 ;
+3 [label="gini = 0.423\nsamples = 7986\nvalue = [5555, 2431]\nclass = High Risk", fillcolor="#e581398f"] ;
+2 -> 3 ;
+4 [label="gini = 0.414\nsamples = 3993\nvalue = [2823, 1170]\nclass = High Risk", fillcolor="#e5813995"] ;
+2 -> 4 ;
+5 [label="total_value_pct_change_1yr <= -28.863\ngini = 0.473\nsamples = 23958\nvalue = [14776, 9182]\nclass = High Risk", fillcolor="#e5813961"] ;
+1 -> 5 ;
+6 [label="gini = 0.483\nsamples = 7986\nvalue = [4732, 3254]\nclass = High Risk", fillcolor="#e5813950"] ;
+5 -> 6 ;
+7 [label="gini = 0.467\nsamples = 15972\nvalue = [10044, 5928]\nclass = High Risk", fillcolor="#e5813968"] ;
+5 -> 7 ;
+8 [label="gini = 0.452\nsamples = 3993\nvalue = [1380, 2613]\nclass = Low Risk", fillcolor="#399de578"] ;
+0 -> 8 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+}
